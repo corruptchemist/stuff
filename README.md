@@ -82,9 +82,17 @@ Type colours as five characters: `g` green, `y` yellow, `b` grey (`0/1/2` and
 **Letting it play by itself** in a real browser:
 
 ```bash
-python -m wordlebot.browser "https://your-wordle-site.example/" --no-headless
-python -m wordlebot.browser "URL" --games 10          # play ten in a row
+python -m wordlebot.browser "https://your-wordle-site.example/"
+python -m wordlebot.browser "URL" --games 10       # play ten in a row
+python -m wordlebot.browser "URL" --no-headless    # watch it, for debugging
 ```
+
+By default no window opens and keystrokes go straight into the page over the
+debug protocol, never through the OS -- so it will not steal focus or your
+typing, and you can keep using the machine while it plays. Add `--no-headless`
+only when you want to watch. If the board is not found, the run writes
+`wordlebot-debug.png` and `wordlebot-debug.html` so you can see what the page
+actually looked like.
 
 ## How it works
 

@@ -190,7 +190,21 @@ def play_url(url: str, headless: bool = True, opener: str | None = None,
             page.wait_for_timeout(1200)
             game = BrowserGame(page, verbose)
             game.dismiss_overlays()
-            rows = game.calibrate()
+            try:
+                rows = game.calibrate()
+            except RuntimeError as exc:
+                # Headless leaves nothing to look at, so leave evidence behind.
+                shot, html = Path("wordlebot-debug.png"), Path("wordlebot-debug.html")
+                try:
+                    page.screenshot(path=str(shot), full_page=True)
+                    html.write_text(page.content(), encoding="utf-8")
+                except Exception:
+                    pass
+                raise RuntimeError(
+                    f"{exc}\n\nSaved {shot} and {html} so the page can be inspected."
+                    "\nA cookie or how-to-play dialog covering the grid is the usual"
+                    " cause; re-run with --no-headless to watch it happen."
+                ) from None
             game.log(f"board found: {rows} rows")
             max_guesses = min(max_guesses, rows)
 
