@@ -17,7 +17,13 @@ worst case    5 guesses
 
 Reproduce it yourself with `python -m wordlebot.benchmark` (about 25 seconds).
 
-## Install
+## Install (Windows: just double-click)
+
+Double-click **`setup.bat`** once, then **`play-browser.bat`** to watch it play or
+**`play-manual.bat`** to have it coach you. That is the whole thing; the rest of
+this section is what those scripts do, for anyone not on Windows.
+
+## Install (manually)
 
 First get the code -- every command below must be run from inside the repo
 folder, not from your home directory.
