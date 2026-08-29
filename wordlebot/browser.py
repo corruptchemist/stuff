@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import math
+from collections import Counter
 import os
 import sys
 import time
@@ -42,6 +43,18 @@ FIND_BOARD_JS = r"""
     return bits.join(' ').toLowerCase();
   };
 
+  // An on-screen keyboard is also a grid of single-letter squares, so it has
+  // to be excluded explicitly or it gets mistaken for the board.
+  const isKeyboard = (el) => {
+    for (let cur = el, d = 0; cur && d < 4; cur = cur.parentElement, d++) {
+      if (cur.tagName === 'BUTTON' || cur.getAttribute?.('role') === 'button') return true;
+      const id = ((cur.className && typeof cur.className === 'string' ? cur.className : '')
+                  + ' ' + (cur.id || '')).toLowerCase();
+      if (/keyboard|\bkey\b|\bkeys\b|keypad/.test(id)) return true;
+    }
+    return false;
+  };
+
   // Square-ish, small, holding at most one letter -- that is a Wordle tile.
   const cands = [];
   for (const el of document.querySelectorAll('*')) {
@@ -51,6 +64,7 @@ FIND_BOARD_JS = r"""
     if (el.children.length > 2) continue;
     const txt = (el.textContent || '').trim();
     if (txt.length > 1 || (txt && !/^[a-zA-Z]$/.test(txt))) continue;
+    if (isKeyboard(el)) continue;
     cands.push({ el, r, txt });
   }
   // Drop inner wrappers: same box as an ancestor already counted.
@@ -65,8 +79,20 @@ FIND_BOARD_JS = r"""
     const row = rows.find(r => Math.abs(r[0].r.top - c.r.top) < c.r.height * 0.6);
     if (row) row.push(c); else rows.push([c]);
   }
-  const grid = rows.filter(r => r.length >= 5)
-                   .map(r => r.sort((a, b) => a.r.left - b.r.left).slice(0, 5));
+  // A Wordle row is exactly five wide. Keyboard rows are nine or ten, so
+  // requiring an exact five throws them out; only fall back to a looser rule
+  // if nothing matches at all.
+  rows.forEach(r => r.sort((a, b) => a.r.left - b.r.left));
+  let grid = rows.filter(r => r.length === 5);
+  if (grid.length < 2) grid = rows.filter(r => r.length >= 5).map(r => r.slice(0, 5));
+  // Board rows line up with each other; stray five-square groups elsewhere on
+  // the page do not. Keep the largest set sharing a left edge and width.
+  if (grid.length > 1) {
+    const key = (r) => Math.round(r[0].r.left / 4) + ':' + Math.round(r[0].r.width / 4);
+    const groups = {};
+    for (const r of grid) (groups[key(r)] ||= []).push(r);
+    grid = Object.values(groups).sort((a, b) => b.length - a.length)[0];
+  }
   if (grid.length < 2) return null;
   return grid.map(row => row.map(c => ({
     letter: c.txt.toLowerCase(), bg: bgOf(c.el), marks: marksOf(c.el),
@@ -200,16 +226,45 @@ class BrowserGame:
                     self.page.wait_for_timeout(250)
             except Exception:
                 pass
+        self.blur()
+
+    def blur(self) -> None:
+        """Drop focus from any button we clicked.
+
+        A focused button swallows Enter: the key both submits the guess and
+        re-activates the button, which on most boards starts a new game
+        underneath us mid-play.
+        """
         try:
             self.page.keyboard.press("Escape")
+            self.page.evaluate("() => document.activeElement && document.activeElement.blur()")
         except Exception:
             pass
 
-    def type_word(self, word: str) -> None:
-        for ch in word:
-            self.page.keyboard.press(ch)
-            self.page.wait_for_timeout(35)
-        self.page.keyboard.press("Enter")
+    def row_letters(self, index: int) -> str:
+        grid = self.board()
+        if not grid or index >= len(grid):
+            return ""
+        return "".join(t["letter"] for t in grid[index])
+
+    def type_word(self, word: str, index: int, tries: int = 3) -> bool:
+        """Type `word` into row `index` and submit it.
+
+        Sites lock input while the previous row is still flipping, which
+        silently eats the first keystrokes. So confirm the row really holds the
+        word before pressing Enter -- otherwise a dropped letter looks exactly
+        like the site rejecting a perfectly good guess.
+        """
+        for attempt in range(tries):
+            for ch in word:
+                self.page.keyboard.press(ch)
+                self.page.wait_for_timeout(35)
+            if self.row_letters(index) == word:
+                self.page.keyboard.press("Enter")
+                return True
+            self.clear_row(len(word) + 2)
+            self.page.wait_for_timeout(250 * (attempt + 1))
+        return False
 
     def clear_row(self, n: int = 5) -> None:
         for _ in range(n):
@@ -229,131 +284,171 @@ class BrowserGame:
         return None
 
 
-def play_url(url: str, headless: bool = True, opener: str | None = None,
-             max_guesses: int = MAX_GUESSES, screenshot: str | None = None,
-             verbose: bool = True, reveal_timeout: float = 4.0,
-             hud: bool = True, linger: int = 2500) -> dict:
-    """Play one game at `url`. Returns a summary dict."""
-    from playwright.sync_api import sync_playwright
 
+def play_page(page, opener: str | None = None, max_guesses: int = MAX_GUESSES,
+              verbose: bool = True, reveal_timeout: float = 4.0,
+              hud: bool = True, linger: int = 2500, settle: int = 400) -> dict:
+    """Play one game on an already-loaded board. Returns a summary dict."""
     solver = Solver(**({"opener": opener} if opener else {}))
     rejected: set[str] = set()
     played: list[tuple[str, int]] = []
+    turns: list[dict] = []
 
+    game = BrowserGame(page, verbose)
+    game.dismiss_overlays()
+    try:
+        rows = game.calibrate()
+    except RuntimeError as exc:
+        shot, html = Path("wordlebot-debug.png"), Path("wordlebot-debug.html")
+        try:
+            page.screenshot(path=str(shot), full_page=True)
+            html.write_text(page.content(), encoding="utf-8")
+        except Exception:
+            pass
+        raise RuntimeError(
+            f"{exc}\n\nSaved {shot} and {html} so the page can be inspected."
+            "\nA cookie or how-to-play dialog covering the grid is the usual"
+            " cause; re-run with --no-headless to watch it happen."
+        ) from None
+    game.log(f"board found: {rows} rows")
+    max_guesses = min(max_guesses, rows)
+
+    def draw(verdict=None):
+        if not hud:
+            return
+        # On a win the solver is never told the answer, so its candidate count
+        # is one turn stale; the board is in fact fully resolved.
+        n = 1 if verdict else len(solver.candidates)
+        try:
+            page.evaluate(HUD_JS, {
+                "candidates": n,
+                "progress": min(1.0, (TOTAL_BITS - math.log2(max(n, 1))) / TOTAL_BITS),
+                "turns": [{"n": t["n"], "guess": t["guess"], "pattern": t["pattern"],
+                           "actual": t["actual"], "luck": t["actual"] - t["expected"]}
+                          for t in turns],
+                "stats": _stats(turns, n, verdict is not None),
+                "verdict": verdict,
+            })
+        except Exception:
+            pass  # a HUD is never worth failing a game over
+
+    draw()
+    # A refused word leaves the row untouched, so it costs an attempt but not a
+    # turn; row and attempt counters have to move independently.
+    row, attempts, choices, ranked, best_bits = 0, 0, None, [], 0.0
+    while row < max_guesses and attempts < max_guesses + 25:
+        attempts += 1
+        if choices is None:  # ranking is expensive; reuse it across refusals
+            ranked = solver.ranked(6)
+            best_bits = max((b for _, b in ranked), default=0.0)
+            choices = [w for w, _ in ranked]
+        guess = next((w for w in choices if w not in rejected), None)
+        if guess is None:
+            choices = _ranking(solver)  # everything shortlisted was refused
+            guess = next((w for w in choices if w not in rejected), None)
+        if guess is None:
+            game.log("no guess left that this site accepts")
+            break
+
+        expected = next((b for w, b in ranked if w == guess), 0.0)
+        before = len(solver.candidates)
+        game.log(f"guess {row + 1}: {guess.upper()}  ({before} candidates)")
+        if not game.type_word(guess, row):
+            game.log(f"  could not enter '{guess}' -- the board is not accepting input")
+            break
+        pattern = game.read_row(row, timeout=reveal_timeout)
+        if pattern is None:
+            game.log(f"  '{guess}' rejected by this site; trying another")
+            rejected.add(guess)
+            game.clear_row()
+            continue
+        game.log(f"  -> {pattern_to_string(pattern)}")
+        # The row is coloured but the site may still be animating and refusing
+        # input; let it settle before the next word.
+        page.wait_for_timeout(settle)
+        played.append((guess, pattern))
+        row += 1
+
+        solved = pattern == ALL_GREEN
+        if not solved:
+            try:
+                solver.observe(guess, pattern)
+            except Unsolvable:
+                game.log("  feedback matches no known word -- this site uses a "
+                         "wider dictionary than the bundled list")
+                break
+        after = 1 if solved else max(len(solver.candidates), 1)
+        turns.append({
+            "n": row, "guess": guess, "pattern": pattern_to_string(pattern),
+            "expected": expected, "actual": math.log2(before / after),
+            # 1.0 when it played the most informative guess available to it.
+            "quality": (expected / best_bits) if best_bits > 0 else 1.0,
+        })
+        choices = None  # state changed; re-rank
+        if solved:
+            game.log(f"\nSolved '{guess.upper()}' in {len(played)} guesses.")
+            draw(f"SOLVED {guess.upper()} in {len(played)}")
+            page.wait_for_timeout(linger)
+            break
+        draw()
+    else:
+        draw()
+
+    solved = bool(played) and played[-1][1] == ALL_GREEN
+    return {"solved": solved, "guesses": len(played),
+            "word": played[-1][0] if solved else None, "played": played}
+
+
+def start_next_game(page) -> None:
+    """Ask the board for a fresh puzzle, falling back to a reload."""
+    for sel in ("button:has-text('New game')", "button:has-text('New Game')",
+                "button:has-text('Play again')", "button:has-text('Next')",
+                "#new", ".new-game"):
+        try:
+            loc = page.locator(sel).first
+            if loc.is_visible(timeout=500):
+                loc.click(timeout=1500)
+                page.wait_for_timeout(700)
+                page.evaluate(
+                    "() => { document.getElementById('wordlebot-hud')?.remove();"
+                    "  document.activeElement && document.activeElement.blur(); }"
+                )
+                return
+        except Exception:
+            pass
+    page.reload(wait_until="domcontentloaded")
+    page.wait_for_timeout(1000)
+
+
+def play_session(url: str, games: int = 1, headless: bool = True, **kw) -> list[dict]:
+    """Play `games` rounds in a single browser window."""
+    from playwright.sync_api import sync_playwright
+
+    screenshot = kw.pop("screenshot", None)
+    results = []
     with sync_playwright() as pw:
         browser = pw.chromium.launch(headless=headless, **_launch_kwargs())
         page = browser.new_page(viewport={"width": 1280, "height": 1000})
         try:
             page.goto(url, wait_until="domcontentloaded", timeout=45000)
             page.wait_for_timeout(1200)
-            game = BrowserGame(page, verbose)
-            game.dismiss_overlays()
-            try:
-                rows = game.calibrate()
-            except RuntimeError as exc:
-                # Headless leaves nothing to look at, so leave evidence behind.
-                shot, html = Path("wordlebot-debug.png"), Path("wordlebot-debug.html")
-                try:
-                    page.screenshot(path=str(shot), full_page=True)
-                    html.write_text(page.content(), encoding="utf-8")
-                except Exception:
-                    pass
-                raise RuntimeError(
-                    f"{exc}\n\nSaved {shot} and {html} so the page can be inspected."
-                    "\nA cookie or how-to-play dialog covering the grid is the usual"
-                    " cause; re-run with --no-headless to watch it happen."
-                ) from None
-            game.log(f"board found: {rows} rows")
-            max_guesses = min(max_guesses, rows)
-
-            # A refused word leaves the row untouched, so it costs an attempt but
-            # not a turn; row and attempt counters have to move independently.
-            # A refused word leaves the row untouched, so it costs an attempt but
-            # not a turn; row and attempt counters have to move independently.
-            row, attempts, choices = 0, 0, None
-            turns: list[dict] = []
-
-            def draw(verdict=None):
-                if not hud:
-                    return
-                # On a win the solver is never told the answer, so its candidate
-                # count is one turn stale; the board is in fact fully resolved.
-                n = 1 if verdict else len(solver.candidates)
-                try:
-                    page.evaluate(HUD_JS, {
-                        "candidates": n,
-                        "progress": min(1.0, (TOTAL_BITS - math.log2(max(n, 1))) / TOTAL_BITS),
-                        "turns": [{"n": t["n"], "guess": t["guess"],
-                                   "pattern": t["pattern"], "actual": t["actual"],
-                                   "luck": t["actual"] - t["expected"]} for t in turns],
-                        "stats": _stats(turns, n, verdict is not None),
-                        "verdict": verdict,
-                    })
-                except Exception:
-                    pass  # a HUD is never worth failing a game over
-
-            draw()
-            while row < max_guesses and attempts < max_guesses + 25:
-                attempts += 1
-                if choices is None:  # ranking is expensive; reuse it across refusals
-                    ranked = solver.ranked(6)
-                    best_bits = max((b for _, b in ranked), default=0.0)
-                    choices = [w for w, _ in ranked]
-                guess = next((w for w in choices if w not in rejected), None)
-                if guess is None:
-                    # Everything on the shortlist was refused: widen the search.
-                    choices = _ranking(solver)
-                    guess = next((w for w in choices if w not in rejected), None)
-                if guess is None:
-                    game.log("no guess left that this site accepts")
-                    break
-                expected = next((b for w, b in ranked if w == guess), 0.0)
-                before = len(solver.candidates)
-                game.log(f"guess {row + 1}: {guess.upper()}  ({before} candidates)")
-                game.type_word(guess)
-                pattern = game.read_row(row, timeout=reveal_timeout)
-                if pattern is None:
-                    game.log(f"  '{guess}' rejected by this site; trying another")
-                    rejected.add(guess)
-                    game.clear_row()
-                    continue
-                game.log(f"  -> {pattern_to_string(pattern)}")
-                played.append((guess, pattern))
-                row += 1
-                solved = pattern == ALL_GREEN
-                if not solved:
-                    try:
-                        solver.observe(guess, pattern)
-                    except Unsolvable:
-                        game.log("  feedback matches no known word -- this site uses a "
-                                 "wider dictionary than the bundled list")
-                        break
-                after = 1 if solved else max(len(solver.candidates), 1)
-                turns.append({
-                    "n": row, "guess": guess, "pattern": pattern_to_string(pattern),
-                    "expected": expected,
-                    "actual": math.log2(before / after),
-                    # 1.0 when it played the best guess available to it.
-                    "quality": (expected / best_bits) if best_bits > 0 else 1.0,
-                })
-                choices = None  # state changed; re-rank
-                if solved:
-                    game.log(f"\nSolved '{guess.upper()}' in {len(played)} guesses.")
-                    draw(f"SOLVED {guess.upper()} in {len(played)}")
-                    page.wait_for_timeout(linger)
-                    break
-                draw()
-            else:
-                draw()
+            for i in range(games):
+                if i:
+                    if games > 1:
+                        print(f"\n===== game {i + 1}/{games} =====")
+                    start_next_game(page)
+                results.append(play_page(page, **kw))
             if screenshot:
                 page.screenshot(path=screenshot, full_page=True)
-                game.log(f"screenshot: {screenshot}")
+                print(f"screenshot: {screenshot}")
         finally:
             browser.close()
+    return results
 
-    solved = bool(played) and played[-1][1] == ALL_GREEN
-    return {"solved": solved, "guesses": len(played),
-            "word": played[-1][0] if solved else None, "played": played}
+
+def play_url(url: str, headless: bool = True, **kw) -> dict:
+    """Play a single game at `url` (kept for callers that want just one)."""
+    return play_session(url, games=1, headless=headless, **kw)
 
 
 def _stats(turns: list[dict], candidates: int, solved: bool) -> list:
@@ -383,6 +478,16 @@ def _stats(turns: list[dict], candidates: int, solved: bool) -> list:
     return rows
 
 
+# Chromium phones home on startup (sync, component updates, safe browsing).
+# None of it helps here, and on a restricted network each attempt stalls.
+_QUIET_ARGS = [
+    "--disable-background-networking", "--disable-component-update",
+    "--disable-sync", "--disable-default-apps", "--no-first-run",
+    "--no-default-browser-check", "--disable-domain-reliability",
+    "--disable-client-side-phishing-detection",
+]
+
+
 def _launch_kwargs() -> dict:
     """Use a preinstalled Chromium when Playwright's own build is missing.
 
@@ -395,8 +500,8 @@ def _launch_kwargs() -> dict:
                    "/usr/bin/chromium-browser", "/usr/bin/google-chrome"]
     for path in candidates:
         if path and Path(path).exists():
-            return {"executable_path": path}
-    return {}
+            return {"executable_path": path, "args": _QUIET_ARGS}
+    return {"args": _QUIET_ARGS}
 
 
 def _ranking(solver: Solver) -> list[str]:
@@ -414,7 +519,9 @@ def _ranking(solver: Solver) -> list[str]:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description="Play Wordle in a browser.")
-    ap.add_argument("url", help="page with a Wordle board on it")
+    ap.add_argument("url", nargs="?", help="page with a Wordle board on it")
+    ap.add_argument("--local", action="store_true",
+                    help="serve the bundled Wordle on localhost and play that")
     ap.add_argument("--no-headless", action="store_true", help="show the browser")
     ap.add_argument("--opener", default=None)
     ap.add_argument("--screenshot", default=None, help="save a PNG when finished")
@@ -424,20 +531,24 @@ def main() -> None:
                     help="ms to hold on the finished board so you can read it")
     args = ap.parse_args()
 
-    wins = 0
-    totals = []
-    for i in range(args.games):
-        if args.games > 1:
-            print(f"\n===== game {i + 1}/{args.games} =====")
-        result = play_url(args.url, headless=not args.no_headless, opener=args.opener,
-                          screenshot=args.screenshot, hud=not args.no_hud,
-                          linger=args.linger)
-        wins += result["solved"]
-        if result["solved"]:
-            totals.append(result["guesses"])
+    url = args.url
+    if args.local or not url:
+        from .server import serve_background
+        url, _httpd = serve_background()
+        print(f"serving the bundled Wordle at {url}")
+    elif args.local and url:
+        ap.error("pass a URL or --local, not both")
+
+    results = play_session(url, games=args.games, headless=not args.no_headless,
+                           opener=args.opener, screenshot=args.screenshot,
+                           hud=not args.no_hud, linger=args.linger)
+    wins = sum(r["solved"] for r in results)
+    totals = [r["guesses"] for r in results if r["solved"]]
     if args.games > 1:
         avg = sum(totals) / len(totals) if totals else 0
+        dist = Counter(totals)
         print(f"\nsolved {wins}/{args.games}   mean {avg:.2f} guesses")
+        print("  " + "  ".join(f"{k}:{dist[k]}" for k in sorted(dist)))
     sys.exit(0 if wins else 1)
 
 

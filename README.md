@@ -19,9 +19,17 @@ Reproduce it yourself with `python -m wordlebot.benchmark` (about 25 seconds).
 
 ## Install (Windows: just double-click)
 
-Double-click **`setup.bat`** once, then **`play-browser.bat`** to watch it play or
-**`play-manual.bat`** to have it coach you. That is the whole thing; the rest of
-this section is what those scripts do, for anyone not on Windows.
+Double-click **`setup.bat`** once. Then:
+
+| | |
+|---|---|
+| **`play-local.bat`** | the bot plays the bundled game -- nothing else needed |
+| **`play-yourself.bat`** | opens that game for *you* to play |
+| **`play-manual.bat`** | you play any Wordle site, the bot tells you what to type |
+| **`play-browser.bat`** | the bot plays a site out on the web |
+
+Start with `play-local.bat`. The rest of this section is what those scripts do,
+for anyone not on Windows.
 
 ## Install (manually)
 
@@ -84,6 +92,18 @@ python -m wordlebot.cli
 
 Type colours as five characters: `g` green, `y` yellow, `b` grey (`0/1/2` and
 `.?*` also work). Also `:list`, `:undo`, `:new`, `:word WORD` to overrule it.
+
+**Its own Wordle, on localhost.** A full game ships with the package -- board,
+on-screen keyboard, flip animations, unlimited rounds, light and dark themes --
+served from the standard library, no network needed:
+
+```bash
+python -m wordlebot.server            # play it yourself at 127.0.0.1:8000
+python -m wordlebot.browser --local --games 8 --no-headless   # watch the bot play it
+```
+
+`--local` starts the server, plays, and shuts down on its own. All the rounds
+run in one window, so the game's own streak counter climbs as it goes.
 
 **Letting it play by itself** in a real browser:
 

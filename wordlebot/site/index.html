@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Wordle - local</title>
+<style>
+  :root {
+    --bg:#121213; --fg:#f5f5f5; --tile-border:#3a3a3c; --tile-fill:#565758;
+    --key:#818384; --key-fg:#f5f5f5;
+    --correct:#538d4e; --present:#b59f3b; --absent:#3a3a3c;
+  }
+  [data-theme="light"] {
+    --bg:#fff; --fg:#1a1a1b; --tile-border:#d3d6da; --tile-fill:#878a8c;
+    --key:#d3d6da; --key-fg:#1a1a1b;
+    --correct:#6aaa64; --present:#c9b458; --absent:#787c7e;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; height:100vh; display:flex; flex-direction:column;
+         align-items:center; background:var(--bg); color:var(--fg);
+         font-family:"Helvetica Neue",Arial,sans-serif; user-select:none; }
+  header { width:100%; max-width:500px; display:flex; align-items:center;
+           justify-content:space-between; padding:10px 16px;
+           border-bottom:1px solid var(--tile-border); }
+  h1 { margin:0; font-size:26px; font-weight:700; letter-spacing:3px; }
+  .btn { background:none; border:1px solid var(--tile-border); color:var(--fg);
+         border-radius:6px; padding:6px 12px; cursor:pointer; font-size:13px; }
+  .btn:hover { border-color:var(--tile-fill); }
+  #wrap { flex:1; display:flex; flex-direction:column; justify-content:center;
+          align-items:center; gap:14px; }
+  #board { display:grid; grid-template-rows:repeat(6,58px); gap:5px; }
+  .row { display:grid; grid-template-columns:repeat(5,58px); gap:5px; }
+  .tile { display:flex; align-items:center; justify-content:center;
+          font-size:30px; font-weight:700; text-transform:uppercase;
+          border:2px solid var(--tile-border); color:var(--fg);
+          transition:transform .25s ease; }
+  .tile.filled { border-color:var(--tile-fill); animation:pop .1s ease; }
+  .tile[data-state="correct"] { background:var(--correct); border-color:var(--correct); color:#fff; }
+  .tile[data-state="present"] { background:var(--present); border-color:var(--present); color:#fff; }
+  .tile[data-state="absent"]  { background:var(--absent);  border-color:var(--absent);  color:#fff; }
+  .tile.flip { transform:rotateX(90deg); }
+  @keyframes pop { 50% { transform:scale(1.08); } }
+  .row.shake { animation:shake .5s; }
+  @keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-6px)}
+                     40%{transform:translateX(6px)} 60%{transform:translateX(-4px)}
+                     80%{transform:translateX(4px)} }
+  #keyboard { display:flex; flex-direction:column; gap:6px; padding-bottom:16px; }
+  .krow { display:flex; gap:5px; justify-content:center; }
+  .key { min-width:42px; height:56px; border-radius:4px; border:0;
+         background:var(--key); color:var(--key-fg); font-weight:700;
+         font-size:13px; text-transform:uppercase; cursor:pointer;
+         display:flex; align-items:center; justify-content:center; }
+  .key.wide { min-width:64px; font-size:11px; }
+  .key[data-state="correct"] { background:var(--correct); color:#fff; }
+  .key[data-state="present"] { background:var(--present); color:#fff; }
+  .key[data-state="absent"]  { background:var(--absent);  color:#fff; }
+  #toast { position:fixed; top:80px; left:50%; transform:translateX(-50%);
+           background:var(--fg); color:var(--bg); padding:11px 18px;
+           border-radius:5px; font-weight:600; opacity:0; pointer-events:none;
+           transition:opacity .2s; z-index:50; }
+  #toast.show { opacity:1; }
+  #status { font-size:13px; color:var(--tile-fill); min-height:18px; }
+</style>
+
+<header>
+  <button class="btn" id="theme">Light</button>
+  <h1>WORDLE</h1>
+  <button class="btn" id="new">New game</button>
+</header>
+
+<div id="wrap">
+  <div id="status">loading word lists...</div>
+  <div id="board"></div>
+  <div id="keyboard"></div>
+</div>
+<div id="toast"></div>
+
+<script>
+const WORD_LEN = 5, MAX_ROWS = 6;
+const board = document.getElementById('board');
+const keyboard = document.getElementById('keyboard');
+const toastEl = document.getElementById('toast');
+const statusEl = document.getElementById('status');
+
+let ANSWERS = [], ALLOWED = new Set();
+let answer = '', row = 0, cur = '', done = false, busy = false;
+let streak = 0, played = 0, wins = 0;
+
+for (let r = 0; r < MAX_ROWS; r++) {
+  const div = document.createElement('div');
+  div.className = 'row';
+  for (let c = 0; c < WORD_LEN; c++) {
+    const t = document.createElement('div');
+    t.className = 'tile';
+    div.appendChild(t);
+  }
+  board.appendChild(div);
+}
+
+const KEYS = ['qwertyuiop', 'asdfghjkl', 'Zxcvbnm<'];
+KEYS.forEach((line, i) => {
+  const kr = document.createElement('div');
+  kr.className = 'krow';
+  for (const ch of line) {
+    const k = document.createElement('button');
+    k.className = 'key';
+    if (ch === 'Z') { k.textContent = 'Enter'; k.dataset.key = 'Enter'; k.classList.add('wide'); }
+    else if (ch === '<') { k.textContent = 'Back'; k.dataset.key = 'Backspace'; k.classList.add('wide'); }
+    else { k.textContent = ch; k.dataset.key = ch; }
+    k.addEventListener('click', () => handle(k.dataset.key));
+    kr.appendChild(k);
+  }
+  keyboard.appendChild(kr);
+});
+
+function toast(msg, ms = 1400) {
+  toastEl.textContent = msg;
+  toastEl.classList.add('show');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => toastEl.classList.remove('show'), ms);
+}
+
+function score(guess, target) {
+  const res = Array(WORD_LEN).fill('absent');
+  const left = {};
+  for (const ch of target) left[ch] = (left[ch] || 0) + 1;
+  for (let i = 0; i < WORD_LEN; i++)
+    if (guess[i] === target[i]) { res[i] = 'correct'; left[guess[i]]--; }
+  for (let i = 0; i < WORD_LEN; i++)
+    if (res[i] === 'absent' && left[guess[i]] > 0) { res[i] = 'present'; left[guess[i]]--; }
+  return res;
+}
+
+function render() {
+  const tiles = board.children[row].children;
+  for (let i = 0; i < WORD_LEN; i++) {
+    tiles[i].textContent = cur[i] || '';
+    tiles[i].classList.toggle('filled', !!cur[i]);
+  }
+}
+
+const RANK = { absent: 0, present: 1, correct: 2 };
+function paintKey(ch, state) {
+  const k = [...keyboard.querySelectorAll('.key')].find(k => k.dataset.key === ch);
+  if (!k) return;
+  const now = k.dataset.state;
+  if (!now || RANK[state] > RANK[now]) k.dataset.state = state;
+}
+
+function submit() {
+  if (busy || done) return;
+  if (cur.length < WORD_LEN) { board.children[row].classList.add('shake');
+    setTimeout(() => board.children[row].classList.remove('shake'), 500);
+    return toast('Not enough letters'); }
+  if (ALLOWED.size && !ALLOWED.has(cur)) { board.children[row].classList.add('shake');
+    setTimeout(() => board.children[row].classList.remove('shake'), 500);
+    return toast('Not in word list'); }
+
+  busy = true;
+  const res = score(cur, answer);
+  const tiles = board.children[row].children;
+  const word = cur;
+  // Flip the tiles one at a time, like the real game.
+  res.forEach((state, i) => setTimeout(() => {
+    tiles[i].classList.add('flip');
+    setTimeout(() => {
+      tiles[i].dataset.state = state;
+      tiles[i].classList.remove('flip');
+      paintKey(word[i], state);
+    }, 130);
+  }, i * 170));
+
+  const total = (WORD_LEN - 1) * 170 + 300;
+  setTimeout(() => {
+    busy = false;
+    if (word === answer) {
+      done = true; played++; wins++; streak++;
+      toast(['Genius', 'Magnificent', 'Impressive', 'Splendid', 'Great', 'Phew'][row] || 'Solved', 2200);
+      updateStatus();
+    } else if (row === MAX_ROWS - 1) {
+      done = true; played++; streak = 0;
+      toast(answer.toUpperCase(), 4000);
+      updateStatus();
+    }
+  }, total);
+  row++; cur = '';
+}
+
+function handle(key) {
+  if (done || busy || row >= MAX_ROWS) return;
+  if (key === 'Enter') submit();
+  else if (key === 'Backspace') { cur = cur.slice(0, -1); render(); }
+  else if (/^[a-z]$/i.test(key) && cur.length < WORD_LEN) { cur += key.toLowerCase(); render(); }
+}
+
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  handle(e.key);
+});
+
+function updateStatus() {
+  statusEl.textContent = played
+    ? `played ${played}  ·  won ${wins}  ·  streak ${streak}`
+    : 'type a five-letter word';
+}
+
+function newGame() {
+  for (const r of board.children)
+    for (const t of r.children) { t.textContent = ''; delete t.dataset.state; t.classList.remove('filled'); }
+  for (const k of keyboard.querySelectorAll('.key')) delete k.dataset.state;
+  answer = ANSWERS[Math.floor(Math.random() * ANSWERS.length)];
+  row = 0; cur = ''; done = false; busy = false;
+  updateStatus();
+}
+
+document.getElementById('new').addEventListener('click', newGame);
+document.getElementById('theme').addEventListener('click', e => {
+  const light = document.documentElement.dataset.theme === 'light';
+  document.documentElement.dataset.theme = light ? 'dark' : 'light';
+  e.target.textContent = light ? 'Light' : 'Dark';
+});
+
+Promise.all([
+  fetch('words/answers.txt').then(r => r.text()),
+  fetch('words/allowed.txt').then(r => r.text()),
+]).then(([a, g]) => {
+  ANSWERS = a.split('\n').map(s => s.trim()).filter(s => s.length === WORD_LEN);
+  ALLOWED = new Set(g.split('\n').map(s => s.trim()).filter(s => s.length === WORD_LEN));
+  ANSWERS.forEach(w => ALLOWED.add(w));
+  newGame();
+}).catch(() => {
+  statusEl.textContent = 'could not load word lists - is the server running?';
+});
+</script>
+</html>
