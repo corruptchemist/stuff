@@ -19,6 +19,21 @@ Reproduce it yourself with `python -m wordlebot.benchmark` (about 25 seconds).
 
 ## Install
 
+First get the code -- every command below must be run from inside the repo
+folder, not from your home directory.
+
+```bash
+git clone https://github.com/corruptchemist/stuff.git
+cd stuff
+git checkout claude/hello-47k5l8
+```
+
+No git? Download
+[the ZIP](https://github.com/corruptchemist/stuff/archive/refs/heads/claude/hello-47k5l8.zip),
+extract it, and `cd` into the extracted folder (`stuff-claude-hello-47k5l8`).
+
+Then:
+
 ```bash
 pip install -r requirements.txt
 python -m wordlebot.benchmark --limit 200     # builds the pattern table once (~30s)
@@ -26,6 +41,17 @@ python -m wordlebot.benchmark --limit 200     # builds the pattern table once (~
 
 The first run precomputes a 14855 x 2315 table of every guess/answer colouring
 and caches it in `.cache/` (33 MB). Everything after that is instant.
+
+Only if you want the browser driver, also download the browser itself -- pip
+installs the Playwright library but not the Chromium it drives:
+
+```bash
+python -m playwright install chromium
+```
+
+On Windows use `python` (not `python3`), and run these from `cmd` or PowerShell
+in the repo folder. Do not paste the trailing `# comments` from this README --
+`cmd` passes them to the program as arguments instead of ignoring them.
 
 ## Use it
 
