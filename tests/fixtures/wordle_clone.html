@@ -1,0 +1,83 @@
+<!doctype html>
+<meta charset="utf-8"><title>Wordle Clone (test fixture)</title>
+<style>
+  body { background:#121213; color:#fff; font-family:system-ui,sans-serif;
+         display:flex; flex-direction:column; align-items:center; padding:20px; }
+  #board { display:grid; grid-template-rows:repeat(6,1fr); gap:5px; margin:20px 0; }
+  .row { display:grid; grid-template-columns:repeat(5,1fr); gap:5px; }
+  .tile { width:62px; height:62px; border:2px solid #3a3a3c; display:flex;
+          align-items:center; justify-content:center; font-size:2rem;
+          font-weight:bold; text-transform:uppercase; background:#121213; }
+  .tile.correct { background:#538d4e; border-color:#538d4e; }
+  .tile.present { background:#b59f3b; border-color:#b59f3b; }
+  .tile.absent  { background:#3a3a3c; border-color:#3a3a3c; }
+  #msg { height:24px; color:#ff8a8a; }
+</style>
+<h1>Wordle (local fixture)</h1>
+<div id="board"></div>
+<div id="msg"></div>
+<script>
+// Light theme uses the original Wordle palette; the driver must cope with both.
+if (new URLSearchParams(location.search).get('theme') === 'light') {
+  const st = document.createElement('style');
+  st.textContent = `body{background:#fff;color:#000}
+    .tile{background:#fff;border-color:#d3d6da;color:#000}
+    .tile.correct{background:#6aaa64;border-color:#6aaa64;color:#fff}
+    .tile.present{background:#c9b458;border-color:#c9b458;color:#fff}
+    .tile.absent{background:#787c7e;border-color:#787c7e;color:#fff}`;
+  document.head.appendChild(st);
+}
+// A deliberately plain clone: no shadow DOM, colours only on class names, so the
+// driver's geometric board detection and colour reading get an honest test.
+const board = document.getElementById('board');
+const msg = document.getElementById('msg');
+for (let r = 0; r < 6; r++) {
+  const row = document.createElement('div');
+  row.className = 'row';
+  for (let c = 0; c < 5; c++) {
+    const t = document.createElement('div');
+    t.className = 'tile';
+    row.appendChild(t);
+  }
+  board.appendChild(row);
+}
+const params = new URLSearchParams(location.search);
+const ANSWER = (params.get('answer') || 'crane').toLowerCase();
+const VALID = (params.get('valid') || '').toLowerCase().split(',').filter(Boolean);
+const INVALID = (params.get('invalid') || '').toLowerCase().split(',').filter(Boolean);
+let row = 0, cur = '', done = false;
+
+function score(guess, answer) {
+  const res = Array(5).fill('absent');
+  const left = {};
+  for (const ch of answer) left[ch] = (left[ch] || 0) + 1;
+  for (let i = 0; i < 5; i++) if (guess[i] === answer[i]) { res[i] = 'correct'; left[guess[i]]--; }
+  for (let i = 0; i < 5; i++)
+    if (res[i] === 'absent' && left[guess[i]] > 0) { res[i] = 'present'; left[guess[i]]--; }
+  return res;
+}
+function render() {
+  const tiles = board.children[row].children;
+  for (let i = 0; i < 5; i++) tiles[i].textContent = cur[i] || '';
+}
+function submit() {
+  if (cur.length < 5) { msg.textContent = 'Not enough letters'; return; }
+  if (VALID.length && !VALID.includes(cur)) { msg.textContent = 'Not in word list'; return; }
+  if (INVALID.includes(cur)) { msg.textContent = 'Not in word list'; return; }
+  msg.textContent = '';
+  const res = score(cur, ANSWER);
+  const tiles = board.children[row].children;
+  // Stagger the reveal, like the real thing, so the driver must wait for it.
+  res.forEach((state, i) => setTimeout(() => tiles[i].classList.add(state), i * 120));
+  if (cur === ANSWER) { done = true; setTimeout(() => msg.textContent = 'You win!', 700); }
+  row++; cur = '';
+  if (row >= 6 && !done) setTimeout(() => msg.textContent = 'Game over: ' + ANSWER, 700);
+}
+document.addEventListener('keydown', e => {
+  if (done || row >= 6) return;
+  const k = e.key;
+  if (k === 'Enter') submit();
+  else if (k === 'Backspace') { cur = cur.slice(0, -1); render(); }
+  else if (/^[a-zA-Z]$/.test(k) && cur.length < 5) { cur += k.toLowerCase(); render(); }
+});
+</script>
