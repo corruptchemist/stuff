@@ -7,6 +7,18 @@ from .solver import Solver
 
 MAX_GUESSES = 6
 
+# Measured over all 2315 official answers: `python -m wordlebot.benchmark`.
+# Used to rate a finished game against how the solver normally does.
+SOLVE_DISTRIBUTION = {2: 94, 3: 1231, 4: 889, 5: 101}
+MEAN_GUESSES = 3.4307
+TOTAL_BITS = 11.1766  # log2(2315): the information a full game must uncover
+
+
+def beat_fraction(guesses: int) -> float:
+    """Fraction of games the solver finishes in MORE guesses than this one."""
+    total = sum(SOLVE_DISTRIBUTION.values())
+    return sum(v for k, v in SOLVE_DISTRIBUTION.items() if k > guesses) / total
+
 
 def play(answer: str, solver: Solver | None = None, max_guesses: int = MAX_GUESSES,
          guess_cache: dict | None = None) -> list[tuple[str, int]]:

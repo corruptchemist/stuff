@@ -93,6 +93,39 @@ python -m wordlebot.browser "URL" --games 10       # play ten in a row
 python -m wordlebot.browser "URL" --no-headless    # watch it, for debugging
 ```
 
+While it plays it draws a live stats panel onto the page itself:
+
+```
+WORDLEBOT                1 left
+solved  ####################  100%
+  GUESS              INFO   LUCK
+1 SALET  # # # #    10.2b   +4.3
+2 PILOT  # # # #     1.0b   +1.0
+
+info gained    11.2 of 11.2 bits
+info rate         5.6 bits/guess
+luck            192% of expected
+vs best info                 99%
+guesses            2 (avg 3.43)
+faster than        96% of games
+```
+
+- **info / info gained** -- bits of the puzzle actually eliminated. A game is
+  `log2(2315) = 11.2` bits total, so this doubles as the progress bar.
+- **luck** -- what the split gave versus what the guess *predicted* it would
+  give. Above 100% means the words fell kindly. This measures the draw, not
+  the play: the solver's choices are already the best available to it, so a bad
+  luck number is not a bad decision.
+- **vs best info** -- the chosen guess's information against the highest
+  available. Usually 100%; it dips when the solver correctly prefers a word
+  that could *win outright* over a probe that would reveal more, which is a
+  better decision rather than a worse one.
+- **faster than** -- where this game lands in the solver's measured
+  distribution over all 2315 answers. Two guesses beats 96% of games, three
+  beats 43%, four beats 4%.
+
+Add `--no-hud` to turn the panel off.
+
 By default no window opens and keystrokes go straight into the page over the
 debug protocol, never through the OS -- so it will not steal focus or your
 typing, and you can keep using the machine while it plays. Add `--no-headless`

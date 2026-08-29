@@ -10,12 +10,13 @@ code has never seen, which matters because there is no single "Wordle Unlimited"
 from __future__ import annotations
 
 import argparse
+import math
 import os
 import sys
 import time
 from pathlib import Path
 
-from .game import MAX_GUESSES
+from .game import MAX_GUESSES, MEAN_GUESSES, TOTAL_BITS, beat_fraction
 from .patterns import ALL_GREEN, GREEN, GREY, YELLOW, pattern_to_string
 from .solver import Solver, Unsolvable
 
@@ -72,6 +73,62 @@ FIND_BOARD_JS = r"""
   })));
 }
 """
+
+HUD_JS = r"""
+(d) => {
+  let el = document.getElementById('wordlebot-hud');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'wordlebot-hud';
+    el.style.cssText = 'position:fixed;top:12px;right:12px;z-index:2147483647;' +
+      'width:290px;padding:14px 16px;border-radius:12px;background:#11131a;' +
+      'color:#e8eaf0;font:12px/1.45 ui-monospace,Consolas,monospace;' +
+      'box-shadow:0 8px 32px rgba(0,0,0,.55);border:1px solid #2a2f3d';
+    document.body.appendChild(el);
+  }
+  const bar = (frac, colour) => {
+    const n = Math.max(0, Math.min(20, Math.round(frac * 20)));
+    return '<span style="color:' + colour + '">' + '\u2588'.repeat(n) +
+           '</span><span style="color:#2a2f3d">' + '\u2588'.repeat(20 - n) + '</span>';
+  };
+  const dots = (p) => p.split('').map(c => {
+    const col = c === 'g' ? '#4f9d55' : (c === 'y' ? '#b8992f' : '#3a3f4d');
+    return '<span style="color:' + col + '">\u25a0</span>';
+  }).join('');
+
+  const rows = d.turns.map(t =>
+    '<tr>' +
+    '<td style="color:#7d8598">' + t.n + '</td>' +
+    '<td style="letter-spacing:.5px"><b>' + t.guess.toUpperCase() + '</b></td>' +
+    '<td>' + dots(t.pattern) + '</td>' +
+    '<td style="text-align:right;color:#8fb8ff">' + t.actual.toFixed(1) + 'b</td>' +
+    '<td style="text-align:right;color:' + (t.luck >= 0 ? '#4f9d55' : '#c05c5c') + '">' +
+      (t.luck >= 0 ? '+' : '') + t.luck.toFixed(1) + '</td>' +
+    '</tr>').join('');
+
+  el.innerHTML =
+    '<div style="display:flex;justify-content:space-between;align-items:baseline;' +
+      'border-bottom:1px solid #2a2f3d;padding-bottom:8px;margin-bottom:10px">' +
+      '<b style="letter-spacing:1.5px;font-size:13px">WORDLEBOT</b>' +
+      '<span style="color:#7d8598">' + d.candidates.toLocaleString() + ' left</span></div>' +
+    '<div style="color:#7d8598">solved</div>' +
+    '<div style="margin:2px 0 10px">' + bar(d.progress, '#4f9d55') +
+      ' <span style="color:#e8eaf0">' + Math.round(d.progress * 100) + '%</span></div>' +
+    (rows ? '<table style="width:100%;border-collapse:collapse;margin-bottom:10px">' +
+      '<tr style="color:#5c6478;font-size:10px"><td></td><td>GUESS</td><td></td>' +
+      '<td style="text-align:right">INFO</td><td style="text-align:right">LUCK</td></tr>' +
+      rows + '</table>' : '') +
+    '<div style="border-top:1px solid #2a2f3d;padding-top:9px">' +
+      d.stats.map(x =>
+        '<div style="display:flex;justify-content:space-between;margin:3px 0">' +
+        '<span style="color:#7d8598">' + x[0] + '</span>' +
+        '<span style="color:' + (x[2] || '#e8eaf0') + '">' + x[1] + '</span></div>').join('') +
+    '</div>' +
+    (d.verdict ? '<div style="margin-top:10px;padding:9px;border-radius:7px;' +
+      'background:#1a2a1c;color:#7ede86;text-align:center">' + d.verdict + '</div>' : '');
+}
+"""
+
 
 _GREEN_WORDS = ("correct", "green", "exact", "right-position", "match")
 _YELLOW_WORDS = ("present", "yellow", "misplaced", "wrong-position", "close", "partial")
@@ -174,7 +231,8 @@ class BrowserGame:
 
 def play_url(url: str, headless: bool = True, opener: str | None = None,
              max_guesses: int = MAX_GUESSES, screenshot: str | None = None,
-             verbose: bool = True, reveal_timeout: float = 4.0) -> dict:
+             verbose: bool = True, reveal_timeout: float = 4.0,
+             hud: bool = True, linger: int = 2500) -> dict:
     """Play one game at `url`. Returns a summary dict."""
     from playwright.sync_api import sync_playwright
 
@@ -210,17 +268,48 @@ def play_url(url: str, headless: bool = True, opener: str | None = None,
 
             # A refused word leaves the row untouched, so it costs an attempt but
             # not a turn; row and attempt counters have to move independently.
+            # A refused word leaves the row untouched, so it costs an attempt but
+            # not a turn; row and attempt counters have to move independently.
             row, attempts, choices = 0, 0, None
+            turns: list[dict] = []
+
+            def draw(verdict=None):
+                if not hud:
+                    return
+                # On a win the solver is never told the answer, so its candidate
+                # count is one turn stale; the board is in fact fully resolved.
+                n = 1 if verdict else len(solver.candidates)
+                try:
+                    page.evaluate(HUD_JS, {
+                        "candidates": n,
+                        "progress": min(1.0, (TOTAL_BITS - math.log2(max(n, 1))) / TOTAL_BITS),
+                        "turns": [{"n": t["n"], "guess": t["guess"],
+                                   "pattern": t["pattern"], "actual": t["actual"],
+                                   "luck": t["actual"] - t["expected"]} for t in turns],
+                        "stats": _stats(turns, n, verdict is not None),
+                        "verdict": verdict,
+                    })
+                except Exception:
+                    pass  # a HUD is never worth failing a game over
+
+            draw()
             while row < max_guesses and attempts < max_guesses + 25:
                 attempts += 1
                 if choices is None:  # ranking is expensive; reuse it across refusals
-                    choices = _ranking(solver)
+                    ranked = solver.ranked(6)
+                    best_bits = max((b for _, b in ranked), default=0.0)
+                    choices = [w for w, _ in ranked]
                 guess = next((w for w in choices if w not in rejected), None)
+                if guess is None:
+                    # Everything on the shortlist was refused: widen the search.
+                    choices = _ranking(solver)
+                    guess = next((w for w in choices if w not in rejected), None)
                 if guess is None:
                     game.log("no guess left that this site accepts")
                     break
-                game.log(f"guess {row + 1}: {guess.upper()}  "
-                         f"({len(solver.candidates)} candidates)")
+                expected = next((b for w, b in ranked if w == guess), 0.0)
+                before = len(solver.candidates)
+                game.log(f"guess {row + 1}: {guess.upper()}  ({before} candidates)")
                 game.type_word(guess)
                 pattern = game.read_row(row, timeout=reveal_timeout)
                 if pattern is None:
@@ -231,16 +320,31 @@ def play_url(url: str, headless: bool = True, opener: str | None = None,
                 game.log(f"  -> {pattern_to_string(pattern)}")
                 played.append((guess, pattern))
                 row += 1
+                solved = pattern == ALL_GREEN
+                if not solved:
+                    try:
+                        solver.observe(guess, pattern)
+                    except Unsolvable:
+                        game.log("  feedback matches no known word -- this site uses a "
+                                 "wider dictionary than the bundled list")
+                        break
+                after = 1 if solved else max(len(solver.candidates), 1)
+                turns.append({
+                    "n": row, "guess": guess, "pattern": pattern_to_string(pattern),
+                    "expected": expected,
+                    "actual": math.log2(before / after),
+                    # 1.0 when it played the best guess available to it.
+                    "quality": (expected / best_bits) if best_bits > 0 else 1.0,
+                })
                 choices = None  # state changed; re-rank
-                if pattern == ALL_GREEN:
+                if solved:
                     game.log(f"\nSolved '{guess.upper()}' in {len(played)} guesses.")
+                    draw(f"SOLVED {guess.upper()} in {len(played)}")
+                    page.wait_for_timeout(linger)
                     break
-                try:
-                    solver.observe(guess, pattern)
-                except Unsolvable:
-                    game.log("  feedback matches no known word -- this site uses a "
-                             "wider dictionary than the bundled list")
-                    break
+                draw()
+            else:
+                draw()
             if screenshot:
                 page.screenshot(path=screenshot, full_page=True)
                 game.log(f"screenshot: {screenshot}")
@@ -250,6 +354,33 @@ def play_url(url: str, headless: bool = True, opener: str | None = None,
     solved = bool(played) and played[-1][1] == ALL_GREEN
     return {"solved": solved, "guesses": len(played),
             "word": played[-1][0] if solved else None, "played": played}
+
+
+def _stats(turns: list[dict], candidates: int, solved: bool) -> list:
+    """Summary rows for the HUD. Every number here is measured, not cosmetic."""
+    exp = sum(t["expected"] for t in turns)
+    act = sum(t["actual"] for t in turns)
+    rows = []
+    if turns:
+        # >100% means the splits fell better than the guesses predicted: luck.
+        rows.append(("info gained", f"{act:.1f} of {TOTAL_BITS:.1f} bits", None))
+        rows.append(("info rate", f"{act / len(turns):.1f} bits/guess", None))
+        # >100% means the splits landed better than the guesses predicted: luck,
+        # not skill. The solver's choices are already the best available to it.
+        luck = act / exp if exp else 1.0
+        rows.append(("luck", f"{luck:.0%} of expected",
+                     "#4f9d55" if luck >= 1 else "#c9a227"))
+        # <100% is usually the solver correctly preferring a word that can win
+        # outright over a probe that would reveal more, so it is not a demerit.
+        quality = sum(t["quality"] for t in turns) / len(turns)
+        rows.append(("vs best info", f"{quality:.0%}", None))
+    if solved:
+        n = len(turns)
+        beat = beat_fraction(n)
+        rows.append(("guesses", f"{n}  (avg {MEAN_GUESSES:.2f})", None))
+        rows.append(("faster than", f"{beat:.0%} of games",
+                     "#4f9d55" if beat >= 0.4 else "#c9a227"))
+    return rows
 
 
 def _launch_kwargs() -> dict:
@@ -288,6 +419,9 @@ def main() -> None:
     ap.add_argument("--opener", default=None)
     ap.add_argument("--screenshot", default=None, help="save a PNG when finished")
     ap.add_argument("--games", type=int, default=1, help="play this many games")
+    ap.add_argument("--no-hud", action="store_true", help="don't draw the stats overlay")
+    ap.add_argument("--linger", type=int, default=2500,
+                    help="ms to hold on the finished board so you can read it")
     args = ap.parse_args()
 
     wins = 0
@@ -296,7 +430,8 @@ def main() -> None:
         if args.games > 1:
             print(f"\n===== game {i + 1}/{args.games} =====")
         result = play_url(args.url, headless=not args.no_headless, opener=args.opener,
-                          screenshot=args.screenshot)
+                          screenshot=args.screenshot, hud=not args.no_hud,
+                          linger=args.linger)
         wins += result["solved"]
         if result["solved"]:
             totals.append(result["guesses"])
