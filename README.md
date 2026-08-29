@@ -40,7 +40,9 @@ python -m wordlebot.benchmark --limit 200     # builds the pattern table once (~
 ```
 
 The first run precomputes a 14855 x 2315 table of every guess/answer colouring
-and caches it in `.cache/` (33 MB). Everything after that is instant.
+and caches it in `.cache/` (33 MB). It prints a progress bar and takes roughly
+30 seconds. **Let it finish** -- it only happens once, and every run afterwards
+starts instantly.
 
 Only if you want the browser driver, also download the browser itself -- pip
 installs the Playwright library but not the Chromium it drives:

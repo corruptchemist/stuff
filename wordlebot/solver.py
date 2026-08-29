@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import math
+import sys
+import time
 from pathlib import Path
 
 import numpy as np
@@ -32,6 +34,27 @@ ENDGAME_TURNS = 4
 # them entirely, for 0.002 guesses on the mean. A hard ceiling is worth more.
 EXACT_PROBES = 120
 INF = float("inf")
+
+
+def _progress_printer():
+    """Report table-building progress, so a 30s wait does not look like a hang."""
+    start = time.time()
+
+    def report(done: int, total: int) -> None:
+        frac = done / total
+        filled = int(frac * 28)
+        elapsed = time.time() - start
+        if done >= total:
+            sys.stderr.write(f"\r  [{'#' * 28}]  done in {elapsed:.0f}s" + " " * 14 + "\n")
+        else:
+            eta = elapsed / frac - elapsed if frac else 0
+            sys.stderr.write(
+                f"\r  [{'#' * filled}{'.' * (28 - filled)}] {frac:4.0%}"
+                f"  about {eta:.0f}s left "
+            )
+        sys.stderr.flush()
+
+    return report
 
 
 def entropies(block: np.ndarray) -> np.ndarray:
@@ -89,10 +112,18 @@ class Solver:
         self.max_guesses = max_guesses
         self._row_of = {w: i for i, w in enumerate(self.guess_pool)}
         if matrix is None:
-            matrix = load_matrix(
-                self.guess_pool, self.answer_pool,
-                cache_path(len(self.guess_pool), len(self.answer_pool)),
-            )
+            path = cache_path(len(self.guess_pool), len(self.answer_pool))
+            progress = None
+            if not path.exists():
+                print(
+                    f"First run: building the {len(self.guess_pool)} x "
+                    f"{len(self.answer_pool)} guess/answer table.\n"
+                    "This happens once -- it is cached afterwards, so every later "
+                    "run starts instantly.\nDon't interrupt it.",
+                    file=sys.stderr, flush=True,
+                )
+                progress = _progress_printer()
+            matrix = load_matrix(self.guess_pool, self.answer_pool, path, progress=progress)
         self.matrix = matrix
         # Row in the guess pool for each word in the answer pool.
         self._answer_row = np.array([self._row_of[w] for w in self.answer_pool], dtype=np.int32)
