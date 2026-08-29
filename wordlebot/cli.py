@@ -47,9 +47,14 @@ def run(solver: Solver, max_guesses: int = MAX_GUESSES) -> None:
             alts = ", ".join(f"{w} ({e:.2f} bits)" for w, e in ranked[1:4])
             print(f"    runners-up: {alts}")
         print(f"  >> GUESS:  {guess.upper()}")
+        if turn == 1 and not solver.history:
+            # First-timers reasonably assume the prompt wants a word, not colours.
+            print(f"     Type {guess.upper()} into the game, then tell me the colours")
+            print("     it gave back:  g = green,  y = yellow,  b = grey")
+            print("     e.g. if only the 4th tile went yellow, type:  bbbyb")
 
         while True:
-            reply = _prompt("  colours (or :cmd) > ")
+            reply = _prompt("  colours from the game (5 letters) > ")
             low = reply.lower()
             if low in (":q", ":quit", ":exit"):
                 return
