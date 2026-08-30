@@ -67,7 +67,7 @@ public class KnappingSiteMenu extends AbstractContainerMenu {
     }
 
     public KnappingSiteMenu(int containerId, Inventory inventory, ContainerLevelAccess access) {
-        super(LithicMenus.CRUDE_WORKBENCH.get(), containerId);
+        super(LithicMenus.KNAPPING_SITE.get(), containerId);
         this.access = access;
         this.player = inventory.player;
         this.craftSlots = new CraftGrid(this);
@@ -185,7 +185,7 @@ public class KnappingSiteMenu extends AbstractContainerMenu {
 
     @Override
     public boolean stillValid(Player player) {
-        return stillValid(this.access, player, LithicBlocks.CRUDE_WORKBENCH.get());
+        return stillValid(this.access, player, LithicBlocks.KNAPPING_SITE.get());
     }
 
     @Override

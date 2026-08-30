@@ -16,6 +16,6 @@ public class LithicClient {
 
     @SubscribeEvent
     static void registerScreens(RegisterMenuScreensEvent event) {
-        event.register(LithicMenus.CRUDE_WORKBENCH.get(), KnappingSiteScreen::new);
+        event.register(LithicMenus.KNAPPING_SITE.get(), KnappingSiteScreen::new);
     }
 }

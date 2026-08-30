@@ -113,6 +113,26 @@ for cls, block in [("ChoppingBlockBlock", "chopping_block"), ("FirePitBlock", "f
         if key not in variants:
             problems.append(f"{block} blockstate missing variant '{key}'")
 
+# Every LithicFoo.CONSTANT reference must resolve to a constant declared in
+# LithicFoo. A plain javac run cannot catch this without the Minecraft classes
+# on the classpath -- the missing field just looks like one more unresolved
+# symbol among hundreds -- and a rename that misses a SCREAMING_CASE constant
+# is exactly the bug this is here to catch.
+REGISTRIES = {}
+for f in os.listdir(f"{JAVA}/registry"):
+    if f.endswith(".java"):
+        src = open(f"{JAVA}/registry/{f}").read()
+        REGISTRIES[f[:-5]] = set(re.findall(r'\b([A-Z][A-Z_0-9]{2,})\s*=', src))
+
+for root, _d, files in os.walk(JAVA):
+    for f in files:
+        if not f.endswith(".java"):
+            continue
+        src = open(os.path.join(root, f)).read()
+        for cls, const in re.findall(r'\b(Lithic[A-Za-z]+)\.([A-Z][A-Z_0-9]{2,})\b', src):
+            if cls in REGISTRIES and const not in REGISTRIES[cls]:
+                problems.append(f"{f}: {cls}.{const} is not declared in {cls}")
+
 java_keys = set()
 for root, _d, files in os.walk(JAVA):
     for f in files:

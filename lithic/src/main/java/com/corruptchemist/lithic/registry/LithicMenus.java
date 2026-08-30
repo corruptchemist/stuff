@@ -12,7 +12,7 @@ public final class LithicMenus {
     public static final DeferredRegister<MenuType<?>> MENUS =
             DeferredRegister.create(Registries.MENU, Lithic.MOD_ID);
 
-    public static final Supplier<MenuType<KnappingSiteMenu>> CRUDE_WORKBENCH =
+    public static final Supplier<MenuType<KnappingSiteMenu>> KNAPPING_SITE =
             MENUS.register("knapping_site", () -> IMenuTypeExtension.create(KnappingSiteMenu::forClient));
 
     private LithicMenus() {}
