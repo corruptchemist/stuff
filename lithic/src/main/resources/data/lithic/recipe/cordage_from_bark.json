@@ -1,0 +1,22 @@
+{
+  "type": "lithic:crude_crafting",
+  "required_research": "lithic:cordwork",
+  "ingredients": [
+    {
+      "item": "lithic:bark"
+    },
+    {
+      "item": "lithic:bark"
+    },
+    {
+      "item": "lithic:bark"
+    },
+    {
+      "item": "lithic:bark"
+    }
+  ],
+  "result": {
+    "id": "lithic:cordage",
+    "count": 1
+  }
+}

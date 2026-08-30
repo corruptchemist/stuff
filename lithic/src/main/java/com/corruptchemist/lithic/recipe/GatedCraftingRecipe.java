@@ -27,7 +27,7 @@ import net.minecraft.world.level.Level;
  *
  * <p>Note that the requirement is <em>not</em> checked here: {@link Recipe#matches}
  * has no player to check it against. The recipe merely advertises what it needs via
- * {@link #research()}, and {@link com.corruptchemist.lithic.menu.CrudeWorkbenchMenu}
+ * {@link #research()}, and {@link com.corruptchemist.lithic.menu.KnappingSiteMenu}
  * enforces it at the point where a player is actually in scope. Doing it this way
  * keeps the check server-authoritative and avoids any mixin into vanilla crafting.
  *

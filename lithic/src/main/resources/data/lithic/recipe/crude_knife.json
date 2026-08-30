@@ -1,17 +1,14 @@
 {
-  "type": "minecraft:crafting_shaped",
-  "pattern": [
-    "S",
-    "C"
-  ],
-  "key": {
-    "S": {
-      "item": "lithic:sharp_flint"
+  "type": "lithic:crude_crafting",
+  "required_research": "lithic:cordwork",
+  "ingredients": [
+    {
+      "item": "lithic:flint_blade"
     },
-    "C": {
+    {
       "item": "lithic:cordage"
     }
-  },
+  ],
   "result": {
     "id": "lithic:crude_knife",
     "count": 1

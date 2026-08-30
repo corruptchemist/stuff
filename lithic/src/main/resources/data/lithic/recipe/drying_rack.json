@@ -1,12 +1,12 @@
 {
   "type": "lithic:crude_crafting",
-  "required_research": "lithic:hidework",
+  "required_research": "lithic:cordwork",
   "pattern": [
-    "TTT",
-    "C C"
+    "SSS",
+    "C.C"
   ],
   "key": {
-    "T": {
+    "S": {
       "item": "minecraft:stick"
     },
     "C": {

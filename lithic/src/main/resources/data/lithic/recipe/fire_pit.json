@@ -2,18 +2,18 @@
   "type": "lithic:crude_crafting",
   "required_research": "lithic:firecraft",
   "pattern": [
-    "TST",
-    "CCC"
+    "CCC",
+    "WTW"
   ],
   "key": {
-    "T": {
-      "item": "minecraft:stick"
-    },
-    "S": {
-      "item": "lithic:tinder"
-    },
     "C": {
       "item": "minecraft:cobblestone"
+    },
+    "W": {
+      "item": "lithic:split_wood"
+    },
+    "T": {
+      "item": "lithic:tinder"
     }
   },
   "result": {

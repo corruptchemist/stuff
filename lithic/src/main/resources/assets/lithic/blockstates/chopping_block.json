@@ -1,0 +1,10 @@
+{
+  "variants": {
+    "loaded=false": {
+      "model": "lithic:block/chopping_block"
+    },
+    "loaded=true": {
+      "model": "lithic:block/chopping_block_loaded"
+    }
+  }
+}

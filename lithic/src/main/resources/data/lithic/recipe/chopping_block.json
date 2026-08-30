@@ -1,0 +1,16 @@
+{
+  "type": "lithic:crude_crafting",
+  "required_research": "lithic:woodcraft",
+  "ingredients": [
+    {
+      "item": "lithic:rough_log"
+    },
+    {
+      "item": "lithic:cordage"
+    }
+  ],
+  "result": {
+    "id": "lithic:chopping_block",
+    "count": 1
+  }
+}

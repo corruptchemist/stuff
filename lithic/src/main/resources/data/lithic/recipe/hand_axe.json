@@ -1,0 +1,24 @@
+{
+  "type": "lithic:crude_crafting",
+  "required_research": "lithic:cordwork",
+  "pattern": [
+    "BC",
+    ".S",
+    ".S"
+  ],
+  "key": {
+    "B": {
+      "item": "lithic:flint_blade"
+    },
+    "C": {
+      "item": "lithic:cordage"
+    },
+    "S": {
+      "item": "minecraft:stick"
+    }
+  },
+  "result": {
+    "id": "lithic:hand_axe",
+    "count": 1
+  }
+}

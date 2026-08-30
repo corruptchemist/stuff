@@ -1,0 +1,22 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "BC",
+    "SS"
+  ],
+  "key": {
+    "B": {
+      "item": "lithic:flint_blade"
+    },
+    "C": {
+      "item": "lithic:cordage"
+    },
+    "S": {
+      "item": "minecraft:stick"
+    }
+  },
+  "result": {
+    "id": "lithic:knapping_site",
+    "count": 1
+  }
+}

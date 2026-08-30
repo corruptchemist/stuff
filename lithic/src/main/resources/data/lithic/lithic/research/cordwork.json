@@ -2,11 +2,11 @@
   "parents": [
     "lithic:knapping"
   ],
-  "insight_cost": 1,
+  "insight_cost": 0,
   "triggers": [
     {
       "type": "obtain_item",
-      "value": "lithic:plant_fiber",
+      "value": "lithic:cordage",
       "insight": 1
     }
   ]

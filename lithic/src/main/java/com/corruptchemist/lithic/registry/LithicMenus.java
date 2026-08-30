@@ -1,7 +1,7 @@
 package com.corruptchemist.lithic.registry;
 
 import com.corruptchemist.lithic.Lithic;
-import com.corruptchemist.lithic.menu.CrudeWorkbenchMenu;
+import com.corruptchemist.lithic.menu.KnappingSiteMenu;
 import java.util.function.Supplier;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.inventory.MenuType;
@@ -12,8 +12,8 @@ public final class LithicMenus {
     public static final DeferredRegister<MenuType<?>> MENUS =
             DeferredRegister.create(Registries.MENU, Lithic.MOD_ID);
 
-    public static final Supplier<MenuType<CrudeWorkbenchMenu>> CRUDE_WORKBENCH =
-            MENUS.register("crude_workbench", () -> IMenuTypeExtension.create(CrudeWorkbenchMenu::forClient));
+    public static final Supplier<MenuType<KnappingSiteMenu>> CRUDE_WORKBENCH =
+            MENUS.register("knapping_site", () -> IMenuTypeExtension.create(KnappingSiteMenu::forClient));
 
     private LithicMenus() {}
 }

@@ -1,0 +1,12 @@
+{
+  "type": "lithic:drying",
+  "input": {
+    "item": "lithic:bark"
+  },
+  "result": {
+    "id": "lithic:tinder",
+    "count": 1
+  },
+  "time": 2400,
+  "required_research": "lithic:cordwork"
+}

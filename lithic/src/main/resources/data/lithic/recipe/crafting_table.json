@@ -1,0 +1,17 @@
+{
+  "type": "lithic:crude_crafting",
+  "required_research": "lithic:woodcraft",
+  "pattern": [
+    "WW",
+    "WW"
+  ],
+  "key": {
+    "W": {
+      "item": "lithic:split_wood"
+    }
+  },
+  "result": {
+    "id": "minecraft:crafting_table",
+    "count": 1
+  }
+}

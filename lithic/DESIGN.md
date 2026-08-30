@@ -1,8 +1,17 @@
 # Design Plan — Early Game
 
-**Status: draft for review. Nothing here is built.**
+**Status: Ages 0–4 implemented (unbuilt — no Minecraft toolchain here).
+Ages 5–8 still a sketch.**
 Every line item has an ID (`A0.1`, `D3`, …). Edit directly, or tell me
 "cut A2.4", "change D3 to option B", "A1 should be harsher".
+
+Defaults taken for the unanswered decisions, all reversible:
+**D1(b)** flint from gravel, no surface-stone worldgen ·
+**D2(c)** shards worked on a stone block ·
+**D3(b)** stone axe later skips the splitting step ·
+**D5(b)** free signpost research in the early ages ·
+**#8** total conversion.
+See §10 for where the implementation deviates from this plan.
 
 ---
 
@@ -201,3 +210,37 @@ conversion, tool gating, vanilla recipe deletion and the TAN hooks.
    it has to coexist.
 9. **How long should Age 0 → first plank actually take?** I have assumed ~45
    minutes. That number drives everything above.
+
+---
+
+## 10. Implementation notes — where the build deviates from this plan
+
+Recorded honestly so the plan and the code do not drift apart.
+
+| ID | Deviation | Why |
+|---|---|---|
+| **A0.3** | The 2×2 grid is **not** empty. It keeps exactly two recipes: **Cordage** and the **Knapping Site**. | Otherwise the game is unwinnable — you cannot reach the first station without tying fibre, and you cannot tie fibre without a grid. A literal empty 2×2 needs either a Java hook on the inventory menu or an enormous vanilla removal list. What *is* removed (planks, sticks, crafting table, all wooden and stone tools) achieves the intent: no shortcut to wood. |
+| **A3.2** | **Wood species is lost.** Every log type drops one generic Rough Log, which yields oak planks. | Preserving eight species means eight Rough Logs, eight Split Woods, and eight of every downstream recipe. Worth doing later; not worth doing before the loop is proven fun. |
+| **§7** | Every Age 0–4 research node costs **0 insight** and learns itself on discovery. The Contemplation Stone and Tally Bone are removed until Age 5. | Follows D5(b). With nothing to spend insight on yet, a spending station is furniture. The engine still supports paid nodes; the block returns when Age 5 gives research a price. |
+| **A4.1/A4.2** | Lighting a Fire Pit needs a Fire Drill in hand **and consumes one Tinder from the pack**, at a 40% chance per attempt. | Avoids a second "tindered" block state and its texture set, while keeping tinder a real prerequisite. |
+| **A3.3** | The Chopping Block takes **two interactions**: right-click with a Rough Log to load it, then with a cutting tool to split it. | One click would make the axe optional. Two makes the tool load-bearing, and the axe takes durability each split. |
+
+### What is actually wired up
+
+- **World interactions:** knapping flint → shard; two shards → blade; stripping any
+  log (vanilla or modded) also yields Bark; loading and splitting on the Chopping Block.
+- **Gates:** logs need a cutting tool, stone needs a striking tool — both refuse the
+  break outright rather than slowing it, and bare hands take damage.
+- **Tough As Nails:** every heavy action adds thirst exhaustion; nights run one
+  temperature step colder until `lithic:firecraft` is learned; a lit Fire Pit
+  registers as a heat source.
+- **Research:** four signpost nodes — knapping → cordwork → woodcraft → firecraft —
+  sequencing the tool, wood and fire recipes.
+
+### Still missing before this is playable
+
+1. No **advancements**, so the game never tells a new player that knapping exists.
+   This is the biggest gap: the opening is currently undiscoverable without the wiki.
+2. No **JEI/EMI integration** for the two custom recipe types.
+3. **Never compiled.** No Minecraft toolchain is reachable from the environment this
+   was written in; see README.

@@ -1,0 +1,13 @@
+{
+  "type": "lithic:crude_crafting",
+  "required_research": "lithic:woodcraft",
+  "ingredients": [
+    {
+      "item": "lithic:split_wood"
+    }
+  ],
+  "result": {
+    "id": "minecraft:stick",
+    "count": 2
+  }
+}

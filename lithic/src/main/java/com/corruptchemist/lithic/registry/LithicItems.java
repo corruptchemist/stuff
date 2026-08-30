@@ -1,9 +1,7 @@
 package com.corruptchemist.lithic.registry;
 
 import com.corruptchemist.lithic.Lithic;
-import com.corruptchemist.lithic.item.TallyBoneItem;
 import com.corruptchemist.lithic.item.ToolIngredientItem;
-import net.minecraft.world.food.FoodProperties;
 import net.minecraft.world.item.AxeItem;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
@@ -11,67 +9,55 @@ import net.minecraft.world.item.PickaxeItem;
 import net.neoforged.neoforge.registries.DeferredItem;
 import net.neoforged.neoforge.registries.DeferredRegister;
 
+/**
+ * Ages 0-4 only. Every item here exists to make the road to a plank long.
+ */
 public final class LithicItems {
     public static final DeferredRegister.Items ITEMS = DeferredRegister.createItems(Lithic.MOD_ID);
 
-    // --- gathered by hand -----------------------------------------------------
-    public static final DeferredItem<Item> PLANT_FIBER = ITEMS.registerSimpleItem("plant_fiber");
+    // --- Age 0: what bare hands can gather -----------------------------------
+    public static final DeferredItem<Item> PLANT_FIBRE = ITEMS.registerSimpleItem("plant_fibre");
+
+    // --- Age 1: flint --------------------------------------------------------
     public static final DeferredItem<Item> FLINT_SHARD = ITEMS.registerSimpleItem("flint_shard");
-    public static final DeferredItem<Item> BONE_SPLINTER = ITEMS.registerSimpleItem("bone_splinter");
-    public static final DeferredItem<Item> REED_BUNDLE = ITEMS.registerSimpleItem("reed_bundle");
-    public static final DeferredItem<Item> RAW_HIDE = ITEMS.registerSimpleItem("raw_hide");
+    public static final DeferredItem<Item> FLINT_BLADE = ITEMS.registerSimpleItem("flint_blade");
 
-    // --- first processing step ------------------------------------------------
+    // --- Age 2: cordage and hafting ------------------------------------------
     public static final DeferredItem<Item> CORDAGE = ITEMS.registerSimpleItem("cordage");
-    public static final DeferredItem<Item> SHARP_FLINT = ITEMS.registerSimpleItem("sharp_flint");
-    public static final DeferredItem<Item> DRIED_REED = ITEMS.registerSimpleItem("dried_reed");
-    public static final DeferredItem<Item> CURED_HIDE = ITEMS.registerSimpleItem("cured_hide");
-    public static final DeferredItem<Item> HIDE_STRIP = ITEMS.registerSimpleItem("hide_strip");
-    public static final DeferredItem<Item> TINDER = ITEMS.registerSimpleItem("tinder");
 
-    // --- the long road to metal ----------------------------------------------
-    /** Survives a handful of blooms before it cracks; returned by the recipe, not eaten. */
-    public static final DeferredItem<ToolIngredientItem> CLAY_CRUCIBLE = ITEMS.registerItem("clay_crucible",
-            ToolIngredientItem::new, new Item.Properties().durability(8));
-    public static final DeferredItem<Item> CRUSHED_ORE = ITEMS.registerSimpleItem("crushed_ore");
-    public static final DeferredItem<Item> WASHED_ORE = ITEMS.registerSimpleItem("washed_ore");
-    public static final DeferredItem<Item> IRON_BLOOM = ITEMS.registerSimpleItem("iron_bloom");
-    public static final DeferredItem<Item> SLAG = ITEMS.registerSimpleItem("slag");
-    public static final DeferredItem<Item> CHARCOAL_DUST = ITEMS.registerSimpleItem("charcoal_dust");
-    public static final DeferredItem<Item> ASH = ITEMS.registerSimpleItem("ash");
-
-    // --- edible, barely -------------------------------------------------------
-    public static final DeferredItem<Item> FORAGED_ROOTS = ITEMS.registerSimpleItem("foraged_roots",
-            new Item.Properties().food(new FoodProperties.Builder()
-                    .nutrition(2).saturationModifier(0.1F).build()));
-
-    // --- tools ----------------------------------------------------------------
-    public static final DeferredItem<AxeItem> CRUDE_HATCHET = ITEMS.registerItem("crude_hatchet",
+    /** The first tool. Being an AxeItem is what lets it satisfy the log gate. */
+    public static final DeferredItem<AxeItem> HAND_AXE = ITEMS.registerItem("hand_axe",
             props -> new AxeItem(LithicTiers.CRUDE, props));
 
-    public static final DeferredItem<PickaxeItem> CRUDE_PICK = ITEMS.registerItem("crude_pick",
+    /** A striking tool: the first thing that can shift stone at all. */
+    public static final DeferredItem<PickaxeItem> DIGGING_STICK = ITEMS.registerItem("digging_stick",
             props -> new PickaxeItem(LithicTiers.CRUDE, props));
 
-    /**
-     * Not a digging tool: a cutting edge for hide, reed and fibre work. Recipes that
-     * call for it get it back, blunter each time.
-     */
+    /** Used by recipes rather than eaten by them; comes back one point blunter. */
     public static final DeferredItem<ToolIngredientItem> CRUDE_KNIFE = ITEMS.registerItem("crude_knife",
             ToolIngredientItem::new, new Item.Properties().durability(48));
 
-    /** Right-click to read out what you know and what you could learn. */
-    public static final DeferredItem<TallyBoneItem> TALLY_BONE = ITEMS.registerItem("tally_bone",
-            TallyBoneItem::new, new Item.Properties().stacksTo(1));
+    // --- Age 3: wood, in stages ----------------------------------------------
+    public static final DeferredItem<Item> BARK = ITEMS.registerSimpleItem("bark");
+    public static final DeferredItem<Item> ROUGH_LOG = ITEMS.registerSimpleItem("rough_log");
+    public static final DeferredItem<Item> SPLIT_WOOD = ITEMS.registerSimpleItem("split_wood");
 
-    // --- block items ----------------------------------------------------------
-    public static final DeferredItem<BlockItem> CRUDE_WORKBENCH =
-            ITEMS.registerSimpleBlockItem("crude_workbench", LithicBlocks.CRUDE_WORKBENCH);
-    public static final DeferredItem<BlockItem> DRYING_RACK =
-            ITEMS.registerSimpleBlockItem("drying_rack", LithicBlocks.DRYING_RACK);
-    public static final DeferredItem<BlockItem> CONTEMPLATION_STONE =
-            ITEMS.registerSimpleBlockItem("contemplation_stone", LithicBlocks.CONTEMPLATION_STONE);
+    // --- Age 4: fire ---------------------------------------------------------
+    public static final DeferredItem<Item> TINDER = ITEMS.registerSimpleItem("tinder");
+
+    /** Right-click a Fire Pit with this to try to light it. Can fail. */
+    public static final DeferredItem<Item> FIRE_DRILL = ITEMS.registerSimpleItem("fire_drill",
+            new Item.Properties().durability(24));
+
+    // --- block items ---------------------------------------------------------
+    public static final DeferredItem<BlockItem> KNAPPING_SITE =
+            ITEMS.registerSimpleBlockItem("knapping_site", LithicBlocks.KNAPPING_SITE);
+    public static final DeferredItem<BlockItem> CHOPPING_BLOCK =
+            ITEMS.registerSimpleBlockItem("chopping_block", LithicBlocks.CHOPPING_BLOCK);
     public static final DeferredItem<BlockItem> FIRE_PIT =
             ITEMS.registerSimpleBlockItem("fire_pit", LithicBlocks.FIRE_PIT);
+    public static final DeferredItem<BlockItem> DRYING_RACK =
+            ITEMS.registerSimpleBlockItem("drying_rack", LithicBlocks.DRYING_RACK);
 
     private LithicItems() {}
 }

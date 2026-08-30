@@ -1,12 +1,12 @@
 {
   "parents": [
-    "lithic:cordwork"
+    "lithic:woodcraft"
   ],
-  "insight_cost": 2,
+  "insight_cost": 0,
   "triggers": [
     {
       "type": "obtain_item",
-      "value": "minecraft:flint",
+      "value": "lithic:tinder",
       "insight": 1
     }
   ]

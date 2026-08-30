@@ -1,0 +1,13 @@
+{
+  "parents": [
+    "lithic:cordwork"
+  ],
+  "insight_cost": 0,
+  "triggers": [
+    {
+      "type": "obtain_item",
+      "value": "lithic:rough_log",
+      "insight": 1
+    }
+  ]
+}

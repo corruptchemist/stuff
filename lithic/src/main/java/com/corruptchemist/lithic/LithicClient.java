@@ -1,6 +1,6 @@
 package com.corruptchemist.lithic;
 
-import com.corruptchemist.lithic.client.CrudeWorkbenchScreen;
+import com.corruptchemist.lithic.client.KnappingSiteScreen;
 import com.corruptchemist.lithic.registry.LithicMenus;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -16,6 +16,6 @@ public class LithicClient {
 
     @SubscribeEvent
     static void registerScreens(RegisterMenuScreensEvent event) {
-        event.register(LithicMenus.CRUDE_WORKBENCH.get(), CrudeWorkbenchScreen::new);
+        event.register(LithicMenus.CRUDE_WORKBENCH.get(), KnappingSiteScreen::new);
     }
 }

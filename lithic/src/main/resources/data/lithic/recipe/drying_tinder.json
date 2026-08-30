@@ -1,0 +1,12 @@
+{
+  "type": "lithic:drying",
+  "input": {
+    "item": "lithic:plant_fibre"
+  },
+  "result": {
+    "id": "lithic:tinder",
+    "count": 1
+  },
+  "time": 1800,
+  "required_research": "lithic:cordwork"
+}

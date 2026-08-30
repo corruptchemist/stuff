@@ -11,6 +11,7 @@ import com.corruptchemist.lithic.registry.LithicCreativeTab;
 import com.corruptchemist.lithic.registry.LithicItems;
 import com.corruptchemist.lithic.registry.LithicMenus;
 import com.corruptchemist.lithic.registry.LithicRecipes;
+import com.corruptchemist.lithic.world.BarkHandler;
 import com.corruptchemist.lithic.world.KnappingHandler;
 import com.corruptchemist.lithic.world.ToolGatingHandler;
 import com.corruptchemist.lithic.world.WorldRuleHandler;
@@ -59,6 +60,7 @@ public class Lithic {
         NeoForge.EVENT_BUS.register(new KnowledgeEvents());
         NeoForge.EVENT_BUS.register(new ToolGatingHandler());
         NeoForge.EVENT_BUS.register(new KnappingHandler());
+        NeoForge.EVENT_BUS.register(new BarkHandler());
         NeoForge.EVENT_BUS.register(new LithicCommands());
         NeoForge.EVENT_BUS.register(new WorldRuleHandler());
         NeoForge.EVENT_BUS.register(new ResearchManager.Reloading());

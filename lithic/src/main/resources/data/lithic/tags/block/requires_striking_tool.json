@@ -8,6 +8,8 @@
     "#minecraft:coal_ores",
     "#minecraft:gold_ores",
     "#minecraft:redstone_ores",
-    "#minecraft:diamond_ores"
+    "#minecraft:diamond_ores",
+    "#minecraft:lapis_ores",
+    "#minecraft:emerald_ores"
   ]
 }

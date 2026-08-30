@@ -1,0 +1,22 @@
+{
+  "type": "lithic:crude_crafting",
+  "required_research": "lithic:cordwork",
+  "ingredients": [
+    {
+      "item": "lithic:flint_shard"
+    },
+    {
+      "item": "lithic:flint_shard"
+    },
+    {
+      "item": "lithic:cordage"
+    },
+    {
+      "item": "minecraft:stick"
+    }
+  ],
+  "result": {
+    "id": "lithic:digging_stick",
+    "count": 1
+  }
+}

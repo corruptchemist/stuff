@@ -1,0 +1,24 @@
+{
+  "type": "lithic:crude_crafting",
+  "required_research": "lithic:firecraft",
+  "pattern": [
+    "S",
+    "C",
+    "W"
+  ],
+  "key": {
+    "S": {
+      "item": "minecraft:stick"
+    },
+    "C": {
+      "item": "lithic:cordage"
+    },
+    "W": {
+      "item": "lithic:split_wood"
+    }
+  },
+  "result": {
+    "id": "lithic:fire_drill",
+    "count": 1
+  }
+}

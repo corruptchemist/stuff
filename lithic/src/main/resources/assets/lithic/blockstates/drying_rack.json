@@ -1,15 +1,15 @@
 {
   "variants": {
-    "occupied=false,finished=false": {
+    "finished=false,occupied=false": {
       "model": "lithic:block/drying_rack"
     },
-    "occupied=false,finished=true": {
-      "model": "lithic:block/drying_rack"
-    },
-    "occupied=true,finished=false": {
+    "finished=false,occupied=true": {
       "model": "lithic:block/drying_rack_occupied"
     },
-    "occupied=true,finished=true": {
+    "finished=true,occupied=false": {
+      "model": "lithic:block/drying_rack"
+    },
+    "finished=true,occupied=true": {
       "model": "lithic:block/drying_rack_finished"
     }
   }
