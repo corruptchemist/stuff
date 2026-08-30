@@ -20,8 +20,12 @@ public final class LithicAttachments {
             () -> AttachmentType.builder(Knowledge::new)
                     .serialize(Knowledge.CODEC)
                     .copyOnDeath()
-                    .sync(Knowledge.STREAM_CODEC)
                     .build());
+    // Deliberately NOT .sync(...): that overload only exists in newer 21.1.x
+    // builds, and calling it makes the mod crash on older ones with a
+    // NoSuchMethodError. Nothing needs it either -- every bit of UI in the mod
+    // is server-generated chat, so the client never reads this attachment.
+    // Knowledge.STREAM_CODEC is kept ready for whenever a research GUI wants it.
 
     private LithicAttachments() {}
 }
