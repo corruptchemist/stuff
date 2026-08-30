@@ -12,20 +12,10 @@ credits="Spud, Understimulate"
 authors="${mod_authors}"
 description='''${mod_description}'''
 
-# NOTE (port): on Forge 1.20.1 mixin configs are declared here the same way,
-# but there is no `requiredMods` key -- a config for an absent mod must instead
-# set "required": false in the json itself (already done for the compat configs).
-[[mixins]]
-config="pmweather.mixins.json"
-
-[[mixins]]
-config="pmweather.create.mixins.json"
-
-[[mixins]]
-config="pmweather.sable.mixins.json"
-
-[[mixins]]
-config="pmweather.powergrid.mixins.json"
+# NOTE (port): Forge 1.20.1 has NO [[mixins]] block in mods.toml. Mixin configs are
+# declared in the jar manifest via the MixinConfigs attribute (see build.gradle), and
+# the per-mod gating NeoForge did with requiredMods must be reimplemented as an
+# IMixinConfigPlugin whose shouldApplyMixin consults ModList.isLoaded.
 
 [[accessTransformers]]
 file="META-INF/accesstransformer.cfg"

@@ -1,5 +1,6 @@
 package dev.protomanly.pmweather.mixin;
 
+import net.minecraft.util.Mth;
 import javax.annotation.Nullable;
 import net.minecraft.client.sounds.SoundEngine;
 import net.minecraft.sounds.SoundSource;
@@ -24,7 +25,7 @@ public abstract class SoundEngineMixin {
    )
    private void fixCalculateVolume(float volMult, SoundSource soundSource, CallbackInfoReturnable<Float> cir) {
       if (soundSource == SoundSource.WEATHER) {
-         cir.setReturnValue(Math.clamp((Float)cir.getReturnValue() * this.getVolume(soundSource), 0.0F, 1.0F));
+         cir.setReturnValue(Mth.clamp((Float)cir.getReturnValue() * this.getVolume(soundSource), 0.0F, 1.0F));
       }
    }
 }

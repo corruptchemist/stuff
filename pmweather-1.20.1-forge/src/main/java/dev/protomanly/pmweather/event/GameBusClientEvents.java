@@ -61,7 +61,7 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
-import net.minecraft.world.level.chunk.status.ChunkStatus;
+import net.minecraft.world.level.chunk.ChunkStatus;
 import net.minecraft.world.level.levelgen.Heightmap.Types;
 import net.minecraft.world.level.material.MapColor;
 import net.minecraft.world.phys.Vec3;
@@ -282,7 +282,7 @@ public class GameBusClientEvents {
             }
 
             if (windspeed > 50.0 && i < ClientConfig.rainParticleDensity / 3) {
-               float strength = precip * (float)Math.clamp((windspeed - 50.0) / 50.0, 0.0, 1.0);
+               float strength = precip * (float)Mth.clamp((windspeed - 50.0) / 50.0, 0.0, 1.0);
                ParticleTexExtraRender mist = new ParticleTexExtraRender(
                   (ClientLevel)level, (double)pos.getX(), (double)pos.getY(), (double)pos.getZ(), 0.0, 0.0, 0.0, ParticleRegistry.mist
                );
@@ -399,7 +399,7 @@ public class GameBusClientEvents {
             }
 
             if (w.length() > 60.0 && !minecraft.player.isCreative() && !minecraft.player.isSpectator()) {
-               double factor = Mth.lerp(Math.clamp(w.length() / 125.0, 0.0, 1.0), 0.005, 0.02);
+               double factor = Mth.lerp(Mth.clamp(w.length() / 125.0, 0.0, 1.0), 0.005, 0.02);
                float mult = 0.65F;
                if (!entity.onGround()) {
                   mult = 0.075F;
@@ -434,7 +434,7 @@ public class GameBusClientEvents {
                                  if (storm.is(StormTypes.FIRE_WHIRL) && storm.lastPosition != null) {
                                     double dist = particle.getPos().distanceTo(storm.lastPosition);
                                     whirlEffect = Math.max(
-                                       whirlEffect, Mth.square(1.0F - (float)Math.clamp(dist / (double)Math.max(storm.width, 20.0F), 0.0, 1.0))
+                                       whirlEffect, Mth.square(1.0F - (float)Mth.clamp(dist / (double)Math.max(storm.width, 20.0F), 0.0, 1.0))
                                     );
                                  }
                               }

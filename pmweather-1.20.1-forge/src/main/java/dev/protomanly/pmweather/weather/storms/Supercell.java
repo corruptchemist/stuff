@@ -119,13 +119,13 @@ public class Supercell extends Storm {
          boolean hasWind = dist <= 2.0;
          if (!hasWind) {
             float wind = this.getTornadicWind(chunkPos.getMiddleBlockPosition((int)this.position.y).getCenter());
-            double threshold = 50.0 * Math.clamp(3.0 - padding * 2.0, 0.5, 1.5);
+            double threshold = 50.0 * Mth.clamp(3.0 - padding * 2.0, 0.5, 1.5);
             hasWind = (double)wind >= threshold;
          }
 
          return this.windspeed > 40
             && serverLevel.isInWorldBounds(chunkPos.getWorldPosition())
-            && dist <= (double)(this.width / 16.0F) * Math.clamp(padding, 0.0, 1.5)
+            && dist <= (double)(this.width / 16.0F) * Mth.clamp(padding, 0.0, 1.5)
             && hasWind;
       } else {
          return false;
@@ -263,7 +263,7 @@ public class Supercell extends Storm {
             } else {
                if (this.windspeed < this.maxWindspeed) {
                   this.windspeed++;
-                  this.occlusion = Math.clamp(this.occlusion - 0.025F, 0.0F, 1.0F);
+                  this.occlusion = Mth.clamp(this.occlusion - 0.025F, 0.0F, 1.0F);
                }
 
                if (this.windspeed >= this.maxWindspeed) {
@@ -309,7 +309,7 @@ public class Supercell extends Storm {
                   this.windspeed--;
                }
 
-               this.occlusion = Math.clamp(this.occlusion + 0.015F, 0.0F, 1.0F);
+               this.occlusion = Mth.clamp(this.occlusion + 0.015F, 0.0F, 1.0F);
                if (this.windspeed <= 0) {
                   this.windspeed = 0;
                   this.stage--;
@@ -823,7 +823,7 @@ public class Supercell extends Storm {
                Vec3 inward = new Vec3(-relativePos.x, 0.0, -relativePos.z).normalize();
                Vec3 rotational = new Vec3(relativePos.z, 0.0, -relativePos.x).normalize();
                double windEffect = (double)this.getTornadicWind(particle.getPos());
-               double effectStrength = Math.clamp(windEffect / (double)Math.max((float)this.windspeed, 130.0F), 0.0, 1.0) * (double)multiplier;
+               double effectStrength = Mth.clamp(windEffect / (double)Math.max((float)this.windspeed, 130.0F), 0.0, 1.0) * (double)multiplier;
                double pullFactor = 4.0;
                pullFactor -= Math.max(heightDifference, 0.0) / 100.0 * 3.0;
                pullFactor /= (double)Math.max(this.width / 100.0F, 1.0F);
@@ -861,7 +861,7 @@ public class Supercell extends Storm {
                   Vec3 rotational = new Vec3(relativePos.z, 0.0, -relativePos.x).normalize();
                   double windEffect = (double)this.getTornadicWind(entity.position());
                   if (!(windEffect < 60.0)) {
-                     double effectStrength = Math.clamp((windEffect - 60.0) / (double)Math.max((float)this.windspeed * 1.2F, 130.0F), 0.0, 1.0)
+                     double effectStrength = Mth.clamp((windEffect - 60.0) / (double)Math.max((float)this.windspeed * 1.2F, 130.0F), 0.0, 1.0)
                         * (double)multiplier
                         * 1.5;
                      double pullFactor = 4.0;

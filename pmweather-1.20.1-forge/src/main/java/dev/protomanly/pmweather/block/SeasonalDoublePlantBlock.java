@@ -1,6 +1,5 @@
 package dev.protomanly.pmweather.block;
 
-import com.mojang.serialization.MapCodec;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Direction.Axis;
@@ -24,7 +23,6 @@ import net.minecraft.world.level.material.Fluids;
 import org.jetbrains.annotations.Nullable;
 
 public class SeasonalDoublePlantBlock extends SeasonalPlantBlock {
-   public static final MapCodec<SeasonalDoublePlantBlock> CODEC = simpleCodec(SeasonalDoublePlantBlock::new);
    public static final EnumProperty<DoubleBlockHalf> HALF = BlockStateProperties.DOUBLE_BLOCK_HALF;
 
    public SeasonalDoublePlantBlock(Properties properties) {
@@ -100,7 +98,4 @@ public class SeasonalDoublePlantBlock extends SeasonalPlantBlock {
    }
 
    @Override
-   public MapCodec<? extends SeasonalDoublePlantBlock> codec() {
-      return CODEC;
-   }
 }

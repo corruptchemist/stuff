@@ -1,5 +1,6 @@
 package dev.protomanly.pmweather.mixin;
 
+import net.minecraft.util.Mth;
 import dev.protomanly.pmweather.block.ModBlocks;
 import dev.protomanly.pmweather.event.GameBusClientEvents;
 import dev.protomanly.pmweather.weather.WeatherHandlerClient;
@@ -132,7 +133,7 @@ public class ClientLevelMixin {
       float darken = 0.0F;
       WeatherHandlerClient weatherHandler = (WeatherHandlerClient)GameBusClientEvents.weatherHandler;
       if (weatherHandler != null) {
-         darken = Math.clamp((float)Math.pow((double)weatherHandler.getPrecipitation(), 0.3333333333333333), 0.0F, 1.0F);
+         darken = Mth.clamp((float)Math.pow((double)weatherHandler.getPrecipitation(), 0.3333333333333333), 0.0F, 1.0F);
       }
 
       callbackInfoReturnable.setReturnValue((Float)callbackInfoReturnable.getReturnValue() * (1.0F - darken));

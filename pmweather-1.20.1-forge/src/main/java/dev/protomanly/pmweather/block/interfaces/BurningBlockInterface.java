@@ -1,5 +1,6 @@
 package dev.protomanly.pmweather.block.interfaces;
 
+import net.minecraft.util.Mth;
 import dev.protomanly.pmweather.block.ModBlocks;
 import dev.protomanly.pmweather.block.PMWFireBlock;
 import dev.protomanly.pmweather.config.ClientConfig;
@@ -396,7 +397,7 @@ public interface BurningBlockInterface {
          topPos = level.getHeightmapPos(Types.MOTION_BLOCKING_NO_LEAVES, new BlockPos((int)Math.round(weightedPos.x()), 65, (int)Math.round(weightedPos.z())));
       }
 
-      int newIntensity = level.random.nextInt(1, Math.clamp((long)intensity, 1, 6));
+      int newIntensity = level.random.nextInt(1, Mth.clamp((long)intensity, 1, 6));
       BlockPos topBelow = topPos.below();
       BlockState topBelowState = level.getBlockState(topBelow);
       if (PMWFireBlock.canBurnOn(level, topBelowState, topBelow, newIntensity)) {

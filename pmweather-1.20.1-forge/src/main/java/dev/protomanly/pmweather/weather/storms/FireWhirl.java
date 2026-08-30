@@ -209,7 +209,7 @@ public class FireWhirl extends Storm {
                Vec3 inward = new Vec3(-relativePos.x, 0.0, -relativePos.z).normalize();
                Vec3 rotational = new Vec3(relativePos.z, 0.0, -relativePos.x).normalize();
                double windEffect = (double)this.getTornadicWind(particle.getPos());
-               double effectStrength = Math.clamp(windEffect / (double)Math.max((float)this.windspeed, 130.0F), 0.0, 1.0) * (double)multiplier;
+               double effectStrength = Mth.clamp(windEffect / (double)Math.max((float)this.windspeed, 130.0F), 0.0, 1.0) * (double)multiplier;
                double pullFactor = 4.0;
                pullFactor -= Math.max(heightDifference, 0.0) / 100.0 * 3.0;
                pullFactor /= (double)Math.max(this.width / 100.0F, 1.0F);
@@ -245,7 +245,7 @@ public class FireWhirl extends Storm {
                Vec3 rotational = new Vec3(relativePos.z, 0.0, -relativePos.x).normalize();
                double windEffect = (double)this.getTornadicWind(entity.position());
                if (!(windEffect < 60.0)) {
-                  double effectStrength = Math.clamp((windEffect - 60.0) / (double)Math.max((float)this.windspeed * 1.2F, 130.0F), 0.0, 1.0)
+                  double effectStrength = Mth.clamp((windEffect - 60.0) / (double)Math.max((float)this.windspeed * 1.2F, 130.0F), 0.0, 1.0)
                      * (double)multiplier
                      * 1.5;
                   double pullFactor = 4.0;

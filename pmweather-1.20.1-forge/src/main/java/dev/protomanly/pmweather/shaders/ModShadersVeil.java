@@ -86,7 +86,7 @@ public class ModShadersVeil {
       public static Vector3f GetLightingColor(Vector3f sunDir) {
          Vector3f lightingColor = new Vector3f(1.0F, 0.992F, 0.957F).mul(1.05F);
          lightingColor = lightingColor.lerp(new Vector3f(0.741F, 0.318F, 0.227F), (float)Math.pow((double)(1.0F - sunDir.y), 2.5));
-         return lightingColor.lerp(new Vector3f(0.314F, 0.408F, 0.525F), Math.clamp((sunDir.y + 0.1F) / -0.1F, 0.0F, 1.0F));
+         return lightingColor.lerp(new Vector3f(0.314F, 0.408F, 0.525F), Mth.clamp((sunDir.y + 0.1F) / -0.1F, 0.0F, 1.0F));
       }
 
       public static Vector3f GetSunDirection(ClientLevel level, float partialTicks) {

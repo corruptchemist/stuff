@@ -432,14 +432,14 @@ public class Storm {
          && !stateDown.is(ModBlocks.REINFORCED_GLASS)
          && !stateDown.is(ModBlocks.REINFORCED_GLASS_PANE)) {
          if (stateDown.is(Blocks.GLASS_BLOCKS) || stateDown.is(Blocks.GLASS_PANES)) {
-            double percChance = Math.clamp((windEffect - 75.0) / 15.0, 0.0, 1.0);
+            double percChance = Mth.clamp((windEffect - 75.0) / 15.0, 0.0, 1.0);
             if ((double)PMWeather.RANDOM.nextFloat() <= percChance * (double)(0.3F * percAdj) && Util.canWindAffect(randomDown.getCenter(), this.level)) {
                this.level.destroyBlock(randomDown, false);
             }
          }
 
          if (stateDown.is(BlockTags.LOGS) && !stateDown.is(Blocks.STRIPPED_LOGS) && ServerConfig.doDebarking) {
-            double percChance = Math.clamp((windEffect - 140.0) / 20.0, 0.0, 1.0);
+            double percChance = Mth.clamp((windEffect - 140.0) / 20.0, 0.0, 1.0);
             if ((double)PMWeather.RANDOM.nextFloat() <= percChance * (double)(0.5F * percAdj) && Util.canWindAffect(randomDown.getCenter(), this.level)) {
                Block replacement = Util.STRIPPED_VARIANTS.getOrDefault(stateDown.getBlock(), net.minecraft.world.level.block.Blocks.STRIPPED_OAK_LOG);
                this.level
@@ -456,7 +456,7 @@ public class Storm {
       if (!aboveState.isAir()) {
          Block aboveBlock = aboveState.getBlock();
          float blockStrength = getBlockStrength(aboveBlock, this.level, blockPosTop.above());
-         double percChance = Math.clamp(Math.pow(Math.clamp(Math.max(windEffect - (double)blockStrength, 0.0) / 20.0, 0.0, 1.0), 4.0) + 0.02, 0.0, 1.0)
+         double percChance = Mth.clamp(Math.pow(Mth.clamp(Math.max(windEffect - (double)blockStrength, 0.0) / 20.0, 0.0, 1.0), 4.0) + 0.02, 0.0, 1.0)
             * 0.05
             * (double)percAdj;
          if (windEffect < (double)blockStrength) {
@@ -503,17 +503,17 @@ public class Storm {
             || state.is(ModBlocks.CHARRED_DIRT_SLIGHT)
             || state.is(ModBlocks.SMOLDERING_DIRT_SLIGHT);
          if (isGrass) {
-            double percChancex = Math.clamp((windEffect - 140.0) / 80.0, 0.0, 1.0);
+            double percChancex = Mth.clamp((windEffect - 140.0) / 80.0, 0.0, 1.0);
             if ((double)PMWeather.RANDOM.nextFloat() <= percChancex * (double)(0.02F * percAdj)) {
                this.level.setBlockAndUpdate(blockPosTop, net.minecraft.world.level.block.Blocks.DIRT.defaultBlockState());
             }
          } else if (state.is(net.minecraft.world.level.block.Blocks.DIRT)) {
-            double percChancex = Math.clamp((windEffect - 170.0) / 40.0, 0.0, 1.0);
+            double percChancex = Mth.clamp((windEffect - 170.0) / 40.0, 0.0, 1.0);
             if ((double)PMWeather.RANDOM.nextFloat() <= percChancex * (double)(0.02F * percAdj)) {
                this.level.setBlockAndUpdate(blockPosTop, ((Block)ModBlocks.MEDIUM_SCOURING.get()).defaultBlockState());
             }
          } else if (state.is((Block)ModBlocks.MEDIUM_SCOURING.get())) {
-            double percChancex = Math.clamp((windEffect - 200.0) / 50.0, 0.0, 1.0);
+            double percChancex = Mth.clamp((windEffect - 200.0) / 50.0, 0.0, 1.0);
             if ((double)PMWeather.RANDOM.nextFloat() <= percChancex * (double)(0.02F * percAdj)) {
                this.level.setBlockAndUpdate(blockPosTop, ((Block)ModBlocks.HEAVY_SCOURING.get()).defaultBlockState());
             }
@@ -538,7 +538,7 @@ public class Storm {
                stretch = 50.0;
             }
 
-            double percChancex = Math.clamp(Math.pow(Math.clamp(Math.max(windEffect - (double)blockStrengthx, 0.0) / stretch, 0.0, 1.0), 4.0) + 0.02, 0.0, 1.0)
+            double percChancex = Mth.clamp(Math.pow(Mth.clamp(Math.max(windEffect - (double)blockStrengthx, 0.0) / stretch, 0.0, 1.0), 4.0) + 0.02, 0.0, 1.0)
                * 0.05
                * (double)percAdj;
             if (windEffect < (double)blockStrengthx) {
@@ -608,7 +608,7 @@ public class Storm {
       } else if (dist <= (double)((float)windfieldWidth * 2.0F)) {
          float e = 1.5F;
          e += Math.max((float)this.windspeed - 110.0F, 0.0F) / 110.0F;
-         perc = Math.clamp(
+         perc = Mth.clamp(
             (float)Math.pow(1.0 - (dist - (double)(rankineWidth / 2.0F)) / (double)(((float)windfieldWidth * 2.0F - rankineWidth) / 2.0F), (double)e),
             0.0F,
             1.0F

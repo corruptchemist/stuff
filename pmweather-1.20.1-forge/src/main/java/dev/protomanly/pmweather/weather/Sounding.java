@@ -166,20 +166,20 @@ public class Sounding {
       ThermodynamicEngine.AtmosphericDataPoint sfc = this.getFromHeight(0);
       Sounding.CAPE CAPE = this.getCAPE(this.getSBParcel());
       float risk = 1.0F;
-      risk *= Math.clamp(CAPE.CAPE() / 2000.0F, 0.0F, 2.0F);
-      risk *= Math.clamp((CAPE.CAPE3() - 25.0F) / 50.0F, 0.0F, 1.25F);
+      risk *= Mth.clamp(CAPE.CAPE() / 2000.0F, 0.0F, 2.0F);
+      risk *= Mth.clamp((CAPE.CAPE3() - 25.0F) / 50.0F, 0.0F, 1.25F);
       Float lr = this.getLapseRate(0, 3000);
       if (lr == null) {
          lr = 0.0F;
       }
 
-      risk *= Math.clamp((lr - 5.0F) / 1.5F, 0.75F, 1.25F);
-      risk *= 1.0F - Math.clamp(CAPE.CINH() / -500.0F, 0.0F, 1.0F);
+      risk *= Mth.clamp((lr - 5.0F) / 1.5F, 0.75F, 1.25F);
+      risk *= 1.0F - Mth.clamp(CAPE.CINH() / -500.0F, 0.0F, 1.0F);
       if (sfc != null) {
-         risk *= Math.clamp((sfc.dewpoint() - 7.0F) / 11.0F, 0.15F, 1.25F);
+         risk *= Mth.clamp((sfc.dewpoint() - 7.0F) / 11.0F, 0.15F, 1.25F);
       }
 
-      risk = Math.clamp(risk, 0.0F, 1.75F);
+      risk = Mth.clamp(risk, 0.0F, 1.75F);
       if (this.position != null && ThermodynamicEngine.noise != null) {
          float SRH = (
                (float)ThermodynamicEngine.noise
@@ -193,11 +193,11 @@ public class Sounding {
             / 2.0F;
          SRH = (float)Math.pow((double)SRH, 1.5);
          SRH *= 400.0F;
-         risk *= Math.clamp(SRH / 325.0F, 0.0F, 1.25F);
-         risk = Math.clamp(risk, 0.0F, 1.75F);
+         risk *= Mth.clamp(SRH / 325.0F, 0.0F, 1.25F);
+         risk = Mth.clamp(risk, 0.0F, 1.75F);
       }
 
-      return (float)Math.pow((double)Math.clamp(risk / 1.75F, 0.0F, 1.0F), ServerConfig.riskCurve + 0.1F) * 1.75F;
+      return (float)Math.pow((double)Mth.clamp(risk / 1.75F, 0.0F, 1.0F), ServerConfig.riskCurve + 0.1F) * 1.75F;
    }
 
    @Nullable

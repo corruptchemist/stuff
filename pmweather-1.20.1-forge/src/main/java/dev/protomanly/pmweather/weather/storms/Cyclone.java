@@ -191,7 +191,7 @@ public class Cyclone extends Storm {
          float width = vorticy.getWidth() * 0.35F;
          double d = wPos.multiply(1.0, 0.0, 1.0).distanceTo(vPos.multiply(1.0, 0.0, 1.0));
          if (d < (double)width) {
-            double angle = Math.pow(1.0 - Math.clamp(d / (double)width, 0.0, 1.0), 3.75);
+            double angle = Math.pow(1.0 - Mth.clamp(d / (double)width, 0.0, 1.0), 3.75);
             angle *= (float) (Math.PI / 10);
             angle *= (double)Math.min(vorticy.windspeedMult * (float)this.windspeed, 6.0F);
             wPos = Util.rotatePoint(wPos, vPos, angle);
@@ -200,7 +200,7 @@ public class Cyclone extends Storm {
 
       double rawDist = wPos.multiply(1.0, 0.0, 1.0).distanceTo(this.position.multiply(1.0, 0.0, 1.0));
       rawDist *= 1.0 + shapeNoise3 * 0.2F;
-      float intensity = (float)Math.pow((double)Math.clamp((float)this.windspeed / 65.0F, 0.0F, 1.0F), 0.25);
+      float intensity = (float)Math.pow((double)Mth.clamp((float)this.windspeed / 65.0F, 0.0F, 1.0F), 0.25);
       Vec3 relPos = cPos.subtract(wPos).multiply((double)scale, 0.0, (double)scale);
       double d = (double)((float)this.maxWidth / (3.0F + (float)this.windspeed / 12.0F));
       double d2 = (double)((float)this.maxWidth / (1.15F + (float)this.windspeed / 12.0F));
@@ -215,41 +215,41 @@ public class Cyclone extends Storm {
       float strong = 0.0F;
       float intense = 0.0F;
       float staticBands = (float)Math.sin(angle - (Math.PI / 2));
-      staticBands *= (float)Math.pow(Math.clamp(rawDist / (double)((float)this.maxWidth * 0.25F), 0.0, 1.0), 0.1F);
+      staticBands *= (float)Math.pow(Mth.clamp(rawDist / (double)((float)this.maxWidth * 0.25F), 0.0, 1.0), 0.1F);
       staticBands *= 1.25F * (float)Math.pow((double)intensity, 0.75);
       if (staticBands < 0.0F) {
          weak += Math.abs(staticBands);
       } else {
-         weak += Math.abs(staticBands) * (float)Math.pow(1.0 - Math.clamp(rawDist / (double)((float)this.maxWidth * 0.65F), 0.0, 1.0), 0.5);
-         weak *= Math.clamp(((float)this.windspeed - 70.0F) / 40.0F, 0.0F, 1.0F);
+         weak += Math.abs(staticBands) * (float)Math.pow(1.0 - Mth.clamp(rawDist / (double)((float)this.maxWidth * 0.65F), 0.0, 1.0), 0.5);
+         weak *= Mth.clamp(((float)this.windspeed - 70.0F) / 40.0F, 0.0F, 1.0F);
       }
 
       float rotatingBands = (float)Math.sin((angle2 + Math.toRadians((double)((float)this.tickCount / 8.0F))) * 6.0);
-      rotatingBands *= (float)Math.pow(Math.clamp(rawDist / (double)((float)this.maxWidth * 0.25F), 0.0, 1.0), 0.1F);
+      rotatingBands *= (float)Math.pow(Mth.clamp(rawDist / (double)((float)this.maxWidth * 0.25F), 0.0, 1.0), 0.1F);
       rotatingBands *= 1.25F * (float)Math.pow((double)intensity, 0.75);
       strong += Mth.lerp(0.45F, Math.abs(rotatingBands) * 0.3F + 0.7F, weak);
       intense += Mth.lerp(0.3F, Math.abs(rotatingBands) * 0.2F + 0.8F, weak);
       weak = (Math.abs(rotatingBands) * 0.3F + 0.6F) * weak;
       localDBZ += Mth.lerp(
-         Math.clamp(((float)this.windspeed - 120.0F) / 60.0F, 0.0F, 1.0F),
-         Mth.lerp(Math.clamp(((float)this.windspeed - 40.0F) / 90.0F, 0.0F, 1.0F), weak, strong),
+         Mth.clamp(((float)this.windspeed - 120.0F) / 60.0F, 0.0F, 1.0F),
+         Mth.lerp(Mth.clamp(((float)this.windspeed - 40.0F) / 90.0F, 0.0F, 1.0F), weak, strong),
          intense
       );
       float eye = (float)Math.sin((angleE + Math.toRadians((double)((float)this.tickCount / 4.0F))) * 2.0);
-      float efc = Mth.lerp(Math.clamp(((float)this.windspeed - 100.0F) / 50.0F, 0.0F, 1.0F), 0.15F, 0.4F);
+      float efc = Mth.lerp(Mth.clamp(((float)this.windspeed - 100.0F) / 50.0F, 0.0F, 1.0F), 0.15F, 0.4F);
       localDBZ = Math.max(
-         (float)Math.pow(1.0 - Math.clamp(rawDist / (double)((float)this.maxWidth * efc), 0.0, 1.0), 0.5) * (Math.abs(eye * 0.1F) + 0.9F) * 1.35F * intensity,
+         (float)Math.pow(1.0 - Mth.clamp(rawDist / (double)((float)this.maxWidth * efc), 0.0, 1.0), 0.5) * (Math.abs(eye * 0.1F) + 0.9F) * 1.35F * intensity,
          localDBZ
       );
-      localDBZ *= (float)Math.pow(1.0 - Math.clamp(rawDist / (double)this.maxWidth, 0.0, 1.0), 0.5);
+      localDBZ *= (float)Math.pow(1.0 - Mth.clamp(rawDist / (double)this.maxWidth, 0.0, 1.0), 0.5);
       localDBZ *= Mth.lerp(
-         0.5F + Math.clamp(((float)this.windspeed - 65.0F) / 40.0F, 0.0F, 1.0F) * 0.5F,
+         0.5F + Mth.clamp(((float)this.windspeed - 65.0F) / 40.0F, 0.0F, 1.0F) * 0.5F,
          1.0F,
-         (float)Math.pow(Math.clamp(rawDist / (double)((float)this.maxWidth * 0.1F), 0.0, 1.0), 2.0)
+         (float)Math.pow(Mth.clamp(rawDist / (double)((float)this.maxWidth * 0.1F), 0.0, 1.0), 2.0)
       );
-      localDBZ *= Mth.lerp(Math.clamp(((float)this.windspeed - 75.0F) / 50.0F, 0.0F, 1.0F), 0.8F + (float)shapeNoise2 * 0.4F, 1.0F);
+      localDBZ *= Mth.lerp(Mth.clamp(((float)this.windspeed - 75.0F) / 50.0F, 0.0F, 1.0F), 0.8F + (float)shapeNoise2 * 0.4F, 1.0F);
       localDBZ *= 0.8F + (float)shapeNoise * 0.4F;
-      localDBZ *= 1.0F + fineShapeNoise * Mth.lerp((float)Math.pow(Math.clamp(rawDist / (double)this.maxWidth, 0.0, 1.0), 1.5), 0.05F, 0.15F);
+      localDBZ *= 1.0F + fineShapeNoise * Mth.lerp((float)Math.pow(Mth.clamp(rawDist / (double)this.maxWidth, 0.0, 1.0), 1.5), 0.05F, 0.15F);
       localDBZ = (float)Math.pow((double)localDBZ, 1.75);
       if (localDBZ > 0.8F) {
          float dif = (localDBZ - 0.8F) / 1.25F;
@@ -267,7 +267,7 @@ public class Cyclone extends Storm {
          return precip;
       } else {
          Vec3 cPos = this.position.multiply(1.0, 0.0, 1.0);
-         float intensity = (float)Math.pow((double)Math.clamp((float)this.windspeed / 65.0F, 0.0F, 1.0F), 0.85F);
+         float intensity = (float)Math.pow((double)Mth.clamp((float)this.windspeed / 65.0F, 0.0F, 1.0F), 0.85F);
          Vec3 relPos = cPos.subtract(pos);
          double d = (double)((float)this.maxWidth / (3.0F + (float)this.windspeed / 12.0F));
          double d2 = (double)((float)this.maxWidth / (1.15F + (float)this.windspeed / 12.0F));
@@ -282,38 +282,38 @@ public class Cyclone extends Storm {
          float strong = 0.0F;
          float intense = 0.0F;
          float staticBands = (float)Math.sin(angle - (Math.PI / 2));
-         staticBands *= (float)Math.pow(Math.clamp(dist / (double)((float)this.maxWidth * 0.25F), 0.0, 1.0), 0.1F);
+         staticBands *= (float)Math.pow(Mth.clamp(dist / (double)((float)this.maxWidth * 0.25F), 0.0, 1.0), 0.1F);
          staticBands *= 1.25F * (float)Math.pow((double)intensity, 0.75);
          if (staticBands < 0.0F) {
             weak += Math.abs(staticBands);
          } else {
-            weak += Math.abs(staticBands) * (float)Math.pow(1.0 - Math.clamp(dist / (double)((float)this.maxWidth * 0.65F), 0.0, 1.0), 0.5);
-            weak *= Math.clamp(((float)this.windspeed - 70.0F) / 40.0F, 0.0F, 1.0F);
+            weak += Math.abs(staticBands) * (float)Math.pow(1.0 - Mth.clamp(dist / (double)((float)this.maxWidth * 0.65F), 0.0, 1.0), 0.5);
+            weak *= Mth.clamp(((float)this.windspeed - 70.0F) / 40.0F, 0.0F, 1.0F);
          }
 
          float rotatingBands = (float)Math.sin((angle2 + Math.toRadians((double)((float)this.tickCount / 8.0F))) * 6.0);
-         rotatingBands *= (float)Math.pow(Math.clamp(dist / (double)((float)this.maxWidth * 0.25F), 0.0, 1.0), 0.1F);
+         rotatingBands *= (float)Math.pow(Mth.clamp(dist / (double)((float)this.maxWidth * 0.25F), 0.0, 1.0), 0.1F);
          rotatingBands *= 1.25F * (float)Math.pow((double)intensity, 0.75);
          strong += Mth.lerp(0.45F, Math.abs(rotatingBands) * 0.3F + 0.7F, weak);
          intense += Mth.lerp(0.3F, Math.abs(rotatingBands) * 0.2F + 0.8F, weak);
          weak = (Math.abs(rotatingBands) * 0.3F + 0.6F) * weak;
          float localRain = 0.0F;
          localRain += Mth.lerp(
-            Math.clamp(((float)this.windspeed - 120.0F) / 60.0F, 0.0F, 1.0F),
-            Mth.lerp(Math.clamp(((float)this.windspeed - 40.0F) / 90.0F, 0.0F, 1.0F), weak, strong),
+            Mth.clamp(((float)this.windspeed - 120.0F) / 60.0F, 0.0F, 1.0F),
+            Mth.lerp(Mth.clamp(((float)this.windspeed - 40.0F) / 90.0F, 0.0F, 1.0F), weak, strong),
             intense
          );
          float eye = (float)Math.sin((angleE + Math.toRadians((double)((float)this.tickCount / 4.0F))) * 2.0);
-         float efc = Mth.lerp(Math.clamp(((float)this.windspeed - 100.0F) / 50.0F, 0.0F, 1.0F), 0.15F, 0.4F);
+         float efc = Mth.lerp(Mth.clamp(((float)this.windspeed - 100.0F) / 50.0F, 0.0F, 1.0F), 0.15F, 0.4F);
          localRain = Math.max(
-            (float)Math.pow(1.0 - Math.clamp(dist / (double)((float)this.maxWidth * efc), 0.0, 1.0), 0.5) * (Math.abs(eye * 0.1F) + 0.9F) * 1.35F * intensity,
+            (float)Math.pow(1.0 - Mth.clamp(dist / (double)((float)this.maxWidth * efc), 0.0, 1.0), 0.5) * (Math.abs(eye * 0.1F) + 0.9F) * 1.35F * intensity,
             localRain
          );
-         localRain *= (float)Math.pow(1.0 - Math.clamp(dist / (double)this.maxWidth, 0.0, 1.0), 0.5);
+         localRain *= (float)Math.pow(1.0 - Mth.clamp(dist / (double)this.maxWidth, 0.0, 1.0), 0.5);
          localRain *= Mth.lerp(
-            0.5F + Math.clamp(((float)this.windspeed - 65.0F) / 40.0F, 0.0F, 1.0F) * 0.5F,
+            0.5F + Mth.clamp(((float)this.windspeed - 65.0F) / 40.0F, 0.0F, 1.0F) * 0.5F,
             1.0F,
-            (float)Math.pow(Math.clamp(dist / (double)((float)this.maxWidth * 0.15F), 0.0, 1.0), 2.0)
+            (float)Math.pow(Mth.clamp(dist / (double)((float)this.maxWidth * 0.15F), 0.0, 1.0), 2.0)
          );
          if (localRain > 0.6F) {
             float dif = (localRain - 0.6F) / 2.5F;
@@ -337,14 +337,14 @@ public class Cyclone extends Storm {
          Vec3 rotational = new Vec3(relativePos.z, 0.0, -relativePos.x).normalize();
          double pullStrngth = (double)((float)this.windspeed * 0.3F);
          double rotStrngth = (double)((float)this.windspeed * 0.7F);
-         float mult = (float)Math.pow(1.0 - Math.clamp(distance / (double)this.maxWidth, 0.0, 1.0), 3.0);
+         float mult = (float)Math.pow(1.0 - Mth.clamp(distance / (double)this.maxWidth, 0.0, 1.0), 3.0);
          if (distance < (double)((float)this.maxWidth * 0.1F)) {
-            mult += (float)Math.pow(1.0 - Math.clamp(distance / (double)((float)this.maxWidth * 0.1F), 0.0, 1.0), 0.75) * 0.15F;
-            mult = Math.clamp(mult, 0.0F, 1.0F);
+            mult += (float)Math.pow(1.0 - Mth.clamp(distance / (double)((float)this.maxWidth * 0.1F), 0.0, 1.0), 0.75) * 0.15F;
+            mult = Mth.clamp(mult, 0.0F, 1.0F);
          }
 
          double d = (double)((float)this.maxWidth / (1.5F + (float)this.windspeed / 30.0F));
-         float effect = Math.clamp((float)distance / (float)this.maxWidth, 0.0F, 1.0F);
+         float effect = Mth.clamp((float)distance / (float)this.maxWidth, 0.0F, 1.0F);
          float noiseX = (float)WindEngine.FBM(
             new Vec3(
                pos.x / (double)((float)this.maxWidth * 0.5F),
@@ -373,7 +373,7 @@ public class Cyclone extends Storm {
          double angle = Math.atan2(relativePos.z, relativePos.x) - distance / d;
          float bands = (float)Math.sin((angle + Math.toRadians((double)((float)this.tickCount / 8.0F))) * 4.0);
          mult += Mth.lerp(
-            1.0F - Math.clamp((float)distance / ((float)this.maxWidth * 0.35F), 0.0F, 1.0F),
+            1.0F - Mth.clamp((float)distance / ((float)this.maxWidth * 0.35F), 0.0F, 1.0F),
             (float)Math.pow((double)Math.abs(bands), 2.0) * 0.5F * mult,
             0.5F * mult
          );
@@ -388,7 +388,7 @@ public class Cyclone extends Storm {
             0.2F,
             1.0F
          );
-         mult *= Math.clamp(noise, 0.0F, 1.0F) * 0.2F + 0.8F;
+         mult *= Mth.clamp(noise, 0.0F, 1.0F) * 0.2F + 0.8F;
          float noise2 = (float)this.FBM(
             new Vec3(
                pos.x / (double)((float)this.maxWidth * 0.1F),
@@ -400,15 +400,15 @@ public class Cyclone extends Storm {
             0.2F,
             1.0F
          );
-         mult *= Math.clamp(noise2, 0.0F, 1.0F) * 0.1F + 0.9F;
+         mult *= Mth.clamp(noise2, 0.0F, 1.0F) * 0.1F + 0.9F;
          mult *= 1.15F
-            + (float)Math.pow(1.0 - Math.clamp((distance - (double)((float)this.maxWidth * 0.1F)) / (double)((float)this.maxWidth * 0.1F), 0.0, 1.0), 2.5)
+            + (float)Math.pow(1.0 - Mth.clamp((distance - (double)((float)this.maxWidth * 0.1F)) / (double)((float)this.maxWidth * 0.1F), 0.0, 1.0), 2.5)
                * 0.35F;
          float eye = (float)Math.pow(
-            Math.clamp(distance / (double)((float)this.maxWidth * 0.1F), 0.0, 1.0),
-            (double)Mth.lerp(Math.clamp((float)this.windspeed / 120.0F, 0.0F, 1.0F), 0.5F, 4.0F)
+            Mth.clamp(distance / (double)((float)this.maxWidth * 0.1F), 0.0, 1.0),
+            (double)Mth.lerp(Mth.clamp((float)this.windspeed / 120.0F, 0.0F, 1.0F), 0.5F, 4.0F)
          );
-         mult *= Mth.lerp((float)Math.pow((double)Math.clamp((float)this.windspeed / 65.0F, 0.0F, 1.0F), 2.0), 1.0F, eye);
+         mult *= Mth.lerp((float)Math.pow((double)Mth.clamp((float)this.windspeed / 65.0F, 0.0F, 1.0F), 2.0), 1.0F, eye);
          Vec3 vec = inward.multiply(pullStrngth, 0.0, pullStrngth)
             .add(rotational.multiply(rotStrngth, 0.0, rotStrngth))
             .multiply((double)mult, 0.0, (double)mult);
@@ -428,8 +428,8 @@ public class Cyclone extends Storm {
             double dist = pos.multiply(1.0, 0.0, 1.0).distanceTo(vpos.multiply(1.0, 0.0, 1.0));
             double pullStrn = (double)(vorticy.windspeedMult * (float)this.windspeed * 0.3F);
             double rotStrn = (double)(vorticy.windspeedMult * (float)this.windspeed * 0.7F);
-            float m = (float)Math.pow((double)(1.0F - Math.clamp((float)dist / width, 0.0F, 1.0F)), 3.75);
-            m *= Math.clamp((float)dist / (width * 0.1F), 0.0F, 1.0F);
+            float m = (float)Math.pow((double)(1.0F - Mth.clamp((float)dist / width, 0.0F, 1.0F)), 3.75);
+            m *= Mth.clamp((float)dist / (width * 0.1F), 0.0F, 1.0F);
             m *= 7.0F;
             Vec3 v = in.multiply(pullStrn, 0.0, pullStrn).add(rot.multiply(rotStrn, 0.0, rotStrn)).multiply((double)m, 0.0, (double)m);
             wind = wind.add(v);

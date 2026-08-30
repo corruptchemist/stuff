@@ -1,5 +1,6 @@
 package dev.protomanly.pmweather.weather;
 
+import net.minecraft.util.Mth;
 import dev.protomanly.pmweather.PMWeather;
 import dev.protomanly.pmweather.config.ServerConfig;
 import dev.protomanly.pmweather.data.LevelSavedData;
@@ -94,7 +95,7 @@ public abstract class WeatherHandler implements IWorldData {
    }
 
    public float getPrecipitation(Vec3 pos, int advance) {
-      return Math.clamp(this._getPrecipitation(pos, advance) * (float)ServerConfig.rainStrength, 0.0F, 1.0F);
+      return Mth.clamp(this._getPrecipitation(pos, advance) * (float)ServerConfig.rainStrength, 0.0F, 1.0F);
    }
 
    public float getHail(Vec3 pos) {
@@ -108,7 +109,7 @@ public abstract class WeatherHandler implements IWorldData {
             }
          }
 
-         return Math.clamp(precip, 0.0F, 1.0F);
+         return Mth.clamp(precip, 0.0F, 1.0F);
       }
    }
 
@@ -124,7 +125,7 @@ public abstract class WeatherHandler implements IWorldData {
             }
          }
 
-         return Math.clamp(precip * (float)ServerConfig.rainStrength, 0.0F, 1.0F);
+         return Mth.clamp(precip * (float)ServerConfig.rainStrength, 0.0F, 1.0F);
       }
    }
 

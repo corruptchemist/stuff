@@ -12,7 +12,7 @@ import net.neoforged.neoforge.registries.DeferredBlock;
 
 public class MultiBlocks {
    public static final DeferredBlock<Block> WSR88D_CORE = registerBlock(
-      "wsr88d_core", () -> new WSR88DCore(Properties.ofFullCopy(Blocks.IRON_BLOCK).noOcclusion())
+      "wsr88d_core", () -> new WSR88DCore(Properties.copy(Blocks.IRON_BLOCK).noOcclusion())
    );
 
    public MultiBlocks() {

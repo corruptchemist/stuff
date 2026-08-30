@@ -1,6 +1,5 @@
 package dev.protomanly.pmweather.block;
 
-import com.mojang.serialization.MapCodec;
 import dev.protomanly.pmweather.block.entity.ModBlockEntities;
 import dev.protomanly.pmweather.block.entity.SoundingViewerBlockEntity;
 import dev.protomanly.pmweather.item.ModItems;
@@ -31,7 +30,6 @@ import net.minecraft.world.phys.BlockHitResult;
 import org.jetbrains.annotations.Nullable;
 
 public class SoundingViewerBlock extends BaseEntityBlock {
-   public static final MapCodec<SoundingViewerBlock> CODEC = simpleCodec(SoundingViewerBlock::new);
    public static DirectionProperty FACING = BlockStateProperties.HORIZONTAL_FACING;
 
    protected SoundingViewerBlock(Properties properties) {
@@ -73,9 +71,6 @@ public class SoundingViewerBlock extends BaseEntityBlock {
       return RenderShape.MODEL;
    }
 
-   protected MapCodec<? extends BaseEntityBlock> codec() {
-      return CODEC;
-   }
 
    @Nullable
    public BlockEntity newBlockEntity(BlockPos blockPos, BlockState blockState) {

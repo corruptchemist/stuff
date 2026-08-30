@@ -109,7 +109,7 @@ public class Squall extends Storm {
 
             if (this.energy < targetProgress) {
                this.energy++;
-               this.coldEnergy = Math.clamp((long)(this.coldEnergy + 1), 0, this.maxColdEnergy);
+               this.coldEnergy = Mth.clamp((long)(this.coldEnergy + 1), 0, this.maxColdEnergy);
             }
 
             if (this.stage >= this.maxStage && this.energy >= targetProgress) {

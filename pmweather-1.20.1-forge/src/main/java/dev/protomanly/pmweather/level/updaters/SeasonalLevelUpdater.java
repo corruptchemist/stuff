@@ -41,7 +41,7 @@ public class SeasonalLevelUpdater extends LevelUpdater {
          if (weatherHandler != null) {
             BlockPos samplePos = chunkAccess.getPos().getMiddleBlockPosition(0);
             samplePos = samplePos.atY(chunkAccess.getHeight(Types.MOTION_BLOCKING, samplePos.getX(), samplePos.getZ()));
-            float snowcover = Mth.square(Math.clamp((float)d / 72000.0F, 0.0F, 1.0F)) * 0.3F;
+            float snowcover = Mth.square(Mth.clamp((float)d / 72000.0F, 0.0F, 1.0F)) * 0.3F;
             float cold = 0.0F;
             float lowestTemp = Float.MAX_VALUE;
             float highestTemp = -Float.MAX_VALUE;
@@ -86,7 +86,7 @@ public class SeasonalLevelUpdater extends LevelUpdater {
                      if (hasLight && !level.isOutsideBuildHeight(above)) {
                         BlockState state = chunkAccess.getBlockState(above);
                         if (ServerConfig.useSeasonalPlants) {
-                           if (state.is(Blocks.SHORT_GRASS)
+                           if (state.is(Blocks.GRASS)
                               || state.getBlock() instanceof SeasonalPlantBlock && (Boolean)state.getValue(SeasonalPlantBlock.DEAD)) {
                               level.setBlock(above, Blocks.AIR.defaultBlockState(), 2, 1);
                               return;
@@ -103,7 +103,7 @@ public class SeasonalLevelUpdater extends LevelUpdater {
                            SeasonalPlantBlock plantBlock = SeasonalPlantBlock.GetPlantTypeFor((ServerLevel)level, blockPos);
                            BlockState plantState = SeasonalPlantBlock.GetStateFor(plantBlock, (ServerLevel)level, above, tempTarg, level.random);
                            if (!ServerConfig.useSeasonalPlants && plantState != null) {
-                              plantState = level.random.nextInt(8) == 0 ? Blocks.TALL_GRASS.defaultBlockState() : Blocks.SHORT_GRASS.defaultBlockState();
+                              plantState = level.random.nextInt(8) == 0 ? Blocks.TALL_GRASS.defaultBlockState() : Blocks.GRASS.defaultBlockState();
                            }
 
                            if (ServerConfig.useSeasonalPlants && state.getBlock() instanceof SeasonalPlantBlock) {

@@ -109,7 +109,7 @@ public class Lightning {
                   );
                struckEntities.forEach(entity -> {
                   double dist = entity.position().multiply(1.0, 0.25, 1.0).distanceTo(lPos);
-                  float perc = 1.0F - (float)Math.clamp(dist / affectDist, 0.0, 1.0);
+                  float perc = 1.0F - (float)Mth.clamp(dist / affectDist, 0.0, 1.0);
                   entity.hurt(this.level.damageSources().lightningBolt(), (this.level.random.nextFloat() + 0.25F) * 30.0F * perc * Mth.sqrt(this.strength));
                });
             }

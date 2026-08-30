@@ -80,7 +80,7 @@ public class Util {
 
    public static double normalDist(Random random, double lower, double mean, double upper) {
       Vector2d u = new Vector2d(random.nextDouble(), random.nextDouble());
-      double z = Math.clamp(Math.sqrt(-2.0 * Math.log(u.x)) * Math.cos((Math.PI * 2) * u.y) / 2.5, -1.0, 1.0);
+      double z = Mth.clamp(Math.sqrt(-2.0 * Math.log(u.x)) * Math.cos((Math.PI * 2) * u.y) / 2.5, -1.0, 1.0);
       return z < 0.0 ? Mth.lerp(z + 1.0, lower, Math.max(lower, mean)) : Mth.lerp(z, Math.max(lower, mean), Math.max(upper, Math.max(mean, lower)));
    }
 

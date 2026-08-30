@@ -319,11 +319,11 @@ public class RadarRenderer<T extends BlockEntity> implements BlockEntityRenderer
                         if (radarMode == ClientConfig.RadarMode.TEMPERATURE) {
                            float t = ThermodynamicEngine.samplePoint(GameBusClientEvents.weatherHandler, worldPosx, level, radarBlockEntity, 0).temperature();
                            if (t <= 0.0F) {
-                              dbg = ColorTables.lerp(Math.clamp(t / -40.0F, 0.0F, 1.0F), new Color(153, 226, 251, 255), new Color(29, 53, 221, 255));
+                              dbg = ColorTables.lerp(Mth.clamp(t / -40.0F, 0.0F, 1.0F), new Color(153, 226, 251, 255), new Color(29, 53, 221, 255));
                            } else if (t < 15.0F) {
-                              dbg = ColorTables.lerp(Math.clamp(t / 15.0F, 0.0F, 1.0F), new Color(255, 255, 255, 255), new Color(225, 174, 46, 255));
+                              dbg = ColorTables.lerp(Mth.clamp(t / 15.0F, 0.0F, 1.0F), new Color(255, 255, 255, 255), new Color(225, 174, 46, 255));
                            } else {
-                              dbg = ColorTables.lerp(Math.clamp((t - 15.0F) / 25.0F, 0.0F, 1.0F), new Color(225, 174, 46, 255), new Color(232, 53, 14, 255));
+                              dbg = ColorTables.lerp(Mth.clamp((t - 15.0F) / 25.0F, 0.0F, 1.0F), new Color(225, 174, 46, 255), new Color(232, 53, 14, 255));
                            }
                         }
 
@@ -340,7 +340,7 @@ public class RadarRenderer<T extends BlockEntity> implements BlockEntityRenderer
                            float cloudsx = Clouds.getCloudDensity(
                               GameBusClientEvents.weatherHandler, new Vector2f((float)worldPosx.x, (float)worldPosx.z), 0.0F
                            );
-                           cloudsx = Math.clamp(cloudsx, 0.0F, 1.0F);
+                           cloudsx = Mth.clamp(cloudsx, 0.0F, 1.0F);
                            dbg = new Color(cloudsx, cloudsx, cloudsx);
                         }
 

@@ -1,6 +1,5 @@
 package dev.protomanly.pmweather.block;
 
-import com.mojang.serialization.MapCodec;
 import dev.protomanly.pmweather.block.entity.AnemometerBlockEntity;
 import dev.protomanly.pmweather.block.entity.ModBlockEntities;
 import dev.protomanly.pmweather.config.ClientConfig;
@@ -25,7 +24,6 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 import org.jetbrains.annotations.Nullable;
 
 public class AnemometerBlock extends BaseEntityBlock {
-   public static final MapCodec<AnemometerBlock> CODEC = simpleCodec(AnemometerBlock::new);
    public static final VoxelShape SHAPE = box(6.0, 0.0, 6.0, 10.0, 14.0, 10.0);
 
    protected AnemometerBlock(Properties properties) {
@@ -54,9 +52,6 @@ public class AnemometerBlock extends BaseEntityBlock {
       return SHAPE;
    }
 
-   protected MapCodec<? extends BaseEntityBlock> codec() {
-      return CODEC;
-   }
 
    @Nullable
    public BlockEntity newBlockEntity(BlockPos blockPos, BlockState blockState) {

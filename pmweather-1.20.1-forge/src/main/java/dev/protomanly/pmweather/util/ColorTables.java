@@ -8,24 +8,24 @@ public class ColorTables {
    }
 
    public static Color getReflectivity(float val, Color startColor) {
-      Color color = lerp(Math.clamp(val / 19.0F, 0.0F, 1.0F), startColor, new Color(6069678));
-      color = lerp(Math.clamp((val - 19.0F) / 8.0F, 0.0F, 1.0F), color, new Color(746505));
-      color = lerp(Math.clamp((val - 27.0F) / 13.0F, 0.0F, 1.0F), color, new Color(12956416));
+      Color color = lerp(Mth.clamp(val / 19.0F, 0.0F, 1.0F), startColor, new Color(6069678));
+      color = lerp(Mth.clamp((val - 19.0F) / 8.0F, 0.0F, 1.0F), color, new Color(746505));
+      color = lerp(Mth.clamp((val - 27.0F) / 13.0F, 0.0F, 1.0F), color, new Color(12956416));
       if (val >= 40.0F) {
          color = new Color(16421888);
       }
 
-      color = lerp(Math.clamp((val - 40.0F) / 10.0F, 0.0F, 1.0F), color, new Color(11688204));
+      color = lerp(Mth.clamp((val - 40.0F) / 10.0F, 0.0F, 1.0F), color, new Color(11688204));
       if (val >= 50.0F) {
          color = new Color(16327435);
       }
 
-      color = lerp(Math.clamp((val - 50.0F) / 10.0F, 0.0F, 1.0F), color, new Color(8529952));
+      color = lerp(Mth.clamp((val - 50.0F) / 10.0F, 0.0F, 1.0F), color, new Color(8529952));
       if (val >= 60.0F) {
          color = new Color(13277620);
       }
 
-      color = lerp(Math.clamp((val - 60.0F) / 10.0F, 0.0F, 1.0F), color, new Color(12721266));
+      color = lerp(Mth.clamp((val - 60.0F) / 10.0F, 0.0F, 1.0F), color, new Color(12721266));
       if (val >= 70.0F) {
          color = new Color(16777215);
       }
@@ -35,41 +35,41 @@ public class ColorTables {
 
    public static Color getMixedReflectivity(float val) {
       Color color = new Color(250, 195, 248, 0);
-      return lerp(Math.clamp(val / 70.0F, 0.0F, 1.0F), color, new Color(210, 0, 210, 255));
+      return lerp(Mth.clamp(val / 70.0F, 0.0F, 1.0F), color, new Color(210, 0, 210, 255));
    }
 
    public static Color getSnowReflectivity(float val) {
       Color color = new Color(255, 255, 255, 0);
-      return lerp(Math.clamp(val / 70.0F, 0.0F, 1.0F), color, new Color(0, 111, 255, 255));
+      return lerp(Mth.clamp(val / 70.0F, 0.0F, 1.0F), color, new Color(0, 111, 255, 255));
    }
 
    public static Color getVelocity(float velocity) {
       Color color = new Color(150, 150, 150);
       if (velocity > 0.0F) {
          color = new Color(9074294);
-         color = lerp(Math.clamp(velocity / 12.0F, 0.0F, 1.0F), color, new Color(8665153));
+         color = lerp(Mth.clamp(velocity / 12.0F, 0.0F, 1.0F), color, new Color(8665153));
          if (velocity > 12.0F) {
             color = new Color(7208960);
          }
 
-         color = lerp(Math.clamp((velocity - 12.0F) / 27.0F, 0.0F, 1.0F), color, new Color(15925255));
+         color = lerp(Mth.clamp((velocity - 12.0F) / 27.0F, 0.0F, 1.0F), color, new Color(15925255));
          if (velocity > 39.0F) {
             color = new Color(16398161);
          }
 
-         color = lerp(Math.clamp((velocity - 39.0F) / 30.0F, 0.0F, 1.0F), color, new Color(16771235));
-         color = lerp(Math.clamp((velocity - 69.0F) / 71.0F, 0.0F, 1.0F), color, new Color(6751746));
+         color = lerp(Mth.clamp((velocity - 39.0F) / 30.0F, 0.0F, 1.0F), color, new Color(16771235));
+         color = lerp(Mth.clamp((velocity - 69.0F) / 71.0F, 0.0F, 1.0F), color, new Color(6751746));
       } else if (velocity < 0.0F) {
          velocity = Mth.abs(velocity);
          color = new Color(7505264);
-         color = lerp(Math.clamp(velocity / 12.0F, 0.0F, 1.0F), color, new Color(5142860));
+         color = lerp(Mth.clamp(velocity / 12.0F, 0.0F, 1.0F), color, new Color(5142860));
          if (velocity > 12.0F) {
             color = new Color(353795);
          }
 
-         color = lerp(Math.clamp((velocity - 12.0F) / 69.0F, 0.0F, 1.0F), color, new Color(3203299));
-         color = lerp(Math.clamp((velocity - 81.0F) / 25.0F, 0.0F, 1.0F), color, new Color(1442457));
-         color = lerp(Math.clamp((velocity - 106.0F) / 34.0F, 0.0F, 1.0F), color, new Color(16711812));
+         color = lerp(Mth.clamp((velocity - 12.0F) / 69.0F, 0.0F, 1.0F), color, new Color(3203299));
+         color = lerp(Mth.clamp((velocity - 81.0F) / 25.0F, 0.0F, 1.0F), color, new Color(1442457));
+         color = lerp(Mth.clamp((velocity - 106.0F) / 34.0F, 0.0F, 1.0F), color, new Color(16711812));
       }
 
       return color;

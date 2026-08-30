@@ -31,7 +31,7 @@ public class ChunkLoading {
    }
 
    @SubscribeEvent
-   private static void registerTicketControllers(RegisterTicketControllersEvent event) {
+   public static void registerTicketControllers  // port: Forge 1.20.1 only scans PUBLIC methods; private handlers are silently ignored(RegisterTicketControllersEvent event) {
       event.register(CONTROLLER);
    }
 

@@ -1,6 +1,5 @@
 package dev.protomanly.pmweather.block;
 
-import com.mojang.serialization.MapCodec;
 import dev.protomanly.pmweather.block.entity.ModBlockEntities;
 import dev.protomanly.pmweather.block.entity.TornadoSirenBlockEntity;
 import net.minecraft.core.BlockPos;
@@ -15,7 +14,6 @@ import net.minecraft.world.level.block.state.BlockBehaviour.Properties;
 import org.jetbrains.annotations.Nullable;
 
 public class TornadoSirenBlock extends BaseEntityBlock {
-   public static final MapCodec<TornadoSirenBlock> CODEC = simpleCodec(TornadoSirenBlock::new);
 
    public TornadoSirenBlock(Properties properties) {
       super(properties);
@@ -34,9 +32,6 @@ public class TornadoSirenBlock extends BaseEntityBlock {
       );
    }
 
-   protected MapCodec<? extends BaseEntityBlock> codec() {
-      return CODEC;
-   }
 
    @Nullable
    public BlockEntity newBlockEntity(BlockPos blockPos, BlockState blockState) {

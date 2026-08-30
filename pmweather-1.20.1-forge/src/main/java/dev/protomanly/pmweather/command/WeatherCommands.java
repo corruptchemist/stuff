@@ -1020,7 +1020,7 @@ public class WeatherCommands {
       ThermodynamicEngine.AtmosphericDataPoint sfc = ThermodynamicEngine.samplePoint(weatherHandlerServer, sfcPos, level, null, 5400);
       float riskV = sounding.getRisk(5400);
       if (sfc.temperature() < 3.0F) {
-         riskV += Math.clamp((sfc.temperature() - 3.0F) / -6.0F, 0.0F, 1.0F) * 0.25F;
+         riskV += Mth.clamp((sfc.temperature() - 3.0F) / -6.0F, 0.0F, 1.0F) * 0.25F;
       }
 
       Storm storm = StormTypes.SQUALL.create(new StormSpawnProperties(weatherHandlerServer, level, sfcPos, riskV));

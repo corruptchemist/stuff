@@ -1,6 +1,5 @@
 package dev.protomanly.pmweather.block;
 
-import com.mojang.serialization.MapCodec;
 import dev.protomanly.pmweather.block.entity.ModBlockEntities;
 import dev.protomanly.pmweather.block.entity.RadarBlockEntity;
 import dev.protomanly.pmweather.config.ServerConfig;
@@ -36,7 +35,6 @@ import org.jetbrains.annotations.Nullable;
 public class RadarBlock extends BaseEntityBlock {
    public static EnumProperty<RadarBlock.Mode> RADAR_MODE = EnumProperty.create("mode", RadarBlock.Mode.class);
    public static BooleanProperty ON = BooleanProperty.create("on");
-   public static final MapCodec<RadarBlock> CODEC = simpleCodec(RadarBlock::new);
 
    protected RadarBlock(Properties properties) {
       super(properties);
@@ -61,9 +59,6 @@ public class RadarBlock extends BaseEntityBlock {
    }
 
    @NotNull
-   protected MapCodec<? extends BaseEntityBlock> codec() {
-      return CODEC;
-   }
 
    public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltipComponents, TooltipFlag tooltipFlag) {
       super.appendHoverText(stack, context, tooltipComponents, tooltipFlag);
@@ -85,7 +80,7 @@ public class RadarBlock extends BaseEntityBlock {
 
    protected void neighborChanged(BlockState state, Level level, BlockPos pos, Block neighborBlock, BlockPos neighborPos, boolean movedByPiston) {
       BlockPos offset = neighborPos.subtract(pos);
-      Direction direction = Direction.fromDelta(offset.getX(), offset.getY(), offset.getZ());
+      Direction direction = Direction.fromNormal(offset.getX(), offset.getY(), offset.getZ());
       if (direction != null) {
          if (!level.isClientSide && level.hasSignal(neighborPos, direction)) {
             level.scheduleTick(pos, this, 4);

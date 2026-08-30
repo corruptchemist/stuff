@@ -75,7 +75,7 @@ public class VolumeShader extends PMWPostShader {
          } else {
             float rain = weatherHandler.getPrecipitation(player.position());
             Vec3 wind = WindEngine.getWind(player.position(), cLevel);
-            float snowBlindness = (float)Math.clamp(Math.pow(wind.length() / 45.0, 2.0) * (double)rain, 0.0, 1.0);
+            float snowBlindness = (float)Mth.clamp(Math.pow(wind.length() / 45.0, 2.0) * (double)rain, 0.0, 1.0);
             snow = Mth.lerp(0.05F, snow, snowBlindness);
          }
       }
@@ -198,7 +198,7 @@ public class VolumeShader extends PMWPostShader {
             }
 
             pointLights[pointLightCount] = new Vector4f((float)lightning.position.x, (float)ServerConfig.layer0Height, (float)lightning.position.z, 750.0F);
-            float p = Math.clamp(((float)lightning.ticks + this.partialTicks) / (float)lightning.lifetime, 0.0F, 1.0F);
+            float p = Mth.clamp(((float)lightning.ticks + this.partialTicks) / (float)lightning.lifetime, 0.0F, 1.0F);
             Vector3f color = new Vector3f(
                (float)lightning.color.getRed() / 255.0F, (float)lightning.color.getGreen() / 255.0F, (float)lightning.color.getBlue() / 255.0F
             );

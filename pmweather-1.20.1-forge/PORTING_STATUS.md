@@ -85,36 +85,78 @@ save/load. Affects `render/RadarRenderer`, `render/CustomLightningRenderer`,
 `render/SoundingViewerRenderer`, `particle/ParticleManager`, `mixin/SectionCompilerMixin`,
 `mixin/BufferBuilderMixin`, `mixin/VertexFormatElementMixin`, `block/entity/…`, `data/…`.
 
-**c) The real blocker: Veil**
+**c) Veil — NOT a blocker (corrected)**
 
-22 files import `foundry.veil.*`. The mod requires **Veil 4.2.1**, which is 1.21.1-only —
-it ships jar-in-jar as `veil-neoforge-1.21.1-4.2.1.jar`. The 1.20.1 line of Veil is
-**1.0.0.x**, a different major version whose API is not source-compatible. The mod's entire
-raymarched-cloud/volumetric renderer is built on Veil 4.x framebuffers, shader programs,
-post pipelines, `VeilRenderSystem` and `CameraMatrices`. There is no mechanical translation
-for this; it is a rewrite against a different library, or a rewrite of the renderer against
-raw `PostChain`/GL.
+My first pass called this fatal. It is not. FoundryMC/Veil has a **`1.20` branch**
+(commit `3592ddd`, Dec 2024) targeting `minecraft_version=1.20.1` / `forge_version=47.3.1`,
+LGPL-3.0, with a complete `forge/` module. Veil 1.0.0 provides 6 of the 7 hooks PMWeather
+uses — `onVeilRendererAvailable`, `preVeilPostProcessing`, `postVeilPostProcessing`,
+`onVeilRegisterFixedBuffers`, `onVeilRegisterBlockLayers`, `onVeilRenderTypeStageRender` —
+plus `PostProcessingManager`, `AdvancedFbo`/`FramebufferManager`, `ShaderManager`/
+`ShaderProgram`, `VeilRenderSystem`, `CameraMatrices`, and `FastNoiseLite` at the same FQN
+`SeasonalPlantBlock` imports. The one missing hook, `onVeilShaderCompile`, forwards to
+`PMWPostShader.onCompile`, which is an empty method nothing overrides — a no-op in 0.17.14.
 
-**d) Sodium and Iris compat**
+Two real caveats: the `1.20` branch has **no release tags**, so you build and jar-in-jar it
+yourself (LGPL-3.0 allows this; you must publish source) and maintain an branch whose last
+commit is Dec 2024. And Veil 1.0.0's uniform API is flat — ~55 `getUniformSafe("x").setY(v)`
+sites collapse to `setY("x", v)` — while `renderStage` is absent from its
+`CompositePostPipeline` codec, so `sky.json`/`volumes.json` must be driven from
+`onVeilRenderTypeStageRender` instead (~50 LOC).
 
-The 10 Sodium mixins target Sodium **0.8.12+ for 1.21.1** (`net.caffeinemc.mods.sodium.*`),
-patching its chunk-vertex encoder and chunk renderer. On 1.20.1 Forge there is no Sodium —
-the analogue is **Embeddium**, with the older `me.jellysquid.mods.sodium.*` package and a
-different chunk pipeline. Same story for Iris → **Oculus**. These mixins have to be
-re-authored against different internals. I have disabled these three mixin configs
-(`.disabled-port` suffix) rather than leave configs that would crash at load:
-`pmweather.sodium.mixins.json`, `pmweather.iris.mixins.json`, `pmweather.veil.mixins.json`.
+**d) The one thing that genuinely cannot be ported: Sodium**
+
+The 10 Sodium mixins (`compat/sodium/`, 662 LOC) target Sodium 0.6/0.8
+(`net.caffeinemc.mods.sodium.*`). 1.20.1 Forge has no Sodium — only Embeddium/Rubidium on
+the Sodium 0.5 lineage, with a different chunk vertex format, no FRAPI mesh path, and a
+closed `ChunkMeshAttribute` enum. Retargeting is ~600 LOC that cannot be validated without
+running the game. It is ~2.5% of the mod and cleanly gated, so deleting the directory is the
+right call. Iris → Oculus is the same story for 54 LOC.
+
+**e) Landmines that fail silently on Forge 1.20.1**
+
+Found by the analysis, and the first three are **fixed in this tree**:
+
+- `private static @SubscribeEvent` handlers are dropped without warning (Forge scans
+  `getMethods()`). Three existed — `ClientConfig.onLoad`, `ServerConfig.onLoad`,
+  `ChunkLoading.registerTicketControllers`. Both config loaders being dead would have left
+  every config field at its Java default and stopped weather spawning. Now public.
+- Forge 1.20.1 `mods.toml` has **no `[[mixins]]` block**; configs live in the jar manifest's
+  `MixinConfigs` attribute. Moved.
+- Forge 1.20.1 access transformers match **SRG** names, not Mojang names. The AT now carries
+  SRG ids (still to be verified against your mappings — see the comment in the file).
+- Still outstanding: `requiredMods` mixin gating must be reimplemented as an
+  `IMixinConfigPlugin.shouldApplyMixin` consulting `ModList.isLoaded`; a refmap is mandatory
+  under SRG runtime; `ItemProperties.register` clamps to [0,1] on 1.20.1, which would collapse
+  the calendar item's 12 month models into one.
 
 ## 3. Honest effort estimate
 
-For someone with a working 1.20.1 Forge toolchain, starting from this tree:
+A 7-subsystem analysis with adversarial verification of every claimed blocker landed on:
 
-- Getting it to **compile** with the renderer stubbed out: ~3–5 days.
-- Restoring the **weather simulation, blocks, items, commands, networking, sound**
-  (the majority of the mod's logic, which is largely plain Java): ~1–2 weeks.
-- Restoring the **Veil-based volumetric renderer** on 1.20.1: this is the bulk of it —
-  weeks, and it may not be reproducible at all without a Veil 4.x-equivalent on 1.20.1.
-- Sodium/Iris compat via Embeddium/Oculus: additional, and optional.
+- **~74% mechanical** (~19,600 LOC). `weather/` alone is 5,984 LOC and ~91% untouched — the
+  storm model is Simplex noise + JOML + `CompoundTag`, identical across versions. `command/`
+  is ~99% portable (Brigadier is unchanged).
+- **~20% needs rewriting** (~5,300 LOC touched → ~3,500-4,000 new): capabilities, networking,
+  the chunk-layer mixins, the particle render loop, the Veil uniform/scheduling layer,
+  `tickPrecipitation`, data components.
+- **~6% cannot be ported** (~1,000-1,600 LOC): `compat/sodium`, `compat/iris`, `compat/sable`
+  (no 1.20.1 build exists in any version), `compat/powergrid`, the config screen.
+
+**Total: 66-92 developer-days — call it ~75 dev-days, 15 weeks for one expert**, or 10-12
+weeks for two (the render track parallelises cleanly against the sim/data/network track).
+Add 15-25 days if Embeddium support is required, with a real chance of never reaching parity.
+
+The single riskiest item is **swaying grass**: 8-12 days of mixin work against
+`ChunkRenderDispatcher$RenderChunk$RebuildTask#compile` and `BufferVertexConsumer`, for a
+cosmetic effect, where stride/offset bugs only show up as garbled terrain in a running game.
+Ship v1 without it — repoint the 142 model JSONs that hardcode
+`"render_type": "pmweather:swaying_cutout"` to `minecraft:cutout` — and add it later.
+
+**What a reduced-scope 1.20.1 build keeps:** the whole atmospheric simulation, storms, radar,
+wildfire, seasons, volumetric clouds, sky replacement and sounds. **What it loses:**
+Sodium/Embeddium support, shaderpack-compatible swaying, Sable and PowerGrid integration,
+the config GUI, and (if deferred) swaying grass.
 
 ## 4. Worth knowing before you spend that time
 

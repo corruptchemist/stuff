@@ -117,9 +117,9 @@ public class FoliageColors {
                   float rf = (float)red / 255.0F;
                   float gf = (float)green / 255.0F;
                   float bf = (float)blue / 255.0F;
-                  red = Math.clamp((long)((int)(rf * 255.0F)), 0, 255);
-                  green = Math.clamp((long)((int)(gf * 255.0F)), 0, 255);
-                  blue = Math.clamp((long)((int)(bf * 255.0F)), 0, 255);
+                  red = Mth.clamp((long)((int)(rf * 255.0F)), 0, 255);
+                  green = Mth.clamp((long)((int)(gf * 255.0F)), 0, 255);
+                  blue = Mth.clamp((long)((int)(bf * 255.0F)), 0, 255);
                   return new Color(red, green, blue).getRGB();
                } else {
                   return originalColor;

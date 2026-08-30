@@ -246,7 +246,7 @@ public class GameBusEvents {
             }
 
             if (wind.length() > 60.0) {
-               double factor = Mth.lerp(Math.clamp(wind.length() / 125.0, 0.0, 1.0), 0.005, 0.02);
+               double factor = Mth.lerp(Mth.clamp(wind.length() / 125.0, 0.0, 1.0), 0.005, 0.02);
                float mult = 0.65F;
                if (!entity.onGround()) {
                   mult = 0.075F;
@@ -269,7 +269,7 @@ public class GameBusEvents {
 
             Vec3 windx = WindEngine.getWind(entity.getEyePosition(1.0F), level, false, true, false);
             if (windx.length() > 60.0) {
-               double factor = Mth.lerp(Math.clamp(windx.length() / 125.0, 0.0, 1.0), 0.005, 0.02);
+               double factor = Mth.lerp(Mth.clamp(windx.length() / 125.0, 0.0, 1.0), 0.005, 0.02);
                float mult = 0.65F;
                if (!entity.onGround()) {
                   mult = 0.075F;
@@ -468,10 +468,10 @@ public class GameBusEvents {
                            && Util.canWindAffect(check.getCenter(), level)
                            && !state.is(ModBlocks.REINFORCED_GLASS)
                            && !state.is(ModBlocks.REINFORCED_GLASS_PANE)) {
-                           if (!state.is(net.minecraftforge.common.Tags.Blocks.GLASS_BLOCKS)
+                           if (!state.is(net.minecraftforge.common.Tags.Blocks.GLASS)
                               && !state.is(net.minecraftforge.common.Tags.Blocks.GLASS_PANES)) {
-                              double percChance = Math.clamp(
-                                 Math.pow(Math.clamp(Math.max((double)(wind - blockStrength), 0.0) / 20.0, 0.0, 1.0), 2.0) + 0.02, 0.0, 1.0
+                              double percChance = Mth.clamp(
+                                 Math.pow(Mth.clamp(Math.max((double)(wind - blockStrength), 0.0) / 20.0, 0.0, 1.0), 2.0) + 0.02, 0.0, 1.0
                               );
                               if (wind < blockStrength) {
                                  percChance = 0.0;
@@ -489,7 +489,7 @@ public class GameBusEvents {
 
                                  MinecraftForge.EVENT_BUS.post(new BlockDamageEvent(level, check, state));
                                  level.removeBlock(check, false);
-                                 if (level.isLoaded(check) && PMWeather.RANDOM.nextFloat() <= Math.clamp(1.0F - chance, 0.2F, 1.0F) * 0.6F) {
+                                 if (level.isLoaded(check) && PMWeather.RANDOM.nextFloat() <= Mth.clamp(1.0F - chance, 0.2F, 1.0F) * 0.6F) {
                                     MovingBlock movingBlock = (MovingBlock)ModEntities.MOVING_BLOCK.get().create(level);
                                     if (movingBlock != null) {
                                        movingBlock.setStartPos(check);
@@ -500,7 +500,7 @@ public class GameBusEvents {
                                  }
                               }
                            } else {
-                              double percChancex = (double)Math.clamp((wind - 55.0F) / 15.0F, 0.0F, 1.0F);
+                              double percChancex = (double)Mth.clamp((wind - 55.0F) / 15.0F, 0.0F, 1.0F);
                               if ((double)PMWeather.RANDOM.nextFloat() <= percChancex && Util.canWindAffect(check.getCenter(), level)) {
                                  level.destroyBlock(check, false);
                               }
@@ -593,7 +593,7 @@ public class GameBusEvents {
                      if (posx != null) {
                         Float sst = ThermodynamicEngine.GetSST(weatherHandler, posx, weatherHandler.getWorld(), null, 0);
                         if (sst != null) {
-                           spawnChance *= (double)Math.clamp((sst - 22.0F) / 4.0F, 0.0F, 2.0F);
+                           spawnChance *= (double)Mth.clamp((sst - 22.0F) / 4.0F, 0.0F, 2.0F);
                         } else {
                            spawnChance = 0.0;
                         }
@@ -607,7 +607,7 @@ public class GameBusEvents {
                   }
 
                   if (sfc.temperature() < 3.0F) {
-                     spawnChance += (double)(Math.clamp((sfc.temperature() - 3.0F) / -6.0F, 0.0F, 1.0F) * 0.035F);
+                     spawnChance += (double)(Mth.clamp((sfc.temperature() - 3.0F) / -6.0F, 0.0F, 1.0F) * 0.035F);
                   }
 
                   PMWeather.LOGGER.debug("W/ spawn chance: {}%\nRisk: {}", (int)(spawnChance * 100.0), (int)(riskV * 100.0F));
@@ -628,7 +628,7 @@ public class GameBusEvents {
                      cyclones++;
                   } else if (squall) {
                      if (sfc.temperature() < 3.0F) {
-                        riskV += Math.clamp((sfc.temperature() - 3.0F) / -6.0F, 0.0F, 1.0F) * 0.25F;
+                        riskV += Mth.clamp((sfc.temperature() - 3.0F) / -6.0F, 0.0F, 1.0F) * 0.25F;
                      }
 
                      Storm stormxx = StormTypes.SQUALL.create(new StormSpawnProperties(weatherHandler, level, posx, riskV));

@@ -1,5 +1,6 @@
 package dev.protomanly.pmweather.compat.sable;
 
+import net.minecraft.util.Mth;
 import com.simibubi.create.AllTags.AllBlockTags;
 import dev.protomanly.pmweather.config.ServerConfig;
 import dev.protomanly.pmweather.util.Util;
@@ -91,7 +92,7 @@ public class SableHandler {
                   }
 
                   if (windspeed > 100.0) {
-                     m = Math.clamp((windspeed - 100.0) / 50.0, 0.0, 1.0);
+                     m = Mth.clamp((windspeed - 100.0) / 50.0, 0.0, 1.0);
                      break;
                   }
                }

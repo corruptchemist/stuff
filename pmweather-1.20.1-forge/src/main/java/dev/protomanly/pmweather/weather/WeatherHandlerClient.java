@@ -197,9 +197,9 @@ public class WeatherHandlerClient extends WeatherHandler {
                distance++;
                float intensity = (Float)chunkAccess.getData(DataAttachments.STABLE_FIRE_INTENSITY);
                float fireIntensity = intensity / (float)Math.pow(distance, 2.0);
-               float high = Math.clamp(intensity - 2.5F, 0.0F, 10.0F) / (float)Math.pow(distance, 1.5);
-               float mid = Math.clamp(intensity - 1.5F, 0.0F, 2.0F) / (float)Math.pow(distance, 2.0);
-               float low = Math.clamp(intensity - 0.5F, 0.0F, 1.0F) / (float)Math.pow(distance, 2.5);
+               float high = Mth.clamp(intensity - 2.5F, 0.0F, 10.0F) / (float)Math.pow(distance, 1.5);
+               float mid = Mth.clamp(intensity - 1.5F, 0.0F, 2.0F) / (float)Math.pow(distance, 2.0);
+               float low = Mth.clamp(intensity - 0.5F, 0.0F, 1.0F) / (float)Math.pow(distance, 2.5);
                highInt = Math.max(highInt, high);
                midInt = Math.max(midInt, mid);
                lowInt = Math.max(lowInt, low);
@@ -365,7 +365,7 @@ public class WeatherHandlerClient extends WeatherHandler {
                      BlockPos offPos = strikePos.offset(x, y, z);
                      double d = offPos.getCenter().multiply(1.0, 0.25, 1.0).distanceTo(strikePos.getCenter().multiply(1.0, 0.25, 1.0));
                      if (!(d > (double)((float)size * 2.0F))
-                        && !((double)level.random.nextFloat() < Mth.square(Math.clamp(d / (double)((float)size * 3.0F), 0.0, 1.0)))) {
+                        && !((double)level.random.nextFloat() < Mth.square(Mth.clamp(d / (double)((float)size * 3.0F), 0.0, 1.0)))) {
                         BlockState state = strike.level().getBlockState(offPos);
                         if (state.is(ModTags.Blocks.CONDUCTIVE)) {
                            level.playLocalSound(

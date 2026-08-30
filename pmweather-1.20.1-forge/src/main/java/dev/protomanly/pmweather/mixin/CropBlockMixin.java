@@ -44,7 +44,7 @@ public class CropBlockMixin {
          ThermodynamicEngine.AtmosphericDataPoint dataPoint = ThermodynamicEngine.samplePoint(weatherHandler, pos.above().getCenter(), level, null, 0);
          if (dataPoint.temperature() < random.nextFloat() * 3.5F) {
             if (dataPoint.temperature() < -4.0F && random.nextInt(0, 3) == 0) {
-               level.setBlockAndUpdate(pos, Blocks.SHORT_GRASS.defaultBlockState());
+               level.setBlockAndUpdate(pos, Blocks.GRASS.defaultBlockState());
             }
 
             callbackInfo.cancel();

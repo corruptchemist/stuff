@@ -188,14 +188,14 @@ public class WindEngine {
          }
 
          if (blockPos.getY() > 85) {
-            float val = Math.clamp((float)(blockPos.getY() - 85) / 40.0F, 0.0F, 1.0F) / 2.0F + 1.0F;
+            float val = Mth.clamp((float)(blockPos.getY() - 85) / 40.0F, 0.0F, 1.0F) / 2.0F + 1.0F;
             wind = wind.multiply((double)val, (double)val, (double)val);
          }
 
          wind = wind.add(rawWind);
          int heightAbove = blockPos.getY() - worldHeight;
          if (heightAbove > 0) {
-            float val = Math.clamp((float)heightAbove / 15.0F, 0.0F, 1.0F) / 3.0F + 1.0F;
+            float val = Mth.clamp((float)heightAbove / 15.0F, 0.0F, 1.0F) / 3.0F + 1.0F;
             wind = wind.multiply((double)val, (double)val, (double)val);
          }
 
@@ -210,7 +210,7 @@ public class WindEngine {
                      new Vec3(-position.y / 10.0, -position.y / 10.0, (double)((float)level.getGameTime() / 100.0F)), 5, 2.0F, 0.2F, 1.0F
                   );
                   float noiseZ = (float)FBM(new Vec3(position.y / 10.0, position.y / 10.0, (double)((float)level.getGameTime() / 100.0F)), 5, 2.0F, 0.2F, 1.0F);
-                  float eff = (float)Math.clamp(relativePos.y() / 80.0, 0.0, 1.0) * 20.0F;
+                  float eff = (float)Mth.clamp(relativePos.y() / 80.0, 0.0, 1.0) * 20.0F;
                   relativePos = relativePos.add((double)(noiseX * eff), 0.0, (double)(noiseZ * eff));
                }
 
@@ -223,8 +223,8 @@ public class WindEngine {
                   double windEffect = (double)tornadicStorm.getTornadicWind(position, forParticles);
                   float tornadicEffectNew = 0.0F;
                   if (tornadicStorm.is(StormTypes.SUPERCELL) || forParticles) {
-                     tornadicEffectNew = Math.clamp(
-                        (float)windEffect / Math.clamp((float)tornadicStorm.windspeed, 60.0F, Math.max((float)tornadicStorm.windspeed / 1.5F, 60.0F)),
+                     tornadicEffectNew = Mth.clamp(
+                        (float)windEffect / Mth.clamp((float)tornadicStorm.windspeed, 60.0F, Math.max((float)tornadicStorm.windspeed / 1.5F, 60.0F)),
                         0.0F,
                         1.0F
                      );

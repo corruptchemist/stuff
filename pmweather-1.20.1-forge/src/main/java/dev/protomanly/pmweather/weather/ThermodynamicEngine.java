@@ -299,8 +299,8 @@ public class ThermodynamicEngine {
          Holder<Biome> biomex = level.registryAccess().registryOrThrow(Registries.BIOME).getHolderOrThrow(Biomes.PLAINS);
          float gBiomeTemp = ((Biome)biomex.value()).getBaseTemperature();
          float gHumidity = Math.max(((Biome)biomex.value()).getModifiedClimateSettings().downfall(), 0.0F);
-         humidity = Mth.lerp(Math.clamp((float)pos.y() / 16000.0F, 0.0F, 0.15F), humidity, gHumidity);
-         biomeTemp = Mth.lerp(Math.clamp((float)pos.y() / 16000.0F, 0.0F, 0.15F), biomeTemp, gBiomeTemp - 0.15F);
+         humidity = Mth.lerp(Mth.clamp((float)pos.y() / 16000.0F, 0.0F, 0.15F), humidity, gHumidity);
+         biomeTemp = Mth.lerp(Mth.clamp((float)pos.y() / 16000.0F, 0.0F, 0.15F), biomeTemp, gBiomeTemp - 0.15F);
          float tropical = 0.0F;
          if (humidity > 0.8F) {
             tropical = humidity - 0.8F;
@@ -332,8 +332,8 @@ public class ThermodynamicEngine {
          }
 
          cachedPBLHeight = pblHeight;
-         pblHeight = (Math.clamp(pblHeight + 1.0F, 0.0F, 2.0F) + 1.0F) * 500.0F;
-         double timeFactorHeightAffected = Mth.lerp((double)Math.clamp(altitude / pblHeight, 0.0F, 1.0F), timeFactor, 1.0);
+         pblHeight = (Mth.clamp(pblHeight + 1.0F, 0.0F, 2.0F) + 1.0F) * 500.0F;
+         double timeFactorHeightAffected = Mth.lerp((double)Mth.clamp(altitude / pblHeight, 0.0F, 1.0F), timeFactor, 1.0);
          float sfcPressure = 1013.25F;
          float sfcTNoise;
          if (cached) {
@@ -401,8 +401,8 @@ public class ThermodynamicEngine {
             }
          }
 
-         stormCooling *= 1.0F - Math.clamp((float)advance / 12000.0F, 0.0F, 1.0F);
-         sfcTemp -= stormCooling * Math.clamp(1.0F - altitude / 3000.0F, 0.0F, 1.0F);
+         stormCooling *= 1.0F - Mth.clamp((float)advance / 12000.0F, 0.0F, 1.0F);
+         sfcTemp -= stormCooling * Mth.clamp(1.0F - altitude / 3000.0F, 0.0F, 1.0F);
          if (tropical > 0.0F && sfcTemp < 10.0F) {
             float under = 10.0F - sfcTemp;
             sfcTemp += under * Math.min(tropical, 0.9F);
@@ -422,7 +422,7 @@ public class ThermodynamicEngine {
             0.2F,
             1.0F
          );
-         float sfcDew = Math.min(sfcTemp - sfcTempTimeMod, 32.0F) - Math.clamp((1.0F - dewP) * (sfcTemp - sfcTempTimeMod), 0.0F, 15.0F);
+         float sfcDew = Math.min(sfcTemp - sfcTempTimeMod, 32.0F) - Mth.clamp((1.0F - dewP) * (sfcTemp - sfcTempTimeMod), 0.0F, 15.0F);
          if (sfcDew > 0.0F) {
             sfcDew *= humidity * 0.9F + 0.1F;
          }
@@ -474,24 +474,24 @@ public class ThermodynamicEngine {
          }
 
          cachedNoise = noise;
-         float bumpH = (float)elevation + Math.clamp(noise + 0.5F, 0.5F, 1.5F) * 1250.0F;
+         float bumpH = (float)elevation + Mth.clamp(noise + 0.5F, 0.5F, 1.5F) * 1250.0F;
          noise = FBM(pos.multiply((double)(1.0F / -xzScale), 0.0, (double)(1.0F / xzScale)).add(0.0, (double)(time / timeScale), 0.0), 2, 2.0F, 0.5F, 1.0F);
-         float bumpStrength = Math.clamp(noise + 0.5F, 0.0F, 1.5F) * 5.5F * Math.clamp(1.0F - humidity, 0.0F, 1.0F);
+         float bumpStrength = Mth.clamp(noise + 0.5F, 0.0F, 1.5F) * 5.5F * Mth.clamp(1.0F - humidity, 0.0F, 1.0F);
          bumpStrength -= 4.0F * humidity;
          if (altitude > bumpH) {
-            float i = Math.clamp((altitude - bumpH) / 150.0F, 0.0F, 1.0F);
+            float i = Mth.clamp((altitude - bumpH) / 150.0F, 0.0F, 1.0F);
             var101 += Mth.lerp(i, 0.0F, bumpStrength);
             var104 -= Mth.lerp(i, 0.0F, bumpStrength);
          }
 
-         float a = Math.clamp(altitude, 0.0F, 1000.0F);
+         float a = Mth.clamp(altitude, 0.0F, 1000.0F);
          var101 -= lapseRate * (a / 1000.0F) * 0.25F;
          var104 -= lapseRate * (a / 1000.0F) * dewRatio * 0.25F;
          noise = FBM(pos.multiply((double)(1.0F / xzScale), 0.0, (double)(1.0F / xzScale)).add(0.0, (double)(time / timeScale), 0.0), 2, 2.0F, 0.5F, 1.0F);
-         float inversionHeight = (float)elevationSeaLevel + Mth.lerp(Math.clamp(noise, 0.0F, 1.0F), 12000.0F, 16000.0F);
+         float inversionHeight = (float)elevationSeaLevel + Mth.lerp(Mth.clamp(noise, 0.0F, 1.0F), 12000.0F, 16000.0F);
          if (altitude > inversionHeight) {
             float dif = altitude - inversionHeight;
-            float i = Math.clamp(dif / 1500.0F, 0.0F, 1.0F);
+            float i = Mth.clamp(dif / 1500.0F, 0.0F, 1.0F);
             var101 += Mth.lerp(i, 0.0F, lapseRate * (dif / 1000.0F));
             var104 += Mth.lerp(i, 0.0F, lapseRate * (dif / 1000.0F) * dewRatio);
          }
@@ -514,12 +514,12 @@ public class ThermodynamicEngine {
             0.5F,
             1.0F
          );
-         dewMin = Math.clamp(dewMin + 1.0F, 0.0F, 2.0F) * 2.0F;
+         dewMin = Mth.clamp(dewMin + 1.0F, 0.0F, 2.0F) * 2.0F;
          dewMin += (float)Math.pow(pos.y / 16000.0, 2.0) * 40.0F * (1.0F - humidity);
          float td = var101 - dewMin;
          if (var104 > td) {
             float dif = var104 - td;
-            var104 -= dif * Math.clamp(dif / 4.0F, 0.0F, 1.0F);
+            var104 -= dif * Mth.clamp(dif / 4.0F, 0.0F, 1.0F);
          }
 
          var104 = Math.min(var101, var104);

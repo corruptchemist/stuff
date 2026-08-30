@@ -104,7 +104,10 @@ tasks.named('processResources', ProcessResources).configure {
 }
 
 tasks.named('jar', Jar).configure {
-    manifest { attributes([ 'MixinConfigs': 'pmweather.mixins.json' ]) }
+    manifest { attributes([
+        // Forge 1.20.1 reads mixin configs from here, not from mods.toml.
+        'MixinConfigs': 'pmweather.mixins.json,pmweather.create.mixins.json,pmweather.sable.mixins.json,pmweather.powergrid.mixins.json'
+    ]) }
     finalizedBy 'reobfJar'
 }
 

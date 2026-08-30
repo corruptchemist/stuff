@@ -1,5 +1,6 @@
 package dev.protomanly.pmweather.sound;
 
+import net.minecraft.util.Mth;
 import dev.protomanly.pmweather.config.ServerConfig;
 import dev.protomanly.pmweather.weather.Storm;
 import dev.protomanly.pmweather.weather.WindEngine;
@@ -116,7 +117,7 @@ public class MovingSoundStreamingSource extends AbstractTickableSoundInstance {
                this.extraVolumeAdjForDistScale = Math.max((wind - 90.0F) / 35.0F, 0.0F);
                int worldHeight = player.level().getHeightmapPos(Types.MOTION_BLOCKING, player.blockPosition()).getY();
                float heightPerc = ((float)player.position().y - (float)worldHeight) / -30.0F;
-               this.extraVolumeAdjForDistScale = this.extraVolumeAdjForDistScale * (1.0F - Math.clamp(heightPerc, 0.0F, 1.0F));
+               this.extraVolumeAdjForDistScale = this.extraVolumeAdjForDistScale * (1.0F - Mth.clamp(heightPerc, 0.0F, 1.0F));
             }
          } else if (this.mode == 3) {
             if (this.storm.is(StormTypes.CYCLONE)) {
@@ -125,15 +126,15 @@ public class MovingSoundStreamingSource extends AbstractTickableSoundInstance {
                int worldHeight = player.level().getHeightmapPos(Types.MOTION_BLOCKING, player.blockPosition()).getY();
                float heightPerc = ((float)player.position().y - (float)worldHeight) / -30.0F;
                float heightPerc2 = ((float)player.position().y - ((float)worldHeight - 50.0F)) / -30.0F;
-               this.extraVolumeAdjForDistScale = this.extraVolumeAdjForDistScale * Math.clamp(heightPerc, 0.0F, 1.0F);
-               this.extraVolumeAdjForDistScale = this.extraVolumeAdjForDistScale * (1.0F - Math.clamp(heightPerc2, 0.0F, 1.0F));
+               this.extraVolumeAdjForDistScale = this.extraVolumeAdjForDistScale * Mth.clamp(heightPerc, 0.0F, 1.0F);
+               this.extraVolumeAdjForDistScale = this.extraVolumeAdjForDistScale * (1.0F - Mth.clamp(heightPerc2, 0.0F, 1.0F));
             } else {
                this.extraVolumeAdjForDistScale = 0.0F;
             }
          } else if (this.mode == 4) {
             this.cutOffRange = Math.max(this.storm.width, 45.0F) * 0.85F;
             this.extraVolumeAdjForDistScale = Math.max(((float)this.storm.windspeed - 100.0F) / 100.0F, 0.0F);
-            this.extraVolumeAdjForDistScale = this.extraVolumeAdjForDistScale * Math.clamp((float)this.storm.listParticleDebris.size() / 100.0F, 0.0F, 1.0F);
+            this.extraVolumeAdjForDistScale = this.extraVolumeAdjForDistScale * Mth.clamp((float)this.storm.listParticleDebris.size() / 100.0F, 0.0F, 1.0F);
          }
       }
 

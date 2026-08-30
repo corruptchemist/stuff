@@ -1,6 +1,5 @@
 package dev.protomanly.pmweather.block;
 
-import com.mojang.serialization.MapCodec;
 import dev.protomanly.pmweather.event.GameBusClientEvents;
 import dev.protomanly.pmweather.event.GameBusEvents;
 import dev.protomanly.pmweather.weather.ThermodynamicEngine;
@@ -45,7 +44,6 @@ public class SeasonalPlantBlock extends BushBlock {
    };
    public static final IntegerProperty STAGE = IntegerProperty.create("stage", 0, 3);
    public static final BooleanProperty DEAD = BooleanProperty.create("dead");
-   public static final MapCodec<SeasonalPlantBlock> CODEC = simpleCodec(SeasonalPlantBlock::new);
    private static final List<SeasonalPlantBlock> PLANTS = new ArrayList<>();
 
    private static float FBM(double x, double z, int octaves, float lacunarity, float gain, float amplitude) {
@@ -235,7 +233,4 @@ public class SeasonalPlantBlock extends BushBlock {
       builder.add(new Property[]{DEAD});
    }
 
-   public MapCodec<? extends SeasonalPlantBlock> codec() {
-      return CODEC;
-   }
 }

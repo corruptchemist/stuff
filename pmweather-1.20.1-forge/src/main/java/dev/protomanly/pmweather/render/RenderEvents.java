@@ -63,9 +63,9 @@ public class RenderEvents {
                ClientLightning lightning = lightnings.get(i);
                if (lightning != null) {
                   Color color = lightning.color;
-                  float p = Math.clamp(((float)lightning.ticks + partialTicks) / (float)lightning.lifetime, 0.0F, 1.0F);
+                  float p = Mth.clamp(((float)lightning.ticks + partialTicks) / (float)lightning.lifetime, 0.0F, 1.0F);
                   float alpha = (float)Math.abs(Math.cos(Math.sqrt((double)p) * Math.PI * 3.0)) * (1.0F - p);
-                  color = new Color(color.getRed(), color.getGreen(), color.getBlue(), Math.clamp((long)((int)(alpha * 255.0F)), 0, 255));
+                  color = new Color(color.getRed(), color.getGreen(), color.getBlue(), Mth.clamp((long)((int)(alpha * 255.0F)), 0, 255));
                   if (lightning.lightHandle != null) {
                      LightData lightData = lightning.lightHandle.getLightData();
                      lightData.setBrightness(alpha * (Mth.sqrt(lightning.strength) + 1.0F) * 2.0F);

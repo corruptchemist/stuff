@@ -1,6 +1,5 @@
 package dev.protomanly.pmweather.block;
 
-import com.mojang.serialization.MapCodec;
 import dev.protomanly.pmweather.block.entity.ModBlockEntities;
 import dev.protomanly.pmweather.block.entity.WeatherPlatformBlockEntity;
 import dev.protomanly.pmweather.item.ModItems;
@@ -24,7 +23,6 @@ import net.minecraft.world.phys.BlockHitResult;
 import org.jetbrains.annotations.Nullable;
 
 public class WeatherPlatformBlock extends BaseEntityBlock {
-   public static final MapCodec<WeatherPlatformBlock> CODEC = simpleCodec(WeatherPlatformBlock::new);
 
    protected WeatherPlatformBlock(Properties properties) {
       super(properties);
@@ -66,9 +64,6 @@ public class WeatherPlatformBlock extends BaseEntityBlock {
       return RenderShape.MODEL;
    }
 
-   protected MapCodec<? extends BaseEntityBlock> codec() {
-      return CODEC;
-   }
 
    @Nullable
    public BlockEntity newBlockEntity(BlockPos blockPos, BlockState blockState) {

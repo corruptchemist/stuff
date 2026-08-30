@@ -34,18 +34,18 @@ public class Clouds {
          Vector3f noisePos = new Vector3f(location.x + worldTime, (float)ServerConfig.layer0Height, location.y + worldTime);
          Vector3f cloudNoisePos = new Vector3f(location.x + worldTime * 0.5F, (float)ServerConfig.layer0Height, location.y + worldTime * 0.5F);
          Vector3f overrideNoisePos = new Vector3f(location.x + worldTime * 0.25F, (float)ServerConfig.layer0Height, location.y + worldTime * 0.25F);
-         float overrideNoise = Math.clamp(ShaderCompatibleNoise.noise2D(new Vector2f(overrideNoisePos.x, overrideNoisePos.z).div(200.0F)) + 1.0F, 0.0F, 2.0F)
+         float overrideNoise = Mth.clamp(ShaderCompatibleNoise.noise2D(new Vector2f(overrideNoisePos.x, overrideNoisePos.z).div(200.0F)) + 1.0F, 0.0F, 2.0F)
             / 2.0F;
          float densityNoise = Math.min(ShaderCompatibleNoise.noise2D(new Vector2f(cloudNoisePos.x, cloudNoisePos.z).div(400.0F)), 1.0F);
          float cloudNoise = Math.min(ShaderCompatibleNoise.noise2D(new Vector2f(noisePos.x, noisePos.z).div(30.0F)), 1.0F);
          float heightNoise = ShaderCompatibleNoise.noise2D(new Vector2f(noisePos.x, noisePos.z).div(90.0F));
-         float bgCloudHeight = Mth.lerp(Math.clamp((heightNoise + 1.0F) * 0.5F, 0.0F, 1.0F), 300.0F, 850.0F);
+         float bgCloudHeight = Mth.lerp(Mth.clamp((heightNoise + 1.0F) * 0.5F, 0.0F, 1.0F), 300.0F, 850.0F);
          float seasonEffect = SeasonHandler.getSeasonEffectSine(weatherHandler.getWorld(), 3.5F) + 1.0F;
          double overcastDampen = (double)seasonEffect * 0.15;
          float overcastP = (float)Math.max(ServerConfig.overcastPercent - overcastDampen, 0.0);
-         float v = Math.clamp(densityNoise - (1.0F - overcastP), 0.0F, 1.0F);
+         float v = Mth.clamp(densityNoise - (1.0F - overcastP), 0.0F, 1.0F);
          c += (float)Math.max(Math.sqrt(Math.sqrt((double)v)), 0.0);
-         c *= Mth.lerp(v, Math.clamp(cloudNoise - 0.1F + v, 0.0F, 1.0F), 1.0F);
+         c *= Mth.lerp(v, Mth.clamp(cloudNoise - 0.1F + v, 0.0F, 1.0F), 1.0F);
          c = (float)Math.sqrt((double)c) * 0.5F;
          c *= Mth.lerp((float)Math.sqrt((double)v), bgCloudHeight / 850.0F, 1.0F);
          double stormSize = ServerConfig.stormSize;
@@ -56,9 +56,9 @@ public class Clouds {
             float smoothStage = (float)storm.stage + (float)storm.energy / 100.0F;
             if (storm.is(StormTypes.CYCLONE)) {
                c *= Mth.lerp(
-                  Math.clamp((float)(storm.windspeed - 65) / 60.0F, 0.0F, 1.0F),
+                  Mth.clamp((float)(storm.windspeed - 65) / 60.0F, 0.0F, 1.0F),
                   1.0F,
-                  (float)Math.pow(Math.clamp((double)dist / ((double)storm.maxWidth * 0.1), 0.0, 1.0), 2.0)
+                  (float)Math.pow(Mth.clamp((double)dist / ((double)storm.maxWidth * 0.1), 0.0, 1.0), 2.0)
                );
             }
 

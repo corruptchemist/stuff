@@ -1,6 +1,5 @@
 package dev.protomanly.pmweather.block;
 
-import com.mojang.serialization.MapCodec;
 import dev.protomanly.pmweather.PMWeather;
 import dev.protomanly.pmweather.block.interfaces.BurningBlockInterface;
 import dev.protomanly.pmweather.config.ClientConfig;
@@ -56,7 +55,6 @@ import net.minecraftforge.common.Tags.Blocks;
 import org.jetbrains.annotations.Nullable;
 
 public class PMWFireBlock extends Block implements BurningBlockInterface {
-   public static final MapCodec<PMWFireBlock> CODEC = simpleCodec(PMWFireBlock::new);
    public static final IntegerProperty INTENSITY = IntegerProperty.create("intensity", 1, 10);
    public static final ResourceKey<DamageType> PUNCH_FIRE_DAMAGE = ResourceKey.create(Registries.DAMAGE_TYPE, PMWeather.getPath("punch_fire"));
    public static final VoxelShape SHAPE = box(0.0, 0.0, 0.0, 16.0, 1.0, 16.0);
@@ -205,7 +203,7 @@ public class PMWFireBlock extends Block implements BurningBlockInterface {
                }
             } else {
                intensityChanged = true;
-               intensity += level.random.nextInt(1, Math.clamp((long)(intensity + 1), 2, 11));
+               intensity += level.random.nextInt(1, Mth.clamp((long)(intensity + 1), 2, 11));
             }
          } else if (intensity > 0) {
             intensityChanged = true;
@@ -265,7 +263,7 @@ public class PMWFireBlock extends Block implements BurningBlockInterface {
          }
 
          maxIntensity += (int)(Math.pow((double)((100.0F - moisture) / 100.0F), 1.15) * 2.0);
-         maxIntensity = (int)Math.clamp((double)maxIntensity * Math.pow((double)((100.0F - moisture) / 100.0F), 0.85), 1.0, 10.0);
+         maxIntensity = (int)Mth.clamp((double)maxIntensity * Math.pow((double)((100.0F - moisture) / 100.0F), 0.85), 1.0, 10.0);
          int max = below.is(net.minecraft.world.level.block.Blocks.FARMLAND) ? 6 : 10;
          if (maxIntensity > max) {
             maxIntensity = max;
@@ -415,9 +413,6 @@ public class PMWFireBlock extends Block implements BurningBlockInterface {
       }
    }
 
-   protected MapCodec<? extends PMWFireBlock> codec() {
-      return CODEC;
-   }
 
    public boolean onDestroyedByPlayer(BlockState state, Level level, BlockPos pos, Player player, boolean willHarvest, FluidState fluid) {
       int intensity = (Integer)state.getValue(INTENSITY);
@@ -448,7 +443,7 @@ public class PMWFireBlock extends Block implements BurningBlockInterface {
       if (!entity.fireImmune() && intensity > 2) {
          entity.setRemainingFireTicks(entity.getRemainingFireTicks() + 1);
          if (entity.getRemainingFireTicks() == 0) {
-            entity.igniteForSeconds((float)intensity);
+            entity.setSecondsOnFire((int)intensity);
          }
       }
 

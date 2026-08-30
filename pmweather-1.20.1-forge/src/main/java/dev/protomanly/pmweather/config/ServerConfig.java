@@ -348,7 +348,7 @@ public class ServerConfig {
    }
 
    @SubscribeEvent
-   private static void onLoad(ModConfigEvent event) {
+   public static void onLoad  // port: Forge 1.20.1 only scans PUBLIC methods; private handlers are silently ignored(ModConfigEvent event) {
       if (event.getConfig().getSpec() == SPEC && !(event instanceof Unloading)) {
          PMWeather.LOGGER.info("Loading Server PMWeather Configs");
          createWindmillSpeed = (Boolean)CREATE_WINDMILL_SPEED.get();
