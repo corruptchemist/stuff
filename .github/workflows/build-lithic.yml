@@ -1,0 +1,77 @@
+name: Build Lithic
+
+# The environment this mod was written in cannot reach any Minecraft Maven, so
+# CI is where it gets compiled. The jar lands in this run's artifacts.
+on:
+  push:
+    paths:
+      - 'lithic/**'
+      - '.github/workflows/build-lithic.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: lithic
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      # gradle.properties ships a guessed Tough As Nails version, because the
+      # Glitchfiend Maven was unreachable when it was written. CI can reach it,
+      # so resolve the real newest 1.21.1 build and pin that instead.
+      - name: Resolve Tough As Nails and GlitchCore versions
+        run: |
+          set -euo pipefail
+          base=https://maven.minecraftforge.net/releases/com/github/glitchfiend
+
+          list() {
+            curl -sSfL "$base/$1/maven-metadata.xml" \
+              | grep -oP '(?<=<version>)1\.21\.1-[^<]+' || true
+          }
+
+          echo "--- ToughAsNails-neoforge 1.21.1 builds ---"; list ToughAsNails-neoforge
+          echo "--- GlitchCore-neoforge 1.21.1 builds ---";  list GlitchCore-neoforge
+
+          tan=$(list ToughAsNails-neoforge | tail -1)
+          gc=$(list GlitchCore-neoforge  | tail -1)
+
+          if [ -z "$tan" ] || [ -z "$gc" ]; then
+            echo "::error::Could not resolve a 1.21.1 build of Tough As Nails or GlitchCore"
+            exit 1
+          fi
+
+          echo "resolved: ToughAsNails=$tan  GlitchCore=$gc"
+          sed -i "s|^toughasnails_version=.*|toughasnails_version=${tan#1.21.1-}|" gradle.properties
+          sed -i "s|^glitchcore_version=.*|glitchcore_version=${gc#1.21.1-}|" gradle.properties
+          grep -E '^(toughasnails|glitchcore)_version=' gradle.properties
+
+      - name: Build
+        run: ./gradlew build --no-daemon --no-configuration-cache --stacktrace
+
+      - name: Upload jar
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lithic-jar
+          path: lithic/build/libs/*.jar
+          if-no-files-found: error
+
+      - name: Upload build reports on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-reports
+          path: lithic/build/reports/**
+          if-no-files-found: ignore
