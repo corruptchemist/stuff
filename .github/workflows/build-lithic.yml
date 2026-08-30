@@ -58,7 +58,22 @@ jobs:
           grep -E '^(toughasnails|glitchcore)_version=' gradle.properties
 
       - name: Build
-        run: ./gradlew build --no-daemon --no-configuration-cache --stacktrace
+        run: |
+          set -o pipefail
+          ./gradlew build --no-daemon --no-configuration-cache 2>&1 | tee /tmp/build.log
+
+      # --stacktrace floods the tail of the job log with Gradle internals, and
+      # the raw log blob is not reachable from the authoring environment. Print
+      # a compact summary last instead, so a short tail carries the real cause.
+      - name: Error summary
+        if: failure()
+        run: |
+          echo '=============== COMPILE ERRORS ==============='
+          grep -aE '\.java:[0-9]+: error:' /tmp/build.log | head -80 || true
+          echo '=============== WHAT WENT WRONG ==============='
+          grep -a -A 15 'What went wrong' /tmp/build.log | head -30 || true
+          echo '=============== OTHER FAILURES ==============='
+          grep -aE 'Could not resolve|Caused by:|Execution failed for task' /tmp/build.log | head -40 || true
 
       - name: Upload jar
         if: success()
