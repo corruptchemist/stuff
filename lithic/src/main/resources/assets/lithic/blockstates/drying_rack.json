@@ -1,0 +1,16 @@
+{
+  "variants": {
+    "occupied=false,finished=false": {
+      "model": "lithic:block/drying_rack"
+    },
+    "occupied=false,finished=true": {
+      "model": "lithic:block/drying_rack"
+    },
+    "occupied=true,finished=false": {
+      "model": "lithic:block/drying_rack_occupied"
+    },
+    "occupied=true,finished=true": {
+      "model": "lithic:block/drying_rack_finished"
+    }
+  }
+}

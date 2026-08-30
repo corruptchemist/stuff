@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    {
+      "item": "lithic:plant_fiber"
+    },
+    {
+      "item": "lithic:plant_fiber"
+    },
+    {
+      "item": "lithic:plant_fiber"
+    }
+  ],
+  "result": {
+    "id": "lithic:cordage",
+    "count": 1
+  }
+}

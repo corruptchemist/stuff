@@ -1,0 +1,10 @@
+{
+  "variants": {
+    "lit=false": {
+      "model": "lithic:block/fire_pit"
+    },
+    "lit=true": {
+      "model": "lithic:block/fire_pit_lit"
+    }
+  }
+}

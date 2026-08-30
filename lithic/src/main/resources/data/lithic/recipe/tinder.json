@@ -1,0 +1,19 @@
+{
+  "type": "lithic:crude_crafting",
+  "required_research": "lithic:firecraft",
+  "ingredients": [
+    {
+      "item": "lithic:dried_reed"
+    },
+    {
+      "item": "lithic:plant_fiber"
+    },
+    {
+      "item": "lithic:plant_fiber"
+    }
+  ],
+  "result": {
+    "id": "lithic:tinder",
+    "count": 2
+  }
+}

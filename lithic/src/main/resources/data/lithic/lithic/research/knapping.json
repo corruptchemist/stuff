@@ -1,0 +1,10 @@
+{
+  "insight_cost": 0,
+  "triggers": [
+    {
+      "type": "use_station",
+      "value": "lithic:knapping",
+      "insight": 1
+    }
+  ]
+}

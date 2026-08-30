@@ -1,0 +1,13 @@
+{
+  "parents": [
+    "lithic:knapping"
+  ],
+  "insight_cost": 3,
+  "triggers": [
+    {
+      "type": "obtain_item",
+      "value": "minecraft:cobblestone",
+      "insight": 1
+    }
+  ]
+}

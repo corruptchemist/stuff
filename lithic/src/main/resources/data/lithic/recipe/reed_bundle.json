@@ -1,0 +1,19 @@
+{
+  "type": "lithic:crude_crafting",
+  "required_research": "lithic:cordwork",
+  "ingredients": [
+    {
+      "item": "minecraft:sugar_cane"
+    },
+    {
+      "item": "minecraft:sugar_cane"
+    },
+    {
+      "item": "minecraft:sugar_cane"
+    }
+  ],
+  "result": {
+    "id": "lithic:reed_bundle",
+    "count": 1
+  }
+}

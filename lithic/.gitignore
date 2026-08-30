@@ -1,0 +1,13 @@
+.gradle/
+build/
+run/
+runs/
+run-data/
+repo/
+src/generated/resources/.cache/
+libs/*.jar
+.idea/
+*.iml
+.eclipse/
+.settings/
+bin/

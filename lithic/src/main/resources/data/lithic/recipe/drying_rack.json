@@ -1,0 +1,20 @@
+{
+  "type": "lithic:crude_crafting",
+  "required_research": "lithic:hidework",
+  "pattern": [
+    "TTT",
+    "C C"
+  ],
+  "key": {
+    "T": {
+      "item": "minecraft:stick"
+    },
+    "C": {
+      "item": "lithic:cordage"
+    }
+  },
+  "result": {
+    "id": "lithic:drying_rack",
+    "count": 1
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "type": "lithic:crude_crafting",
+  "required_research": "lithic:oredressing",
+  "ingredients": [
+    {
+      "item": "lithic:crushed_ore"
+    },
+    {
+      "item": "lithic:crushed_ore"
+    },
+    {
+      "item": "minecraft:water_bucket"
+    }
+  ],
+  "result": {
+    "id": "lithic:washed_ore",
+    "count": 2
+  }
+}

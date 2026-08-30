@@ -1,0 +1,45 @@
+modLoader="javafml"
+loaderVersion="${loader_version_range}"
+license="${mod_license}"
+
+[[mods]]
+modId="${mod_id}"
+version="${mod_version}"
+displayName="${mod_name}"
+authors="${mod_authors}"
+description='''
+${mod_description}
+'''
+
+[[dependencies.${mod_id}]]
+    modId="neoforge"
+    type="required"
+    versionRange="${neo_version_range}"
+    ordering="NONE"
+    side="BOTH"
+
+[[dependencies.${mod_id}]]
+    modId="minecraft"
+    type="required"
+    versionRange="${minecraft_version_range}"
+    ordering="NONE"
+    side="BOTH"
+
+# Tough As Nails is not optional. Lithic's progression is balanced around its
+# thirst and temperature systems, and registers modifiers into them on startup.
+[[dependencies.${mod_id}]]
+    modId="toughasnails"
+    type="required"
+    reason="Lithic's survival pacing is built directly on Tough As Nails' thirst and temperature systems."
+    versionRange="[0,)"
+    ordering="AFTER"
+    side="BOTH"
+
+# GlitchCore is Tough As Nails' own hard dependency; we load after it too.
+[[dependencies.${mod_id}]]
+    modId="glitchcore"
+    type="required"
+    reason="Required by Tough As Nails."
+    versionRange="[0,)"
+    ordering="AFTER"
+    side="BOTH"

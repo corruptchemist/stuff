@@ -1,0 +1,22 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "SS",
+    "TC"
+  ],
+  "key": {
+    "S": {
+      "item": "lithic:sharp_flint"
+    },
+    "C": {
+      "item": "lithic:cordage"
+    },
+    "T": {
+      "item": "minecraft:stick"
+    }
+  },
+  "result": {
+    "id": "lithic:crude_pick",
+    "count": 1
+  }
+}

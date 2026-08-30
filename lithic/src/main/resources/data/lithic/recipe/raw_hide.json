@@ -1,0 +1,16 @@
+{
+  "type": "lithic:crude_crafting",
+  "required_research": "lithic:hidework",
+  "ingredients": [
+    {
+      "item": "minecraft:leather"
+    },
+    {
+      "item": "lithic:crude_knife"
+    }
+  ],
+  "result": {
+    "id": "lithic:raw_hide",
+    "count": 1
+  }
+}

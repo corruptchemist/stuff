@@ -1,0 +1,19 @@
+{
+  "type": "lithic:crude_crafting",
+  "required_research": "lithic:kilncraft",
+  "ingredients": [
+    {
+      "item": "lithic:charcoal_dust"
+    },
+    {
+      "item": "lithic:charcoal_dust"
+    },
+    {
+      "item": "lithic:charcoal_dust"
+    }
+  ],
+  "result": {
+    "id": "lithic:ash",
+    "count": 2
+  }
+}

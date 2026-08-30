@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    {
+      "item": "lithic:bone_splinter"
+    },
+    {
+      "item": "lithic:bone_splinter"
+    },
+    {
+      "item": "lithic:cordage"
+    }
+  ],
+  "result": {
+    "id": "lithic:tally_bone",
+    "count": 1
+  }
+}

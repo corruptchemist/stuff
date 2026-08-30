@@ -1,0 +1,23 @@
+{
+  "type": "lithic:crude_crafting",
+  "required_research": "lithic:firecraft",
+  "pattern": [
+    "TST",
+    "CCC"
+  ],
+  "key": {
+    "T": {
+      "item": "minecraft:stick"
+    },
+    "S": {
+      "item": "lithic:tinder"
+    },
+    "C": {
+      "item": "minecraft:cobblestone"
+    }
+  },
+  "result": {
+    "id": "lithic:fire_pit",
+    "count": 1
+  }
+}

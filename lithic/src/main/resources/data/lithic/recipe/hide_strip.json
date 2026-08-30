@@ -1,0 +1,13 @@
+{
+  "type": "lithic:crude_crafting",
+  "required_research": "lithic:hidework",
+  "ingredients": [
+    {
+      "item": "lithic:cured_hide"
+    }
+  ],
+  "result": {
+    "id": "lithic:hide_strip",
+    "count": 3
+  }
+}

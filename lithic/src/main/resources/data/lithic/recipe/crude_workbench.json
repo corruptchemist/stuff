@@ -1,0 +1,22 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "CS",
+    "TT"
+  ],
+  "key": {
+    "C": {
+      "item": "lithic:cordage"
+    },
+    "S": {
+      "item": "lithic:sharp_flint"
+    },
+    "T": {
+      "item": "minecraft:stick"
+    }
+  },
+  "result": {
+    "id": "lithic:crude_workbench",
+    "count": 1
+  }
+}

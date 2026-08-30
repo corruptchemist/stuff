@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:smelting",
+  "ingredient": {
+    "item": "lithic:iron_bloom"
+  },
+  "result": {
+    "id": "minecraft:iron_ingot",
+    "count": 1
+  },
+  "experience": 0.7,
+  "cookingtime": 400
+}

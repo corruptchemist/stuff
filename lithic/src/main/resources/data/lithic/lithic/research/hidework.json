@@ -1,0 +1,13 @@
+{
+  "parents": [
+    "lithic:cordwork"
+  ],
+  "insight_cost": 2,
+  "triggers": [
+    {
+      "type": "obtain_item",
+      "value": "minecraft:leather",
+      "insight": 2
+    }
+  ]
+}

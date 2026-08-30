@@ -1,0 +1,13 @@
+{
+  "values": [
+    "#minecraft:base_stone_overworld",
+    "minecraft:cobblestone",
+    "minecraft:cobbled_deepslate",
+    "#minecraft:iron_ores",
+    "#minecraft:copper_ores",
+    "#minecraft:coal_ores",
+    "#minecraft:gold_ores",
+    "#minecraft:redstone_ores",
+    "#minecraft:diamond_ores"
+  ]
+}
