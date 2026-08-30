@@ -1,0 +1,74 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "pmweather:item/calendar/calendar_1"
+  },
+  "overrides": [
+    {
+      "predicate": {
+        "pmweather:month": 2
+      },
+      "model": "pmweather:item/calendar_2"
+    },
+    {
+      "predicate": {
+        "pmweather:month": 3
+      },
+      "model": "pmweather:item/calendar_3"
+    },
+    {
+      "predicate": {
+        "pmweather:month": 4
+      },
+      "model": "pmweather:item/calendar_4"
+    },
+    {
+      "predicate": {
+        "pmweather:month": 5
+      },
+      "model": "pmweather:item/calendar_5"
+    },
+    {
+      "predicate": {
+        "pmweather:month": 6
+      },
+      "model": "pmweather:item/calendar_6"
+    },
+    {
+      "predicate": {
+        "pmweather:month": 7
+      },
+      "model": "pmweather:item/calendar_7"
+    },
+    {
+      "predicate": {
+        "pmweather:month": 8
+      },
+      "model": "pmweather:item/calendar_8"
+    },
+    {
+      "predicate": {
+        "pmweather:month": 9
+      },
+      "model": "pmweather:item/calendar_9"
+    },
+    {
+      "predicate": {
+        "pmweather:month": 10
+      },
+      "model": "pmweather:item/calendar_10"
+    },
+    {
+      "predicate": {
+        "pmweather:month": 11
+      },
+      "model": "pmweather:item/calendar_11"
+    },
+    {
+      "predicate": {
+        "pmweather:month": 12
+      },
+      "model": "pmweather:item/calendar_12"
+    }
+  ]
+}

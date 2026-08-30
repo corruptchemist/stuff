@@ -1,0 +1,8 @@
+{
+  "parent": "minecraft:block/door_bottom_left",
+  "render_type": "minecraft:cutout",
+  "textures": {
+    "bottom": "pmweather:block/smoldering_door_bottom",
+    "top": "pmweather:block/smoldering_door_top"
+  }
+}

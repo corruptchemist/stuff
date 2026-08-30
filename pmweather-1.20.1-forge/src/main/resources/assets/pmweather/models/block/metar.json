@@ -1,0 +1,26 @@
+{
+  "parent": "minecraft:block/cube",
+  "textures": {
+    "down": "pmweather:block/weather_station_bottom",
+    "up": "pmweather:block/weather_station_top",
+    "east": "pmweather:block/weather_station_side",
+    "north": "pmweather:block/weather_station_back",
+    "south": "pmweather:block/weather_station_front",
+    "west": "pmweather:block/weather_station_side",
+    "particle": "pmweather:block/weather_station_front"
+  },
+  "elements": [
+    {
+      "from": [0,0,0],
+      "to": [16,16,16],
+      "faces": {
+        "down": {"texture": "#down", "uv": [0,16,16,0]},
+        "up": {"texture": "#up", "uv": [0,0,16,16]},
+        "east": {"texture": "#east", "uv": [16,0,0,16]},
+        "north": {"texture": "#north", "uv": [0,0,16,16]},
+        "south": {"texture": "#south", "uv": [0,0,16,16]},
+        "west": {"texture": "#west", "uv": [0,0,16,16]}
+      }
+    }
+  ]
+}

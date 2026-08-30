@@ -1,0 +1,15 @@
+{
+  "required": true,
+  "package": "dev.protomanly.pmweather.compat.iris.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "refmap": "pmweather.refmap.json",
+  "mixins": [
+  ],
+  "client": [
+    "WorldRenderingPhaseMixin",
+    "SodiumProgramsMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

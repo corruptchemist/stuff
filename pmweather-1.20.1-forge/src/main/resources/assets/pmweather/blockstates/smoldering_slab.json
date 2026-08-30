@@ -1,0 +1,13 @@
+{
+  "variants": {
+    "type=bottom": {
+      "model": "pmweather:block/smoldering_slab"
+    },
+    "type=double": {
+      "model": "pmweather:block/smoldering_planks"
+    },
+    "type=top": {
+      "model": "pmweather:block/smoldering_slab_top"
+    }
+  }
+}

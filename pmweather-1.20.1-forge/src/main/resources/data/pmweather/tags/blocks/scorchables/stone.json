@@ -1,0 +1,36 @@
+{
+  "values": [
+    "#minecraft:stone_ore_replaceables",
+    "#minecraft:terracotta",
+    "#minecraft:badlands_terracotta",
+    "minecraft:smooth_stone",
+    "minecraft:tuff",
+    "minecraft:polished_tuff",
+    "minecraft:polished_diorite",
+    "minecraft:polished_granite",
+    "minecraft:polished_andesite",
+
+    "minecraft:polished_diorite_stairs",
+    "minecraft:polished_granite_stairs",
+    "minecraft:polished_andesite_stairs",
+    "minecraft:stone_stairs",
+    "minecraft:granite_stairs",
+    "minecraft:andesite_stairs",
+    "minecraft:diorite_stairs",
+    "minecraft:tuff_stairs",
+    "minecraft:polished_tuff_stairs",
+
+    "minecraft:polished_diorite_slab",
+    "minecraft:polished_granite_slab",
+    "minecraft:polished_andesite_slab",
+    "minecraft:stone_slab",
+    "minecraft:smooth_stone_slab",
+    "minecraft:granite_slab",
+    "minecraft:andesite_slab",
+    "minecraft:diorite_slab",
+    "minecraft:tuff_slab",
+    "minecraft:polished_tuff_slab",
+
+    "minecraft:blast_furnace"
+  ]
+}

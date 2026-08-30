@@ -1,0 +1,15 @@
+{
+  "required": false,
+  "package": "dev.protomanly.pmweather.compat.create.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "refmap": "pmweather.refmap.json",
+  "mixins": [
+    "WindmillBearingBlockEntityMixin"
+  ],
+  "client": [
+    "PonderSceneMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

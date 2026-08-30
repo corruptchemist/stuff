@@ -1,0 +1,14 @@
+{
+  "vertex": "veil:blit_screen",
+  "fragment": "pmweather:sky",
+  "textures": {
+    "MoonSampler": "pmweather:textures/shader/moon.png",
+    "NightSkySampler": {
+      "type": "location",
+      "location": "pmweather:textures/shader/nightsky.png",
+      "filter": {
+        "blur": true
+      }
+    }
+  }
+}

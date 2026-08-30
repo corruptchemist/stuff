@@ -1,0 +1,20 @@
+{
+  "vertex": "veil:blit_screen",
+  "fragment": "pmweather:clouds",
+  "textures": {
+    "NoiseSampler": {
+      "type": "location",
+      "location": "pmweather:textures/shader/noise.png",
+      "filter": {
+        "blur": true
+      }
+    },
+    "NoiseXSampler": {
+      "type": "location",
+      "location": "pmweather:textures/shader/noisex.png",
+      "filter": {
+        "blur": true
+      }
+    }
+  }
+}

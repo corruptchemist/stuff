@@ -1,0 +1,7 @@
+{
+  "parent": "minecraft:block/cross",
+  "render_type": "pmweather:swaying_cutout",
+  "textures": {
+    "cross": "minecraft:block/sweet_berry_bush_stage3"
+  }
+}

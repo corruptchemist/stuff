@@ -1,0 +1,69 @@
+{
+  "type": "minecraft:block",
+  "pools": [
+    {
+      "rolls": 1,
+      "entries": [
+        {
+          "type": "minecraft:loot_table",
+          "value": "minecraft:blocks/short_grass",
+          "conditions": [
+            {
+              "condition": "minecraft:block_state_property",
+              "block": "pmweather:plants",
+              "properties": {
+                "dead": "false"
+              }
+            }
+          ],
+          "functions": []
+        },
+        {
+          "type": "minecraft:group",
+          "children": [
+            {
+              "type": "minecraft:item",
+              "name": "minecraft:dandelion",
+              "conditions": [
+                {
+                  "condition": "minecraft:random_chance",
+                  "chance": 0.25
+                }
+              ]
+            },
+            {
+              "type": "minecraft:item",
+              "name": "minecraft:azure_bluet",
+              "conditions": [
+                {
+                  "condition": "minecraft:random_chance",
+                  "chance": 0.25
+                }
+              ]
+            },
+            {
+              "type": "minecraft:item",
+              "name": "minecraft:oxeye_daisy",
+              "conditions": [
+                {
+                  "condition": "minecraft:random_chance",
+                  "chance": 0.25
+                }
+              ]
+            }
+          ],
+          "conditions": [
+            {
+              "condition": "minecraft:block_state_property",
+              "block": "pmweather:plants",
+              "properties": {
+                "dead": "false",
+                "stage": "2"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

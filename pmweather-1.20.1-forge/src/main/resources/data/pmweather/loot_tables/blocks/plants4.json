@@ -1,0 +1,79 @@
+{
+  "type": "minecraft:block",
+  "pools": [
+    {
+      "rolls": 1,
+      "entries": [
+        {
+          "type": "minecraft:loot_table",
+          "value": "minecraft:blocks/short_grass",
+          "conditions": [
+            {
+              "condition": "minecraft:block_state_property",
+              "block": "pmweather:plants4",
+              "properties": {
+                "dead": "false"
+              }
+            }
+          ],
+          "functions": []
+        },
+        {
+          "type": "minecraft:group",
+          "children": [
+            {
+              "type": "minecraft:item",
+              "name": "minecraft:red_tulip",
+              "conditions": [
+                {
+                  "condition": "minecraft:random_chance",
+                  "chance": 0.175
+                }
+              ]
+            },
+            {
+              "type": "minecraft:item",
+              "name": "minecraft:orange_tulip",
+              "conditions": [
+                {
+                  "condition": "minecraft:random_chance",
+                  "chance": 0.175
+                }
+              ]
+            },
+            {
+              "type": "minecraft:item",
+              "name": "minecraft:white_tulip",
+              "conditions": [
+                {
+                  "condition": "minecraft:random_chance",
+                  "chance": 0.175
+                }
+              ]
+            },
+            {
+              "type": "minecraft:item",
+              "name": "minecraft:pink_tulip",
+              "conditions": [
+                {
+                  "condition": "minecraft:random_chance",
+                  "chance": 0.175
+                }
+              ]
+            }
+          ],
+          "conditions": [
+            {
+              "condition": "minecraft:block_state_property",
+              "block": "pmweather:plants4",
+              "properties": {
+                "dead": "false",
+                "stage": "2"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

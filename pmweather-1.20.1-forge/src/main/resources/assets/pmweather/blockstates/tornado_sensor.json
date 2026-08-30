@@ -1,0 +1,10 @@
+{
+  "variants": {
+    "powered=false": {
+      "model": "pmweather:block/tornado_sensor"
+    },
+    "powered=true": {
+      "model": "pmweather:block/tornado_sensor_powered"
+    }
+  }
+}

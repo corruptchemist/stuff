@@ -1,0 +1,16 @@
+{
+  "vertex": "pmweather:swaying_cutout",
+  "fragment": "pmweather:swaying_cutout",
+  "textures": {
+    "LocalWindSampler": {
+      "type": "framebuffer",
+      "name": "pmweather:local_wind",
+      "sampler": 0
+    },
+    "LocalWindSamplerPrevious": {
+      "type": "framebuffer",
+      "name": "pmweather:local_wind",
+      "sampler": 1
+    }
+  }
+}

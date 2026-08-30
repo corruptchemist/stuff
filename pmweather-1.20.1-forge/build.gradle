@@ -1,0 +1,115 @@
+plugins {
+    id 'eclipse'
+    id 'idea'
+    id 'maven-publish'
+    id 'net.minecraftforge.gradle' version '[6.0.24,6.2)'
+    id 'org.spongepowered.mixin' version '0.7.+'
+}
+
+version = "${mod_version}-${minecraft_version}"
+group = mod_group_id
+base { archivesName = "${mod_id}-${minecraft_version}-forge" }
+
+// Forge 1.20.1 targets Java 17. Building on a newer JDK will not work with ForgeGradle 6.
+java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+
+minecraft {
+    mappings channel: mapping_channel, version: mapping_version
+
+    // The mod's access transformer (was META-INF/accesstransformer.cfg on NeoForge).
+    accessTransformer = file('src/main/resources/META-INF/accesstransformer.cfg')
+
+    copyIdeResources = true
+
+    runs {
+        configureEach {
+            workingDirectory project.file('run')
+            property 'forge.logging.markers', ''
+            property 'forge.logging.console.level', 'debug'
+            // Mixin needs to know our refmap when running from an IDE/dev env.
+            property 'mixin.env.remapRefMap', 'true'
+            property 'mixin.env.refMapRemappingFile', "${projectDir}/build/createSrgToMcp/output.srg"
+            mods { "${mod_id}" { source sourceSets.main } }
+        }
+        client { }
+        server { programArguments += ['--nogui'] }
+        data {
+            programArguments += ['--mod', mod_id, '--all',
+                                 '--output', file('src/generated/resources/').getAbsolutePath(),
+                                 '--existing', file('src/main/resources/').getAbsolutePath()]
+        }
+    }
+}
+
+sourceSets.main.resources { srcDir 'src/generated/resources' }
+
+repositories {
+    mavenCentral()
+    // Veil (rendering library this mod depends on)
+    maven { name = 'Veil';       url = 'https://maven.blamejared.com/' }
+    // Embeddium / Oculus (the 1.20.1 Forge equivalents of Sodium / Iris)
+    maven { name = 'Modrinth';   url = 'https://api.modrinth.com/maven'
+            content { includeGroup 'maven.modrinth' } }
+    maven { name = 'Create';     url = 'https://maven.createmod.net/' }
+    maven { name = 'tterrag';    url = 'https://maven.tterrag.com/' }
+    maven { name = 'Sponge';     url = 'https://repo.spongepowered.org/repository/maven-public/' }
+}
+
+dependencies {
+    minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
+
+    // Mixin annotation processor (Forge 1.20.1 does not wire this up for you).
+    annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
+
+    // ---------------------------------------------------------------------
+    // PORT NOTE: the 1.21.1 build depended on Veil 4.2.1 (jar-in-jar).
+    // Veil 4.x does not exist for 1.20.1. The 1.20.1 line is Veil 1.0.0.x and
+    // its API is not source-compatible. See PORTING_STATUS.md.
+    // compileOnly fg.deobf("foundry.veil:Veil-forge-1.20.1:1.0.0.153")
+    //
+    // Sodium 0.8.x (1.21.1) has no 1.20.1 Forge build; Embeddium is the analogue.
+    // compileOnly fg.deobf("maven.modrinth:embeddium:0.3.31+mc1.20.1")
+    // compileOnly fg.deobf("maven.modrinth:oculus:1.20.1-1.7.0")
+    // ---------------------------------------------------------------------
+}
+
+mixin {
+    add sourceSets.main, 'pmweather.refmap.json'
+    config 'pmweather.mixins.json'
+    config 'pmweather.create.mixins.json'
+    config 'pmweather.sable.mixins.json'
+    config 'pmweather.powergrid.mixins.json'
+    // Re-enable once the Embeddium/Oculus ports of these exist:
+    // config 'pmweather.embeddium.mixins.json'
+    // config 'pmweather.oculus.mixins.json'
+}
+
+tasks.named('processResources', ProcessResources).configure {
+    var replaceProperties = [
+        minecraft_version      : minecraft_version,
+        minecraft_version_range: minecraft_version_range,
+        forge_version          : forge_version,
+        forge_version_range    : forge_version_range,
+        loader_version_range   : loader_version_range,
+        mod_id                 : mod_id,
+        mod_name               : mod_name,
+        mod_version            : mod_version,
+        mod_authors            : mod_authors,
+        mod_description        : mod_description,
+    ]
+    inputs.properties replaceProperties
+    filesMatching(['META-INF/mods.toml', 'pack.mcmeta']) {
+        expand replaceProperties + [project: project]
+    }
+}
+
+tasks.named('jar', Jar).configure {
+    manifest { attributes([ 'MixinConfigs': 'pmweather.mixins.json' ]) }
+    finalizedBy 'reobfJar'
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    // The decompiled 1.21.1 sources used Java 21 syntax in places; 1.20.1 is Java 17.
+    options.release = 17
+}

@@ -1,0 +1,10 @@
+{
+  "replace": false,
+  "values": [
+    "pmweather:wsr88d_core",
+    "pmweather:reinforced_glass",
+    "pmweather:reinforced_glass_pane",
+    "pmweather:iron_reinforcement_core",
+    "pmweather:scalded_metal"
+  ]
+}

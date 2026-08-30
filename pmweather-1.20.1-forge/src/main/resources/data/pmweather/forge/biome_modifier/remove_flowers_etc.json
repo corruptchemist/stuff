@@ -1,0 +1,5 @@
+{
+  "type": "forge:remove_features",
+  "biomes": "#forge:is_overworld",
+  "features": "#pmweather:foliage_features"
+}

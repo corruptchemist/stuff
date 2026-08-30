@@ -1,0 +1,33 @@
+{
+  "stages": [
+    {
+      "type": "veil:depth_function",
+      "function": "NEVER"
+    },
+    {
+      "type": "veil:blit",
+      "shader": "pmweather:clouds",
+      "in": "minecraft:main",
+      "out": "pmweather:clouds"
+    },
+    {
+      "type": "veil:blit",
+      "shader": "pmweather:volume_finalize",
+      "in": "minecraft:main",
+      "out": "veil:post"
+    }
+  ],
+  "textures": {
+    "DistantHorizonsSampler": {
+      "type": "framebuffer",
+      "name": "pmweather:distant_horizons_main"
+    },
+    "DistantHorizonsDepthSampler": {
+      "type": "framebuffer",
+      "name": "pmweather:distant_horizons_main:depth"
+    }
+  },
+  "renderStage": "after_weather",
+  "priority": 1,
+  "replace": true
+}

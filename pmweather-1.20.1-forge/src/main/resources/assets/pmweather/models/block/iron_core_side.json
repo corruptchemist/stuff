@@ -1,0 +1,49 @@
+{
+  "credit": "Made with Blockbench",
+  "ambientocclusion": false,
+  "render_type": "minecraft:cutout",
+  "textures": {
+    "0": "pmweather:block/iron_reinforcement_core",
+    "1": "pmweather:block/iron_reinforcement_core_bottom",
+    "particle": "pmweather:block/iron_reinforcement_core"
+  },
+  "elements": [
+    {
+      "name": "side",
+      "from": [3, 0, 0],
+      "to": [3, 16, 2],
+      "rotation": {"angle": 0, "axis": "y", "origin": [9, 0, 8]},
+      "faces": {
+        "north": {"uv": [5, 0, 7, 16], "texture": "#0"},
+        "east": {"uv": [4, 0, 6, 16], "texture": "#0"},
+        "south": {"uv": [5, 0, 7, 16], "texture": "#0"},
+        "west": {"uv": [4, 0, 6, 16], "texture": "#0"}
+      }
+    },
+    {
+      "name": "side",
+      "from": [13, 0, 0],
+      "to": [13, 16, 2],
+      "rotation": {"angle": 0, "axis": "y", "origin": [7, 0, 8]},
+      "faces": {
+        "north": {"uv": [10, 0, 12, 16], "texture": "#0"},
+        "east": {"uv": [9, 0, 11, 16], "texture": "#0"},
+        "south": {"uv": [9, 0, 11, 16], "texture": "#0"},
+        "west": {"uv": [10, 0, 12, 16], "texture": "#0"}
+      }
+    },
+    {
+      "from": [3, 4, 0],
+      "to": [13, 4, 3],
+      "rotation": {"angle": 0, "axis": "y", "origin": [4, 4, 4]},
+      "faces": {
+        "north": {"uv": [0, 0, 12, 0], "texture": "#1"},
+        "east": {"uv": [0, 0, 12, 0], "texture": "#1"},
+        "south": {"uv": [0, 0, 12, 0], "texture": "#1"},
+        "west": {"uv": [0, 0, 12, 0], "texture": "#1"},
+        "up": {"uv": [13, 7, 3, 4], "texture": "#1"},
+        "down": {"uv": [13, 4, 3, 7], "texture": "#1"}
+      }
+    }
+  ]
+}

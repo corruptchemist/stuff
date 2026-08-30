@@ -1,0 +1,8 @@
+{
+  "variants": {
+    "": [
+      {"model": "pmweather:block/rotted_planks"},
+      {"model": "pmweather:block/rotted_planks_alt"}
+    ]
+  }
+}

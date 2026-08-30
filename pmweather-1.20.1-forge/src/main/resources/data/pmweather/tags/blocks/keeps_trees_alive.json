@@ -1,0 +1,33 @@
+{
+  "values": [
+    "pmweather:charred_log",
+    "pmweather:smoldering_log",
+    "minecraft:farmland",
+    "#minecraft:planks",
+    "#minecraft:slabs",
+    "#minecraft:stairs",
+    "#minecraft:all_signs",
+    "#minecraft:anvil",
+    "#minecraft:terracotta",
+    "#minecraft:badlands_terracotta",
+    "#minecraft:beds",
+    "#minecraft:buttons",
+    "#minecraft:campfires",
+    "#minecraft:candles",
+    "#minecraft:cauldrons",
+    "#minecraft:crops",
+    "#minecraft:doors",
+    "#minecraft:fences",
+    "#minecraft:fence_gates",
+    "#minecraft:leaves",
+    "#minecraft:trapdoors",
+    "#minecraft:pressure_plates",
+    "#minecraft:wool",
+    "#minecraft:wool_carpets",
+    "#forge:glass_blocks",
+    "#forge:glass_panes",
+    "#forge:concretes",
+    "#forge:chests",
+    "#forge:bookshelves"
+  ]
+}

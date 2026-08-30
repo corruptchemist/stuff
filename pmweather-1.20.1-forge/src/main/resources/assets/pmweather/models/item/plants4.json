@@ -1,0 +1,7 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "pmweather:block/plants/stage2alive1",
+    "layer1": "pmweather:block/plants/stage2alive5overlay"
+  }
+}

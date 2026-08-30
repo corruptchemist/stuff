@@ -1,0 +1,16 @@
+{
+  "variants": {
+    "axis=x": {
+      "model": "pmweather:block/rotted_log_horizontal",
+      "x": 90,
+      "y": 90
+    },
+    "axis=y": {
+      "model": "pmweather:block/rotted_log"
+    },
+    "axis=z": {
+      "model": "pmweather:block/rotted_log_horizontal",
+      "x": 90
+    }
+  }
+}

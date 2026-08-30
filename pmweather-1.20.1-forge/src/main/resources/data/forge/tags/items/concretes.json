@@ -1,0 +1,21 @@
+{
+  "replace": false,
+  "values": [
+    "pmweather:reinforced_black_concrete",
+    "pmweather:reinforced_blue_concrete",
+    "pmweather:reinforced_brown_concrete",
+    "pmweather:reinforced_cyan_concrete",
+    "pmweather:reinforced_gray_concrete",
+    "pmweather:reinforced_green_concrete",
+    "pmweather:reinforced_light_blue_concrete",
+    "pmweather:reinforced_light_gray_concrete",
+    "pmweather:reinforced_lime_concrete",
+    "pmweather:reinforced_magenta_concrete",
+    "pmweather:reinforced_orange_concrete",
+    "pmweather:reinforced_pink_concrete",
+    "pmweather:reinforced_purple_concrete",
+    "pmweather:reinforced_red_concrete",
+    "pmweather:reinforced_white_concrete",
+    "pmweather:reinforced_yellow_concrete"
+  ]
+}

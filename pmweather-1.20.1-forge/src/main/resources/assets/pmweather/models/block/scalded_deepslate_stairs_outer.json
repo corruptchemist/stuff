@@ -1,0 +1,8 @@
+{
+  "parent": "minecraft:block/outer_stairs",
+  "textures": {
+    "bottom": "pmweather:block/scalded_deepslate",
+    "side": "pmweather:block/scalded_deepslate",
+    "top": "pmweather:block/scalded_deepslate"
+  }
+}

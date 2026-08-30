@@ -1,0 +1,13 @@
+{
+  "stages": [
+    {
+      "type": "veil:blit",
+      "shader": "pmweather:sky",
+      "in": "minecraft:main",
+      "out": "veil:post"
+    }
+  ],
+  "renderStage": "after_sky",
+  "priority": 1,
+  "replace": true
+}

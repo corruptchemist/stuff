@@ -1,0 +1,15 @@
+{
+  "required": true,
+  "package": "dev.protomanly.pmweather.compat.veil.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "refmap": "pmweather.refmap.json",
+  "mixins": [
+  ],
+  "client": [
+    "VertexFormatCodecMixin",
+    "BlitPostStageMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

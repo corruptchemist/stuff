@@ -1,0 +1,30 @@
+{
+  "values": [
+    "#minecraft:mineable/pickaxe"
+  ],
+
+  "remove": [
+    "pmweather:iron_reinforcement_core",
+    "minecraft:iron_bars",
+    "minecraft:amethyst_block",
+    "#pmweather:reinforced",
+    "#pmweather:useable",
+    "#forge:concretes",
+    "#forge:obsidians",
+    "#forge:ores",
+    "#forge:chains",
+    "#forge:glass_blocks",
+    "#forge:glass_panes",
+    "#forge:buds",
+    {"id": "#create:casing", "required": false},
+    "#minecraft:climbable",
+    "#minecraft:corals",
+    "#minecraft:coral_blocks",
+    "#minecraft:dirt",
+    "#minecraft:ice",
+    "#minecraft:portals",
+    "#minecraft:pressure_plates",
+    "#minecraft:rails",
+    "#minecraft:wall_corals"
+  ]
+}

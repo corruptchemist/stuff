@@ -1,0 +1,21 @@
+{
+  "variants": {
+    "": [
+      {
+        "model": "pmweather:block/scoured_grass"
+      },
+      {
+        "model": "pmweather:block/scoured_grass",
+        "y": 90
+      },
+      {
+        "model": "pmweather:block/scoured_grass",
+        "y": 180
+      },
+      {
+        "model": "pmweather:block/scoured_grass",
+        "y": 270
+      }
+    ]
+  }
+}

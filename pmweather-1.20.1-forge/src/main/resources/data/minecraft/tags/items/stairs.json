@@ -1,0 +1,10 @@
+{
+  "replace": false,
+  "values": [
+    "pmweather:scalded_stone_stairs",
+    "pmweather:scalded_cobblestone_stairs",
+    "pmweather:scalded_deepslate_stairs",
+    "pmweather:charred_stairs",
+    "pmweather:smoldering_stairs"
+  ]
+}

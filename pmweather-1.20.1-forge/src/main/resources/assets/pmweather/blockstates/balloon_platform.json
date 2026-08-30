@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "": {
+      "model": "pmweather:block/balloon_platform"
+    }
+  }
+}

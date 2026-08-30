@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "pmweather:block/range_upgrade_module"
+    },
+    "facing=east": {
+      "model": "pmweather:block/range_upgrade_module",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "pmweather:block/range_upgrade_module",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "pmweather:block/range_upgrade_module",
+      "y": 270
+    }
+  }
+}

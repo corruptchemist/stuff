@@ -1,0 +1,13 @@
+{
+  "variants": {
+    "type=bottom": {
+      "model": "pmweather:block/scalded_concrete_slab"
+    },
+    "type=double": {
+      "model": "pmweather:block/scalded_concrete0"
+    },
+    "type=top": {
+      "model": "pmweather:block/scalded_concrete_slab_top"
+    }
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "parent": "minecraft:block/stairs",
+  "textures": {
+    "bottom": "pmweather:block/charred_planks",
+    "side": "pmweather:block/charred_planks",
+    "top": "pmweather:block/charred_planks"
+  }
+}

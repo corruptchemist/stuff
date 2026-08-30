@@ -1,0 +1,23 @@
+{
+  "required": true,
+  "package": "dev.protomanly.pmweather.compat.sodium.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "refmap": "pmweather.refmap.json",
+  "mixins": [
+  ],
+  "client": [
+    "DefaultMaterialsMixin",
+    "BlockRendererMixin",
+    "ChunkBuilderMeshingTaskMixin",
+    "ChunkMeshFormatsMixin",
+    "ChunkVertexEncoderVertexMixin",
+    "DefaultTerrainRenderPassesMixin",
+    "SodiumWorldRendererMixin",
+    "DefaultShaderInterfaceMixin",
+    "DefaultChunkRendererMixin",
+    "ShaderChunkRendererMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

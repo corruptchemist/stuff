@@ -1,0 +1,18 @@
+{
+  "replace": false,
+  "values": [
+    "pmweather:charred_log",
+    "pmweather:smoldering_log",
+    "pmweather:charred_planks",
+    "pmweather:smoldering_planks",
+    "pmweather:charred_stairs",
+    "pmweather:smoldering_stairs",
+    "pmweather:charred_slab",
+    "pmweather:smoldering_slab",
+    "pmweather:rotted_planks",
+    "pmweather:rotted_log",
+    "pmweather:rotted_wood",
+    "pmweather:stripped_rotted_wood",
+    "pmweather:stripped_rotted_log"
+  ]
+}

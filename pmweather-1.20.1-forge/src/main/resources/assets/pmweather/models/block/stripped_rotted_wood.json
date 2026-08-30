@@ -1,0 +1,7 @@
+{
+  "parent": "minecraft:block/cube_column",
+  "textures": {
+    "end": "pmweather:block/stripped_rotted_log",
+    "side": "pmweather:block/stripped_rotted_log"
+  }
+}

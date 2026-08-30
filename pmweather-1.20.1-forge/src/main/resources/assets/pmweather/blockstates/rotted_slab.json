@@ -1,0 +1,13 @@
+{
+  "variants": {
+    "type=bottom": {
+      "model": "pmweather:block/rotted_slab"
+    },
+    "type=double": {
+      "model": "pmweather:block/rotted_planks"
+    },
+    "type=top": {
+      "model": "pmweather:block/rotted_slab_top"
+    }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "variants": {
+    "type=bottom": {
+      "model": "pmweather:block/scalded_brick_slab"
+    },
+    "type=double": {
+      "model": "pmweather:block/scalded_bricks"
+    },
+    "type=top": {
+      "model": "pmweather:block/scalded_brick_slab_top"
+    }
+  }
+}

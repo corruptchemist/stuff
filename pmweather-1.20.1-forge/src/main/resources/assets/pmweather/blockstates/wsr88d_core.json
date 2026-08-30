@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "pmweather:block/wsr88d_core"
+    },
+    "facing=east": {
+      "model": "pmweather:block/wsr88d_core",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "pmweather:block/wsr88d_core",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "pmweather:block/wsr88d_core",
+      "y": 270
+    }
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "": {
+      "model": "pmweather:block/tornado_siren"
+    }
+  }
+}

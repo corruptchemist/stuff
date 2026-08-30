@@ -1,0 +1,10 @@
+{
+  "variants": {
+    "": [
+      {"model": "pmweather:block/ash_block"},
+      {"model": "pmweather:block/ash_block1"},
+      {"model": "pmweather:block/ash_block2"},
+      {"model": "pmweather:block/ash_block3"}
+    ]
+  }
+}

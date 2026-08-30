@@ -1,0 +1,8 @@
+{
+  "parent": "minecraft:block/stairs",
+  "textures": {
+    "bottom": "pmweather:block/scalded_cobblestone",
+    "side": "pmweather:block/scalded_cobblestone",
+    "top": "pmweather:block/scalded_cobblestone"
+  }
+}

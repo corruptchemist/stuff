@@ -1,0 +1,24 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "building",
+  "key": {
+    "B": {
+      "item": "pmweather:iron_reinforcement_core"
+    },
+    "A": {
+      "tag": "c:dusts/ash"
+    },
+    "C": {
+      "item": "minecraft:pink_concrete_powder"
+    }
+  },
+  "pattern": [
+    "CBC",
+    "ACA",
+    "CBC"
+  ],
+  "result": {
+    "count": 6,
+    "item": "pmweather:reinforced_pink_concrete_powder"
+  }
+}

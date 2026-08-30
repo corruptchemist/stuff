@@ -1,0 +1,14 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "pmweather:item/connector_off"
+  },
+  "overrides": [
+    {
+      "predicate": {
+        "pmweather:connected": 1
+      },
+      "model": "pmweather:item/connector_on"
+    }
+  ]
+}

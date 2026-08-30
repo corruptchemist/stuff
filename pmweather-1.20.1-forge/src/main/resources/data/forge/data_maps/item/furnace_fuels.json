@@ -1,0 +1,8 @@
+{
+  "values": {
+    "pmweather:rotted_log": { "burn_time": 300 },
+    "pmweather:rotted_wood": { "burn_time": 300 },
+    "pmweather:stripped_rotted_log": { "burn_time": 300 },
+    "pmweather:stripped_rotted_wood": { "burn_time": 300 }
+  }
+}

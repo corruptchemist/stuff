@@ -1,0 +1,30 @@
+{
+  "replace": false,
+  "values": [
+    "pmweather:heavy_scouring",
+    "pmweather:medium_scouring",
+    "pmweather:scoured_grass",
+    "pmweather:smoldering_dirt",
+    "pmweather:smoldering_dirt_slight",
+    "pmweather:charred_dirt",
+    "pmweather:charred_dirt_slight",
+    "pmweather:ash_block",
+    "pmweather:sleet_layer",
+    "pmweather:reinforced_black_concrete_powder",
+    "pmweather:reinforced_blue_concrete_powder",
+    "pmweather:reinforced_brown_concrete_powder",
+    "pmweather:reinforced_cyan_concrete_powder",
+    "pmweather:reinforced_gray_concrete_powder",
+    "pmweather:reinforced_green_concrete_powder",
+    "pmweather:reinforced_light_blue_concrete_powder",
+    "pmweather:reinforced_light_gray_concrete_powder",
+    "pmweather:reinforced_lime_concrete_powder",
+    "pmweather:reinforced_magenta_concrete_powder",
+    "pmweather:reinforced_orange_concrete_powder",
+    "pmweather:reinforced_pink_concrete_powder",
+    "pmweather:reinforced_purple_concrete_powder",
+    "pmweather:reinforced_red_concrete_powder",
+    "pmweather:reinforced_white_concrete_powder",
+    "pmweather:reinforced_yellow_concrete_powder"
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "variants": {
+    "dead=false,stage=0": {
+      "model": "pmweather:block/plants/stage0alive1"
+    },
+    "dead=false,stage=1": {
+      "model": "pmweather:block/plants/stage1alive1"
+    },
+    "dead=false,stage=2": {
+      "model": "pmweather:block/plants/stage2alive2"
+    },
+    "dead=false,stage=3": {
+      "model": "pmweather:block/plants/stage3alive1"
+    },
+
+    "dead=true,stage=0": {
+      "model": "pmweather:block/plants/stage0dead1"
+    },
+    "dead=true,stage=1": {
+      "model": "pmweather:block/plants/stage1dead1"
+    },
+    "dead=true,stage=2": {
+      "model": "pmweather:block/plants/stage2dead1"
+    },
+    "dead=true,stage=3": {
+      "model": "pmweather:block/plants/stage3dead1"
+    }
+  }
+}

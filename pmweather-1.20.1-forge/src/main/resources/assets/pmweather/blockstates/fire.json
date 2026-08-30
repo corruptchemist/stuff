@@ -1,0 +1,44 @@
+{
+  "variants": {
+    "intensity=1": [
+      {"model": "pmweather:block/fire1"},
+      {"model": "pmweather:block/fire1_2"}
+    ],
+    "intensity=2": [
+      {"model": "pmweather:block/fire2"},
+      {"model": "pmweather:block/fire2_2"}
+    ],
+    "intensity=3": [
+      {"model": "pmweather:block/fire3"},
+      {"model": "pmweather:block/fire3_2"}
+    ],
+    "intensity=4": [
+      {"model": "pmweather:block/fire4"},
+      {"model": "pmweather:block/fire4_2"}
+    ],
+    "intensity=5": [
+      {"model": "pmweather:block/fire5"},
+      {"model": "pmweather:block/fire5_2"}
+    ],
+    "intensity=6": [
+      {"model": "pmweather:block/fire6"},
+      {"model": "pmweather:block/fire6_2"}
+    ],
+    "intensity=7": [
+      {"model": "pmweather:block/fire7"},
+      {"model": "pmweather:block/fire7_2"}
+    ],
+    "intensity=8": [
+      {"model": "pmweather:block/fire8"},
+      {"model": "pmweather:block/fire8_2"}
+    ],
+    "intensity=9": [
+      {"model": "pmweather:block/fire9"},
+      {"model": "pmweather:block/fire9_2"}
+    ],
+    "intensity=10": [
+      {"model": "pmweather:block/fire10"},
+      {"model": "pmweather:block/fire10_2"}
+    ]
+  }
+}

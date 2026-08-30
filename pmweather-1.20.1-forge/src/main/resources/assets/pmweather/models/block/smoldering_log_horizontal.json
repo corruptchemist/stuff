@@ -1,0 +1,15 @@
+{
+  "parent": "pmweather:block/glow_cube_column_horizontal",
+  "render_type": "minecraft:cutout",
+  "textures": {
+    "end": "pmweather:block/charred_log_top",
+    "side": "pmweather:block/charred_log_side",
+
+    "glowup": "pmweather:block/ember_charred_log_top",
+    "glowdown": "pmweather:block/ember_charred_log_top",
+    "glownorth": "pmweather:block/ember_charred_log_side",
+    "gloweast": "pmweather:block/ember_charred_log_side",
+    "glowsouth": "pmweather:block/ember_charred_log_side",
+    "glowwest": "pmweather:block/ember_charred_log_side"
+  }
+}

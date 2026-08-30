@@ -1,0 +1,10 @@
+{
+  "replace": false,
+  "values": [
+    "pmweather:heavy_scouring",
+    "pmweather:medium_scouring",
+    "pmweather:smoldering_dirt",
+    "pmweather:charred_dirt",
+    "pmweather:scoured_grass"
+  ]
+}

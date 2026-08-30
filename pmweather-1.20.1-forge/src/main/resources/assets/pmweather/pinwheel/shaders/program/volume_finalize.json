@@ -1,0 +1,17 @@
+{
+  "vertex": "veil:blit_screen",
+  "fragment": "pmweather:volume_finalize",
+  "textures": {
+    "CloudSampler": {
+      "type": "framebuffer",
+      "name": "pmweather:clouds"
+    },
+    "CloudBlurSampler": {
+      "type": "framebuffer",
+      "name": "pmweather:clouds",
+      "filter": {
+        "blur": true
+      }
+    }
+  }
+}

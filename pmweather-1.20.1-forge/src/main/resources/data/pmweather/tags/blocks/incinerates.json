@@ -1,0 +1,22 @@
+{
+  "values": [
+    "#pmweather:flashes",
+    "#minecraft:wooden_fences",
+    "#minecraft:wool_carpets",
+    "#minecraft:crops",
+    "#minecraft:all_signs",
+    "#minecraft:beds",
+    "#minecraft:wooden_trapdoors",
+    "#minecraft:wooden_pressure_plates",
+    "#minecraft:stone_pressure_plates",
+    "#minecraft:buttons",
+    "#forge:fence_gates/wooden",
+    "#forge:fences/wooden",
+    "minecraft:sugar_cane",
+    "minecraft:sweet_berry_bush",
+    "minecraft:lever",
+    "minecraft:cocoa",
+    "minecraft:bamboo",
+    "minecraft:cobweb"
+  ]
+}

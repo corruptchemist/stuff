@@ -1,0 +1,94 @@
+{
+  "parent": "pmweather:block/glow_cube",
+  "textures": {
+    "particle": "#side",
+    "down": "#end",
+    "up": "#end",
+    "north": "#side",
+    "east": "#side",
+    "south": "#side",
+    "west": "#side"
+  },
+  "elements": [
+    {
+      "from": [
+        0,
+        0,
+        0
+      ],
+      "to": [
+        16,
+        16,
+        16
+      ],
+      "faces": {
+        "down": {
+          "texture": "#down",
+          "cullface": "down"
+        },
+        "up": {
+          "texture": "#up",
+          "rotation": 180,
+          "cullface": "up"
+        },
+        "north": {
+          "texture": "#north",
+          "cullface": "north"
+        },
+        "south": {
+          "texture": "#south",
+          "cullface": "south"
+        },
+        "west": {
+          "texture": "#west",
+          "cullface": "west"
+        },
+        "east": {
+          "texture": "#east",
+          "cullface": "east"
+        }
+      }
+    },
+
+    {
+      "from": [
+        0,
+        0,
+        0
+      ],
+      "to": [
+        16,
+        16,
+        16
+      ],
+      "faces": {
+        "down": {
+          "texture": "#glowdown",
+          "cullface": "down"
+        },
+        "up": {
+          "texture": "#glowup",
+          "rotation": 180,
+          "cullface": "up"
+        },
+        "north": {
+          "texture": "#glownorth",
+          "cullface": "north"
+        },
+        "south": {
+          "texture": "#glowsouth",
+          "cullface": "south"
+        },
+        "west": {
+          "texture": "#glowwest",
+          "cullface": "west"
+        },
+        "east": {
+          "texture": "#gloweast",
+          "cullface": "east"
+        }
+      },
+      "shade": false
+    }
+  ]
+}

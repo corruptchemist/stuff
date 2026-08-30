@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:blasting",
+  "category": "blocks",
+  "cookingtime": 100,
+  "experience": 0,
+  "ingredient": {
+    "item": "minecraft:iron_bars"
+  },
+  "result": {
+    "item": "pmweather:iron_reinforcement_core"
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "parent": "minecraft:block/slab",
+  "textures": {
+    "bottom": "pmweather:block/scalded_bricks",
+    "side": "pmweather:block/scalded_bricks",
+    "top": "pmweather:block/scalded_bricks"
+  }
+}

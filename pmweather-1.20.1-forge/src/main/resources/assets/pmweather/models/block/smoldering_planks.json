@@ -1,0 +1,14 @@
+{
+  "parent": "pmweather:block/glow_cube_all",
+  "render_type": "minecraft:cutout",
+  "textures": {
+    "all": "pmweather:block/charred_planks",
+
+    "glowup": "pmweather:block/ember_charred_planks",
+    "glowdown": "pmweather:block/ember_charred_planks",
+    "glownorth": "pmweather:block/ember_charred_planks",
+    "gloweast": "pmweather:block/ember_charred_planks",
+    "glowsouth": "pmweather:block/ember_charred_planks",
+    "glowwest": "pmweather:block/ember_charred_planks"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "parent": "pmweather:block/glow_cube_all",
+  "render_type": "minecraft:cutout",
+  "textures": {
+    "all": "pmweather:block/ash_block",
+
+    "glowup": "pmweather:block/ember_charred_dirt_slight",
+    "glowdown": "pmweather:block/ember_charred_dirt_slight",
+    "glownorth": "pmweather:block/ember_charred_dirt_slight",
+    "gloweast": "pmweather:block/ember_charred_dirt_slight",
+    "glowsouth": "pmweather:block/ember_charred_dirt_slight",
+    "glowwest": "pmweather:block/ember_charred_dirt_slight"
+  }
+}

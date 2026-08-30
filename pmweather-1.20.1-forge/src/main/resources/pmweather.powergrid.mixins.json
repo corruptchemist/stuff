@@ -1,0 +1,13 @@
+{
+  "required": false,
+  "package": "dev.protomanly.pmweather.compat.powergrid.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "refmap": "pmweather.refmap.json",
+  "mixins": [
+    "HangingWireEntityMixin"
+  ],
+  "client": [],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "parent": "minecraft:block/cube",
+  "textures": {
+    "down": "pmweather:block/tornado_siren_bottom",
+    "up": "pmweather:block/tornado_siren_top",
+    "east": "pmweather:block/tornado_siren_side",
+    "north": "pmweather:block/tornado_siren_side",
+    "south": "pmweather:block/tornado_siren_side",
+    "west": "pmweather:block/tornado_siren_side",
+    "particle": "pmweather:block/tornado_siren_side"
+  }
+}

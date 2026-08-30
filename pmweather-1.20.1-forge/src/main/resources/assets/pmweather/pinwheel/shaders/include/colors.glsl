@@ -1,0 +1,10 @@
+const vec3 sunsetSecondary = vec3(0.855, 0.859, 0.549);
+const vec3 skyColor = vec3(0.573, 0.714, 0.871);
+const vec3 upperSkyColor = vec3(0.31, 0.471, 0.761);
+const vec3 cloudColor = vec3(1.0);
+const vec3 denseCloudColor = vec3(0.145, 0.184, 0.302);
+const vec3 rainColor = vec3(0.051, 0.341, 0.275);
+const vec3 dustColor = vec3(0.2, 0.125, 0.071);
+const vec3 ashColor = vec3(0.05);
+const vec3 fireColor = vec3(1.0, 0.4, 0.0);
+const vec3 fireAshColor = vec3(0.741, 0.345, 0.0);

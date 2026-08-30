@@ -1,0 +1,9 @@
+{
+  "variants": {
+    "": [
+      {"model": "pmweather:block/scalded_concrete0"},
+      {"model": "pmweather:block/scalded_concrete1"},
+      {"model": "pmweather:block/scalded_concrete2"}
+    ]
+  }
+}

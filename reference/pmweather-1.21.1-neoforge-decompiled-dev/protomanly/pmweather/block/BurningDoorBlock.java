@@ -1,0 +1,73 @@
+package dev.protomanly.pmweather.block;
+
+import dev.protomanly.pmweather.block.interfaces.BurningBlockInterface;
+import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.DoorBlock;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.BlockBehaviour.Properties;
+import net.minecraft.world.level.block.state.properties.BlockSetType;
+import net.minecraft.world.level.block.state.properties.DoubleBlockHalf;
+
+public class BurningDoorBlock extends DoorBlock implements BurningBlockInterface {
+   private final Block burnsInto;
+   private final int burnChance;
+   private final int spreadChance;
+
+   public BurningDoorBlock(Block burnsInto, int burnChance, int spreadChance, BlockSetType type, Properties properties) {
+      super(type, properties);
+      this.burnsInto = burnsInto;
+      this.burnChance = burnChance;
+      this.spreadChance = spreadChance;
+   }
+
+   protected void randomTick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random) {
+      super.randomTick(state, level, pos, random);
+      if (state.getValue(HALF) == DoubleBlockHalf.LOWER) {
+         this.doRandomTick(state, level, pos, random);
+      }
+   }
+
+   @Override
+   public void burn(BlockState state, ServerLevel level, BlockPos pos) {
+      boolean destroy = level.random.nextInt(2) == 1;
+      if (destroy) {
+         level.removeBlock(pos, false);
+      } else {
+         level.setBlockAndUpdate(pos, this.getBlockStateForBurning(state));
+      }
+
+      BlockPos top = pos.above();
+      BlockState topState = level.getBlockState(top);
+      if (topState.is(this)) {
+         if (destroy) {
+            level.removeBlock(top, false);
+         } else {
+            level.setBlockAndUpdate(top, this.getBlockStateForBurning(topState));
+         }
+      }
+   }
+
+   public void animateTick(BlockState state, Level level, BlockPos pos, RandomSource random) {
+      super.animateTick(state, level, pos, random);
+      this.animate(state, level, pos, random);
+   }
+
+   @Override
+   public int getBurnChance() {
+      return this.burnChance;
+   }
+
+   @Override
+   public int getSpreadChance() {
+      return this.spreadChance;
+   }
+
+   @Override
+   public Block getBurnsInto() {
+      return this.burnsInto;
+   }
+}

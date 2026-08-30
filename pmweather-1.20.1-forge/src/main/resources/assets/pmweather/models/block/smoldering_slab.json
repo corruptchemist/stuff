@@ -1,0 +1,13 @@
+{
+  "parent": "pmweather:block/glow_slab",
+  "render_type": "minecraft:cutout",
+  "textures": {
+    "bottom": "pmweather:block/charred_planks",
+    "side": "pmweather:block/charred_planks",
+    "top": "pmweather:block/charred_planks",
+
+    "glowbottom": "pmweather:block/ember_charred_planks",
+    "glowside": "pmweather:block/ember_charred_planks",
+    "glowtop": "pmweather:block/ember_charred_planks"
+  }
+}

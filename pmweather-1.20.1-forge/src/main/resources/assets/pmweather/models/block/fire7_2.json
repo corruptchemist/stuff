@@ -1,0 +1,150 @@
+{
+  "ambientocclusion": false,
+  "render_type": "minecraft:cutout",
+  "textures": {
+    "fire": "pmweather:block/fire_1",
+    "particle": "#fire"
+  },
+  "elements": [
+    {
+      "from": [
+        0,
+        0,
+        -4
+      ],
+      "to": [
+        0,
+        30,
+        20
+      ],
+      "shade": false,
+      "faces": {
+        "west": {
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "texture": "#fire",
+          "tintindex": 1
+        },
+        "east": {
+          "uv": [
+            16,
+            0,
+            0,
+            16
+          ],
+          "texture": "#fire",
+          "tintindex": 1
+        }
+      }
+    },
+    {
+      "from": [
+        16,
+        0,
+        -4
+      ],
+      "to": [
+        16,
+        30,
+        20
+      ],
+      "shade": false,
+      "faces": {
+        "west": {
+          "uv": [
+            16,
+            0,
+            0,
+            16
+          ],
+          "texture": "#fire",
+          "tintindex": 1
+        },
+        "east": {
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "texture": "#fire",
+          "tintindex": 1
+        }
+      }
+    },
+    {
+      "from": [
+        -4,
+        0,
+        0
+      ],
+      "to": [
+        20,
+        30,
+        0
+      ],
+      "shade": false,
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "texture": "#fire",
+          "tintindex": 1
+        },
+        "south": {
+          "uv": [
+            16,
+            0,
+            0,
+            16
+          ],
+          "texture": "#fire",
+          "tintindex": 1
+        }
+      }
+    },
+    {
+      "from": [
+        -4,
+        0,
+        16
+      ],
+      "to": [
+        20,
+        30,
+        16
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            16,
+            0,
+            0,
+            16
+          ],
+          "texture": "#fire",
+          "tintindex": 1
+        },
+        "south": {
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "texture": "#fire",
+          "tintindex": 1
+        }
+      },
+      "shade": false
+    }
+  ]
+}

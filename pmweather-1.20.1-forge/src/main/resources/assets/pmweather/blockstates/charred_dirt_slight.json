@@ -1,0 +1,21 @@
+{
+  "variants": {
+    "": [
+      {
+        "model": "pmweather:block/charred_dirt_slight"
+      },
+      {
+        "model": "pmweather:block/charred_dirt_slight",
+        "y": 90
+      },
+      {
+        "model": "pmweather:block/charred_dirt_slight",
+        "y": 180
+      },
+      {
+        "model": "pmweather:block/charred_dirt_slight",
+        "y": 270
+      }
+    ]
+  }
+}

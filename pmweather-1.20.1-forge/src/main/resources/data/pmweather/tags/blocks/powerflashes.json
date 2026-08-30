@@ -1,0 +1,10 @@
+{
+  "values": [
+    "minecraft:redstone_lamp",
+    "minecraft:redstone_block",
+    "minecraft:daylight_detector",
+    "minecraft:observer",
+    "minecraft:piston",
+    "minecraft:sticky_piston"
+  ]
+}

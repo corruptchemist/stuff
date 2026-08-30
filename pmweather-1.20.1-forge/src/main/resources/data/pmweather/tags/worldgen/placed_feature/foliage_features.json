@@ -1,0 +1,26 @@
+{
+  "values": [
+    "minecraft:patch_grass_badlands",
+    "minecraft:patch_grass_forest",
+    "minecraft:patch_grass_jungle",
+    "minecraft:patch_grass_normal",
+    "minecraft:patch_grass_plain",
+    "minecraft:patch_grass_savanna",
+    "minecraft:patch_grass_taiga",
+    "minecraft:patch_grass_taiga_2",
+    "minecraft:patch_taiga_grass",
+    "minecraft:patch_tall_grass",
+    "minecraft:patch_tall_grass_2",
+    "minecraft:grass_bonemeal",
+
+    "minecraft:flower_default",
+    "minecraft:flower_plain",
+    "minecraft:flower_plains",
+    "minecraft:flower_swamp",
+    "minecraft:flower_warm",
+    "minecraft:forest_flowers",
+    "minecraft:flower_flower_forest",
+    "minecraft:flower_forest_flowers",
+    "minecraft:flower_meadow"
+  ]
+}

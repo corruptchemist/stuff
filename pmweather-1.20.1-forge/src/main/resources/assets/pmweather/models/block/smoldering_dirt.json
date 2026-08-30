@@ -1,0 +1,16 @@
+{
+  "parent": "pmweather:block/glow_cube_bottom_top",
+  "render_type": "minecraft:cutout",
+  "textures": {
+    "side": "pmweather:block/charred_dirt_side",
+    "top": "pmweather:block/charred_dirt_top",
+    "bottom": "minecraft:block/dirt",
+
+    "glowup": "pmweather:block/ember_charred_dirt",
+    "glowdown": "pmweather:block/empty",
+    "glownorth": "pmweather:block/empty",
+    "gloweast": "pmweather:block/empty",
+    "glowsouth": "pmweather:block/empty",
+    "glowwest": "pmweather:block/empty"
+  }
+}

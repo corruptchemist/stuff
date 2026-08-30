@@ -1,0 +1,11 @@
+{
+  "required": false,
+  "package": "dev.protomanly.pmweather.compat.sable.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "refmap": "pmweather.refmap.json",
+  "mixins": [],
+  "client": [],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

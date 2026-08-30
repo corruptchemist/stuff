@@ -1,0 +1,24 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "IJI",
+    "ITI",
+    "III"
+  ],
+  "key": {
+    "I": {
+      "item": "minecraft:iron_ingot"
+    },
+    "T": {
+      "item": "pmweather:tornado_sensor"
+    },
+    "J": {
+      "item": "minecraft:jukebox"
+    }
+  },
+  "result": {
+    "count": 1,
+    "item": "pmweather:tornado_siren"
+  }
+}

@@ -1,0 +1,4 @@
+{
+  "target": "sodium:shaders/blocks/block_layer_opaque.vsh",
+  "redirect": "pmweather:sodium_block_layer_vertex.glsl"
+}

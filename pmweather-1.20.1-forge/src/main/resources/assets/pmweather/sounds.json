@@ -1,0 +1,234 @@
+{
+  "powerflash": {
+    "sounds": [
+      "pmweather:powerflash/powerflash1"
+    ],
+    "category": "weather"
+  },
+
+  "metal_hum": {
+    "sounds": [
+      "pmweather:lightning/hum1",
+      "pmweather:lightning/hum2",
+      "pmweather:lightning/hum3"
+    ],
+    "category": "weather"
+  },
+
+  "fire_crackle": {
+    "sounds": [
+      "pmweather:fire/crackles/snap1",
+      "pmweather:fire/crackles/snap2",
+      "pmweather:fire/crackles/crackle1",
+      "pmweather:fire/crackles/crackle2",
+      "pmweather:fire/crackles/pop1",
+      "pmweather:fire/crackles/pop2"
+    ],
+    "category": "weather"
+  },
+
+  "fire_ambient_low": {
+    "sounds": [
+      "pmweather:fire/background/low"
+    ],
+    "category": "weather"
+  },
+  "fire_ambient_mid": {
+    "sounds": [
+      "pmweather:fire/background/mid"
+    ],
+    "category": "weather"
+  },
+  "fire_ambient_high": {
+    "sounds": [
+      "pmweather:fire/background/high"
+    ],
+    "category": "weather"
+  },
+
+  "sleet_break": {
+    "sounds": [
+      "pmweather:block/sleet/break1",
+      "pmweather:block/sleet/break2"
+    ],
+    "category": "block"
+  },
+  "sleet_step": {
+    "sounds": [
+      "pmweather:block/sleet/step1",
+      "pmweather:block/sleet/step2",
+      "pmweather:block/sleet/step3"
+    ],
+    "category": "block"
+  },
+  "sleet_place": {
+    "sounds": [
+      "pmweather:block/sleet/break1",
+      "pmweather:block/sleet/break2"
+    ],
+    "category": "block"
+  },
+  "sleet_hit": {
+    "sounds": [
+      "pmweather:block/sleet/hit1",
+      "pmweather:block/sleet/hit2"
+    ],
+    "category": "block"
+  },
+  "sleet_fall": {
+    "sounds": [
+      "pmweather:block/sleet/break1"
+    ],
+    "category": "block"
+  },
+
+  "positive_next": {
+    "sounds": [
+      "pmweather:thunder/next/positive1"
+    ],
+    "category": "weather"
+  },
+  "positive_near": {
+    "sounds": [
+      "pmweather:thunder/near/positive1",
+      "pmweather:thunder/near/positive2",
+      "pmweather:thunder/near/positive3",
+      "pmweather:thunder/near/positive4"
+    ],
+    "category": "weather"
+  },
+  "positive_far": {
+    "sounds": [
+      "pmweather:thunder/far/positive1"
+    ],
+    "category": "weather"
+  },
+
+  "negative_next": {
+    "sounds": [
+      "pmweather:thunder/next/negative1",
+      "pmweather:thunder/next/negative2",
+      "pmweather:thunder/next/negative3",
+      "pmweather:thunder/next/negative4"
+    ],
+    "category": "weather"
+  },
+  "negative_near": {
+    "sounds": [
+      "pmweather:thunder/near/negative1",
+      "pmweather:thunder/near/negative2",
+      "pmweather:thunder/near/negative3",
+      "pmweather:thunder/near/negative4",
+      "pmweather:thunder/near/negative5"
+    ],
+    "category": "weather"
+  },
+  "negative_far": {
+    "sounds": [
+      "pmweather:thunder/far/negative1",
+      "pmweather:thunder/far/negative2",
+      "pmweather:thunder/far/negative3"
+    ],
+    "category": "weather"
+  },
+
+
+  "rain": {
+    "sounds": [
+      "pmweather:rain/rain1",
+      "pmweather:rain/rain2",
+      "pmweather:rain/rain3"
+    ],
+    "category": "weather"
+  },
+  "sleet": {
+    "sounds": [
+      "pmweather:sleet/sleet1",
+      "pmweather:sleet/sleet2",
+      "pmweather:sleet/sleet3"
+    ],
+    "category": "weather"
+  },
+  "calm_ambience": {
+    "sounds": [
+      "pmweather:ambience/calm1"
+    ],
+    "category": "ambient"
+  },
+  "wsr88d_completed": {
+    "sounds": [
+      {"name": "pmweather:block/wsr88d_completed"}
+    ],
+    "category": "block"
+  },
+  "wsr88d_dismantled": {
+    "sounds": [
+      {"name": "pmweather:block/wsr88d_dismantled"}
+    ],
+    "category": "block"
+  },
+  "siren": {
+    "sounds": [
+      {"name": "pmweather:block/siren", "stream": true}
+    ],
+    "category": "block"
+  },
+  "underground_wind": {
+    "sounds": [
+      {"name": "pmweather:storm/underground_wind", "stream": true}
+    ],
+    "category": "weather"
+  },
+  "eyewall_wind": {
+    "sounds": [
+      {"name": "pmweather:storm/eyewall_wind", "stream": true}
+    ],
+    "category": "weather"
+  },
+  "supercell_wind": {
+    "sounds": [
+      {"name": "pmweather:storm/supercell_wind", "stream": true}
+    ],
+    "category": "weather"
+  },
+  "tornadic_wind": {
+    "sounds": [
+      {"name": "pmweather:storm/tornadic_wind", "stream": true}
+    ],
+    "category": "weather"
+  },
+  "tornadic_damage": {
+    "sounds": [
+      {"name": "pmweather:storm/tornadic_damage", "stream": true}
+    ],
+    "category": "weather"
+  },
+  "hail": {
+    "sounds": [
+      "minecraft:dig/stone1",
+      "minecraft:dig/stone2",
+      "minecraft:dig/stone3",
+      "minecraft:dig/stone4"
+    ],
+    "category": "weather"
+  },
+  "wind_strong": {
+    "sounds": [
+      "pmweather:ambience/wind_strong1",
+      "pmweather:ambience/wind_strong2"
+    ],
+    "category": "weather"
+  },
+  "wind_med": {
+    "sounds": [
+      "pmweather:ambience/wind_med1"
+    ],
+    "category": "weather"
+  },
+  "wind_calm": {
+    "sounds": [
+      "pmweather:ambience/wind_calm1"
+    ],
+    "category": "ambient"
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "parent": "minecraft:block/inner_stairs",
+  "textures": {
+    "bottom": "pmweather:block/scalded_stone_bricks",
+    "side": "pmweather:block/scalded_stone_bricks",
+    "top": "pmweather:block/scalded_stone_bricks"
+  }
+}

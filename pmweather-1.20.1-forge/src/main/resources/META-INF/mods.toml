@@ -1,0 +1,69 @@
+modLoader="javafml"
+loaderVersion="${loader_version_range}"
+license="All Rights Reserved"
+issueTrackerURL="https://github.com/"
+
+[[mods]]
+modId="${mod_id}"
+version="${mod_version}"
+displayName="${mod_name}"
+logoFile="logo.png"
+credits="Spud, Understimulate"
+authors="${mod_authors}"
+description='''${mod_description}'''
+
+# NOTE (port): on Forge 1.20.1 mixin configs are declared here the same way,
+# but there is no `requiredMods` key -- a config for an absent mod must instead
+# set "required": false in the json itself (already done for the compat configs).
+[[mixins]]
+config="pmweather.mixins.json"
+
+[[mixins]]
+config="pmweather.create.mixins.json"
+
+[[mixins]]
+config="pmweather.sable.mixins.json"
+
+[[mixins]]
+config="pmweather.powergrid.mixins.json"
+
+[[accessTransformers]]
+file="META-INF/accesstransformer.cfg"
+
+[[dependencies.${mod_id}]]
+    modId="forge"
+    mandatory=true
+    versionRange="${forge_version_range}"
+    ordering="NONE"
+    side="BOTH"
+
+[[dependencies.${mod_id}]]
+    modId="minecraft"
+    mandatory=true
+    versionRange="${minecraft_version_range}"
+    ordering="NONE"
+    side="BOTH"
+
+[[dependencies.${mod_id}]]
+    modId="immersive_portals"
+    mandatory=false
+    incompatible=true
+    reason="causes major flickering"
+    versionRange="[0,)"
+    ordering="NONE"
+    side="CLIENT"
+
+[[dependencies.${mod_id}]]
+    modId="sereneseasons"
+    mandatory=false
+    reason="PMWeather already contains a season system"
+    versionRange="[0,)"
+    ordering="NONE"
+    side="BOTH"
+
+[[dependencies.${mod_id}]]
+    modId="farmersdelight"
+    mandatory=false
+    versionRange="[0,)"
+    ordering="AFTER"
+    side="BOTH"

@@ -1,0 +1,8 @@
+{
+  "parent": "pmweather:block/blooming_plant",
+  "render_type": "pmweather:swaying_cutout",
+  "textures": {
+    "cross": "pmweather:block/plants/stage2alive1",
+    "overlay": "pmweather:block/plants/stage2alive1overlay"
+  }
+}

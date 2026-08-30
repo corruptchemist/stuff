@@ -1,0 +1,10 @@
+{
+  "replace": false,
+  "values": [
+    "pmweather:scalded_stone_slab",
+    "pmweather:scalded_cobblestone_slab",
+    "pmweather:scalded_deepslate_slab",
+    "pmweather:charred_slab",
+    "pmweather:smoldering_slab"
+  ]
+}

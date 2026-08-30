@@ -1,0 +1,12 @@
+{
+  "parent": "minecraft:block/cube",
+  "textures": {
+    "down": "pmweather:block/balloon_platform_bottom",
+    "up": "pmweather:block/balloon_platform_top",
+    "east": "pmweather:block/balloon_platform_side",
+    "north": "pmweather:block/balloon_platform_side",
+    "south": "pmweather:block/balloon_platform_side",
+    "west": "pmweather:block/balloon_platform_side",
+    "particle": "pmweather:block/balloon_platform_side"
+  }
+}

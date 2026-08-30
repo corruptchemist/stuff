@@ -1,0 +1,7 @@
+{
+  "parent": "minecraft:block/cube_column",
+  "textures": {
+    "end": "pmweather:block/charred_log_top",
+    "side": "pmweather:block/charred_log_side"
+  }
+}

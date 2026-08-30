@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "pmweather:block/sounding_viewer"
+    },
+    "facing=east": {
+      "model": "pmweather:block/sounding_viewer",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "pmweather:block/sounding_viewer",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "pmweather:block/sounding_viewer",
+      "y": 270
+    }
+  }
+}

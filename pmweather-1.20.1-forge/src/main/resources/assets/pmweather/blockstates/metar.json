@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "pmweather:block/metar",
+      "y": 180
+    },
+    "facing=east": {
+      "model": "pmweather:block/metar",
+      "y": 270
+    },
+    "facing=south": {
+      "model": "pmweather:block/metar"
+    },
+    "facing=west": {
+      "model": "pmweather:block/metar",
+      "y": 90
+    }
+  }
+}

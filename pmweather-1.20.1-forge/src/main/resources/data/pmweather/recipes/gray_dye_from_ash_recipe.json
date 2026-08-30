@@ -1,0 +1,14 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "group": "black_dye",
+  "ingredients": [
+    {
+      "tag": "c:dusts/ash"
+    }
+  ],
+  "result": {
+    "count": 1,
+    "item": "minecraft:gray_dye"
+  }
+}

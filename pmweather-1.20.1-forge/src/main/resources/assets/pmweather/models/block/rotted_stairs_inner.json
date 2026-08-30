@@ -1,0 +1,8 @@
+{
+  "parent": "minecraft:block/inner_stairs",
+  "textures": {
+    "bottom": "pmweather:block/rotted_planks",
+    "side": "pmweather:block/rotted_planks",
+    "top": "pmweather:block/rotted_planks"
+  }
+}

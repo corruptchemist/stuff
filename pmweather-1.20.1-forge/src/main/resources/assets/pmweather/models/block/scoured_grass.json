@@ -1,0 +1,8 @@
+{
+  "parent": "minecraft:block/cube_bottom_top",
+  "textures": {
+    "side": "pmweather:block/scoured_grass_side",
+    "top": "pmweather:block/scoured_grass_top",
+    "bottom": "minecraft:block/dirt"
+  }
+}

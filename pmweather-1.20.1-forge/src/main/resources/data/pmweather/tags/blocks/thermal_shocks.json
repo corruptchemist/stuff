@@ -1,0 +1,10 @@
+{
+  "values": [
+    "#forge:glass_blocks",
+    "#forge:glass_panes",
+    "#minecraft:flower_pots",
+    "minecraft:decorated_pot",
+    "minecraft:glowstone",
+    "minecraft:redstone_lamp"
+  ]
+}
