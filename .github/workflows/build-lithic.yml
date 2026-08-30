@@ -9,6 +9,9 @@ on:
       - '.github/workflows/build-lithic.yml'
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -82,6 +85,20 @@ jobs:
           grep -E '^(toughasnails|glitchcore)_version=' gradle.properties || true
           echo '=============== ARTIFACTS ==============='
           ls -la build/libs/ 2>/dev/null || echo 'no jar produced'
+
+      # Actions artifacts are served from Azure blob storage, which is awkward to
+      # reach (needs a login, and is blocked outright from some networks). A
+      # release asset is a plain download link that anyone can click.
+      - name: Publish jar to the dev release
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete lithic-dev --yes --cleanup-tag 2>/dev/null || true
+          gh release create lithic-dev build/libs/*.jar \
+            --title 'Lithic dev build' \
+            --notes 'Automated build of the Lithic mod. Requires NeoForge 1.21.1, Tough As Nails and GlitchCore. Unstable and not yet play-tested.'
+          echo 'download: https://github.com/${{ github.repository }}/releases/download/lithic-dev/'
 
       - name: Upload jar
         if: success()
