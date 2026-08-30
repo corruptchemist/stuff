@@ -75,6 +75,14 @@ jobs:
           echo '=============== OTHER FAILURES ==============='
           grep -aE 'Could not resolve|Caused by:|Execution failed for task' /tmp/build.log | head -40 || true
 
+      - name: Build summary
+        if: always()
+        run: |
+          echo '=============== RESOLVED VERSIONS ==============='
+          grep -E '^(toughasnails|glitchcore)_version=' gradle.properties || true
+          echo '=============== ARTIFACTS ==============='
+          ls -la build/libs/ 2>/dev/null || echo 'no jar produced'
+
       - name: Upload jar
         if: success()
         uses: actions/upload-artifact@v4

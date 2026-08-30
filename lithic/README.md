@@ -97,8 +97,13 @@ If dependency resolution fails, either:
 
 ### What has and has not been verified
 
-Because no Minecraft toolchain could be fetched, **this code has never been
-compiled or run.** What *was* done instead:
+**It compiles.** The first successful build was produced by GitHub Actions
+(`.github/workflows/build-lithic.yml`), because no Minecraft Maven is reachable
+from the environment this was written in. First compilation surfaced exactly one
+error, a renamed constant, now fixed and guarded by a static check.
+
+**It has still never been run in-game.** Nothing below has been play-tested, and
+the mechanics are unproven. What was done in place of running it:
 
 - Every NeoForge and Tough As Nails API used was checked against upstream source
   cloned from GitHub (NeoForge `1.21.1` branch, ToughAsNails `1.21.1` branch) —
@@ -116,8 +121,11 @@ compiled or run.** What *was* done instead:
   `lithic:` identifier, research parent, translation key, blockstate variant and
   model reference was cross-checked against the Java registries.
 
-Expect the first real compile to still surface something. Textures are
-procedurally generated placeholders and are meant to be replaced.
+Textures are hand-authored 16x16 pixel art (see `tools/sprites.py`), not
+generated noise, but they are a first pass and meant to be replaced.
+
+To get a jar without a local toolchain, take it from the latest green run under
+the repository's Actions tab; the workflow publishes it as `lithic-jar`.
 
 ---
 
