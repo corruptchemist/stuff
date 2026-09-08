@@ -144,3 +144,45 @@ def test_x2_doubles_numbers_only_not_modifiers():
     doubled = analyse(deck, {5, 9}, adds=10, doubled=True)
     assert plain.stay_value == 5 + 9 + 10
     assert doubled.stay_value == (5 + 9) * 2 + 10
+
+
+# -- the snapshot the UI renders ---------------------------------------------
+
+def test_snapshot_is_locked_to_me_not_the_active_player():
+    """The panel must follow one seat regardless of whose turn it is."""
+    from flip7.app import snapshot
+
+    class FakeReader:
+        connected, status, atlas = True, "live", {}
+        def __init__(self, table): self.table = table
+
+    t = Table()
+    t.seed({
+        "players": {"100601871": {"id": "100601871", "no": "3", "name": "SmelvinG142"},
+                    "92017342": {"id": "92017342", "no": "2", "name": "Someone Else"}},
+        "board": {"cards": []},
+    }, my_player_id="100601871")
+    for ntype, args in EVENTS:
+        t.handle(ntype, args)
+
+    s = snapshot(FakeReader(t))
+    assert s["me"]["name"] == "SmelvinG142"
+    assert [p["is_me"] for p in s["players"]].count(True) == 1
+    assert next(p for p in s["players"] if p["is_me"])["name"] == "SmelvinG142"
+    # advice is computed for that seat's hand, whoever is to act
+    assert s["advice"] is not None
+    assert 0.0 <= s["advice"]["p_bust"] <= 1.0
+    assert s["advice"]["recommend"] in ("HIT", "STAY")
+
+
+def test_snapshot_deck_view_covers_every_card_type():
+    from flip7.app import snapshot
+
+    class FakeReader:
+        connected, status, atlas = True, "live", {}
+        table = Table()
+
+    s = snapshot(FakeReader())
+    assert len(s["deck"]) == 22                       # 13 numbers + 6 mods + 3 actions
+    assert sum(d["total"] for d in s["deck"]) == DECK_SIZE
+    assert sum(d["left"] for d in s["deck"]) == DECK_SIZE   # nothing drawn yet

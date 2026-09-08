@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Flip 7 Tracker</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg:#12131a; --panel:#1a1c26; --panel-2:#22242f; --line:#2e313f;
+    --ink:#f2f3f7; --ink-2:#a8adbd; --ink-3:#6f7488;
+    --good:#0ca30c; --warn:#fab219; --serious:#ec835a; --crit:#d03b3b;
+    --accent:#5b8cff;
+    --card-w:52px; --card-h:74px;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink);
+         font:13px/1.45 "Segoe UI",system-ui,sans-serif; }
+  .wrap { max-width:1180px; margin:0 auto; padding:14px; }
+  h2 { font-size:11px; letter-spacing:.14em; text-transform:uppercase;
+       color:var(--ink-3); margin:0 0 9px; font-weight:600; }
+  .panel { background:var(--panel); border:1px solid var(--line);
+           border-radius:12px; padding:14px; }
+  .grid { display:grid; gap:12px; }
+  .top { grid-template-columns: minmax(300px,1.1fr) 2fr; }
+  .mid { grid-template-columns: 1fr 1fr; }
+  @media (max-width:900px){ .top,.mid{ grid-template-columns:1fr; } }
+
+  /* hero verdict */
+  .verdict { text-align:center; padding:6px 0 12px; }
+  .call { font-size:44px; font-weight:800; letter-spacing:.06em; line-height:1; }
+  .call small { display:block; font-size:11px; font-weight:600; letter-spacing:.14em;
+                color:var(--ink-3); margin-top:6px; text-transform:uppercase; }
+  .bustline { display:flex; align-items:baseline; justify-content:center;
+              gap:8px; margin-top:14px; }
+  .bustpct { font-size:34px; font-weight:800; font-variant-numeric:tabular-nums; }
+  .bustlbl { font-size:11px; color:var(--ink-2); text-transform:uppercase;
+             letter-spacing:.1em; }
+  .meter { height:8px; border-radius:99px; background:var(--panel-2);
+           overflow:hidden; margin-top:10px; position:relative; }
+  .meter i { display:block; height:100%; border-radius:99px; transition:width .3s; }
+  .meter u { position:absolute; top:-3px; width:2px; height:14px;
+             background:var(--ink-3); opacity:.8; }
+  .riskrow { display:flex; justify-content:space-between; font-size:10.5px;
+             color:var(--ink-3); margin-top:5px; }
+
+  /* stat tiles */
+  .tiles { display:grid; grid-template-columns:repeat(auto-fit,minmax(96px,1fr));
+           gap:8px; margin-top:14px; }
+  .tile { background:var(--panel-2); border-radius:9px; padding:9px 10px; }
+  .tile b { display:block; font-size:19px; font-variant-numeric:tabular-nums;
+            font-weight:700; }
+  .tile span { font-size:10px; color:var(--ink-3); text-transform:uppercase;
+               letter-spacing:.07em; }
+
+  /* cards */
+  .cards { display:flex; flex-wrap:wrap; gap:6px; min-height:var(--card-h); }
+  .card { width:var(--card-w); height:var(--card-h); border-radius:7px;
+          background-repeat:no-repeat; background-color:var(--panel-2);
+          border:1px solid var(--line); flex:0 0 auto; position:relative; }
+  .card.fallback { display:flex; align-items:center; justify-content:center;
+                   font-weight:800; font-size:20px; color:#fff; }
+  .card.dim { opacity:.34; filter:grayscale(.7); }
+  .empty { color:var(--ink-3); font-style:italic; align-self:center; }
+
+  /* deck grid */
+  .deck { display:grid; grid-template-columns:repeat(auto-fill,minmax(58px,1fr));
+          gap:7px; }
+  .slot { background:var(--panel-2); border:1px solid var(--line);
+          border-radius:8px; padding:6px 4px 5px; text-align:center;
+          position:relative; }
+  .slot.bust { border-color:var(--crit); box-shadow:0 0 0 1px var(--crit) inset; }
+  .slot.gone { opacity:.32; }
+  .slot .mini { width:34px; height:48px; margin:0 auto 4px; border-radius:5px;
+                background-repeat:no-repeat; background-color:#2b2e3a;
+                display:flex; align-items:center; justify-content:center;
+                font-weight:800; font-size:14px; }
+  .slot .n { font-size:12px; font-weight:700; font-variant-numeric:tabular-nums; }
+  .slot .n s { color:var(--ink-3); text-decoration:none; font-weight:500; }
+  .slot .bar { height:3px; border-radius:99px; background:var(--line); margin-top:4px; }
+  .badge { position:absolute; top:-6px; right:-4px; background:var(--crit);
+           color:#fff; font-size:9px; font-weight:800; border-radius:99px;
+           padding:1px 5px; }
+
+  /* players */
+  table { width:100%; border-collapse:collapse; }
+  th { text-align:left; font-size:10px; text-transform:uppercase; letter-spacing:.08em;
+       color:var(--ink-3); font-weight:600; padding:0 8px 7px 0; }
+  td { padding:7px 8px 7px 0; border-top:1px solid var(--line); vertical-align:middle; }
+  .you td { background:rgba(91,140,255,.07); }
+  .pname { font-weight:700; }
+  .pname i { font-style:normal; color:var(--accent); font-size:10px;
+             margin-left:5px; letter-spacing:.08em; }
+  .pill { display:inline-block; font-size:10px; font-weight:700; padding:2px 7px;
+          border-radius:99px; letter-spacing:.05em; }
+  .st-BUSTED{background:rgba(208,59,59,.2);color:#ff9a9a}
+  .st-STAYED{background:rgba(12,163,12,.2);color:#7fe07f}
+  .st-FREEZED{background:rgba(91,140,255,.2);color:#a9c2ff}
+  .st-active{background:rgba(250,178,25,.18);color:#ffd479}
+  .st-none{background:var(--panel-2);color:var(--ink-3)}
+
+  footer { display:flex; gap:14px; flex-wrap:wrap; color:var(--ink-3);
+           font-size:11px; padding:10px 2px 4px; }
+  .dot { width:7px; height:7px; border-radius:99px; display:inline-block;
+         margin-right:5px; }
+  .banner { background:rgba(250,178,25,.12); border:1px solid rgba(250,178,25,.4);
+            color:#ffd479; border-radius:9px; padding:9px 12px; margin-bottom:12px;
+            font-size:12px; }
+</style>
+
+<div class="wrap">
+  <div id="banner"></div>
+  <div class="grid top">
+    <div class="panel">
+      <h2>Your call</h2>
+      <div class="verdict">
+        <div class="call" id="call">—<small id="callsub">waiting for a table</small></div>
+        <div class="bustline">
+          <span class="bustpct" id="bustpct">—</span>
+          <span class="bustlbl">chance to bust</span>
+        </div>
+        <div class="meter"><i id="meter"></i><u id="thresh" style="left:23%"></u></div>
+        <div class="riskrow"><span id="riskword">—</span><span>optimal stay line ≈ 23%</span></div>
+      </div>
+      <div class="tiles">
+        <div class="tile"><b id="t-stay">—</b><span>stay now</span></div>
+        <div class="tile"><b id="t-ev">—</b><span>EV if hit</span></div>
+        <div class="tile"><b id="t-uniq">—</b><span>to Flip 7</span></div>
+        <div class="tile"><b id="t-safe">—</b><span>safe cards</span></div>
+        <div class="tile"><b id="t-bustn">—</b><span>bust cards</span></div>
+        <div class="tile"><b id="t-2nd">—</b><span>2nd chance</span></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Your hand <span id="whoami" style="color:var(--accent)"></span></h2>
+      <div class="cards" id="hand"><span class="empty">no cards yet</span></div>
+      <h2 style="margin-top:16px">Cards that would bust you</h2>
+      <div class="cards" id="bustcards"><span class="empty">nothing — every card is safe</span></div>
+    </div>
+  </div>
+
+  <div class="panel" style="margin-top:12px">
+    <h2>Remaining deck <span id="decksum" style="color:var(--ink-2)"></span></h2>
+    <div class="deck" id="deck"></div>
+  </div>
+
+  <div class="panel" style="margin-top:12px">
+    <h2>Table</h2>
+    <table>
+      <thead><tr><th>Player</th><th>Status</th><th>Banked</th><th>This round</th><th>Cards</th></tr></thead>
+      <tbody id="players"></tbody>
+    </table>
+  </div>
+
+  <footer>
+    <span><i class="dot" id="dot"></i><span id="conn">connecting…</span></span>
+    <span id="meta"></span>
+  </footer>
+</div>
+
+<script>
+const RISK = [[0.15,'var(--good)','low risk'],[0.25,'var(--warn)','fair risk'],
+              [0.40,'var(--serious)','high risk'],[1.01,'var(--crit)','very high risk']];
+function riskOf(p){ for (const r of RISK) if (p < r[0]) return r; return RISK[3]; }
+const pct = v => (v*100).toFixed(1) + '%';
+
+let ATLAS = {};
+// BGA cuts its spritesheet for BGA's own card size, so a sprite must be scaled
+// to whatever size we draw at -- otherwise the cell is cropped rather than fitted.
+function cardEl(sprite, label, w, h) {
+  const box = document.createElement('div');
+  box.className = 'card';
+  if (w) { box.style.width = w + 'px'; box.style.height = h + 'px'; }
+  box.title = label;
+  const a = ATLAS[sprite];
+  const nw = a && parseFloat(a.width), nh = a && parseFloat(a.height);
+  if (a && a.image && a.image !== 'none' && nw > 0 && nh > 0) {
+    const dw = w || parseFloat(getComputedStyle(box).width) || 52;
+    const dh = h || parseFloat(getComputedStyle(box).height) || 74;
+    const inner = document.createElement('div');
+    inner.style.cssText =
+      `width:${nw}px;height:${nh}px;background-image:${a.image};` +
+      `background-position:${a.position};background-size:${a.size};` +
+      `transform:scale(${dw / nw},${dh / nh});transform-origin:top left;`;
+    box.style.overflow = 'hidden';
+    box.appendChild(inner);
+  } else {
+    box.classList.add('fallback');
+    box.textContent = label;
+    box.style.background = '#39405a';
+  }
+  return box;
+}
+
+function render(s) {
+  const dot = document.getElementById('dot');
+  dot.style.background = s.live ? 'var(--good)' : 'var(--crit)';
+  document.getElementById('conn').textContent = s.status;
+  document.getElementById('banner').innerHTML = s.banner
+    ? '<div class="banner">' + s.banner + '</div>' : '';
+  document.getElementById('meta').textContent =
+    `deck ${s.deck_size} · discard ${s.discard} · round ${s.round} · `
+    + `reshuffles ${s.reshuffles} · ${s.events} events`;
+
+  const me = s.me;
+  document.getElementById('whoami').textContent = me ? '· ' + me.name : '';
+  const a = s.advice;
+  if (a) {
+    const r = riskOf(a.p_bust);
+    const call = document.getElementById('call');
+    call.firstChild.nodeValue = a.recommend;
+    call.style.color = a.recommend === 'HIT' ? 'var(--good)' : 'var(--warn)';
+    document.getElementById('callsub').textContent =
+      a.protected ? 'second chance protects you' : a.edge + ' — ' + a.margin_txt;
+    const bp = document.getElementById('bustpct');
+    bp.textContent = a.protected ? '0.0%' : pct(a.p_bust);
+    bp.style.color = a.protected ? 'var(--good)' : r[1];
+    const m = document.getElementById('meter');
+    m.style.width = Math.min(100, a.p_bust*100) + '%';
+    m.style.background = r[1];
+    document.getElementById('riskword').textContent = a.protected ? 'protected' : r[2];
+    document.getElementById('t-stay').textContent = a.stay_value;
+    document.getElementById('t-ev').textContent = a.ev_hit.toFixed(1);
+    document.getElementById('t-uniq').textContent = a.to_flip7 === 0 ? 'DONE' : a.to_flip7;
+    document.getElementById('t-safe').textContent = a.safe_cards;
+    document.getElementById('t-bustn').textContent = a.bust_cards;
+    document.getElementById('t-2nd').textContent = a.protected ? 'YES' : 'no';
+  }
+
+  const hand = document.getElementById('hand');
+  hand.innerHTML = '';
+  if (me && me.cards.length) me.cards.forEach(c => hand.appendChild(cardEl(c.sprite, c.label, 52, 74)));
+  else hand.innerHTML = '<span class="empty">no cards yet this round</span>';
+
+  const bc = document.getElementById('bustcards');
+  bc.innerHTML = '';
+  if (s.bust_list && s.bust_list.length) {
+    s.bust_list.forEach(c => {
+      const w = document.createElement('div');
+      w.style.position = 'relative';
+      w.appendChild(cardEl(c.sprite, c.label, 52, 74));
+      const b = document.createElement('span');
+      b.className = 'badge'; b.textContent = '×' + c.count;
+      w.appendChild(b); bc.appendChild(w);
+    });
+  } else bc.innerHTML = '<span class="empty">nothing — every card left is safe</span>';
+
+  const deck = document.getElementById('deck');
+  deck.innerHTML = '';
+  document.getElementById('decksum').textContent =
+    ' — ' + s.deck_size + ' cards left of 94';
+  s.deck.forEach(d => {
+    const el = document.createElement('div');
+    el.className = 'slot' + (d.bust ? ' bust' : '') + (d.left === 0 ? ' gone' : '');
+    const mini = cardEl(d.sprite, d.label, 34, 48);
+    mini.style.margin = '0 auto 4px';
+    el.appendChild(mini);
+    const n = document.createElement('div');
+    n.className = 'n'; n.innerHTML = d.left + '<s>/' + d.total + '</s>';
+    el.appendChild(n);
+    if (d.bust) { const b=document.createElement('span'); b.className='badge';
+                  b.textContent='BUST'; el.appendChild(b); }
+    deck.appendChild(el);
+  });
+
+  const tb = document.getElementById('players');
+  tb.innerHTML = '';
+  s.players.forEach(p => {
+    const tr = document.createElement('tr');
+    if (p.is_me) tr.className = 'you';
+    const st = p.status || 'none';
+    tr.innerHTML =
+      `<td class="pname">${p.name}${p.is_me ? '<i>YOU</i>' : ''}</td>` +
+      `<td><span class="pill st-${st}">${st === 'none' ? 'in play' : st}</span></td>` +
+      `<td>${p.score}</td><td>${p.round_score}</td>`;
+    const td = document.createElement('td');
+    const row = document.createElement('div'); row.className = 'cards';
+    p.cards.forEach(c => row.appendChild(cardEl(c.sprite, c.label, 34, 48)));
+    if (!p.cards.length) row.innerHTML = '<span class="empty">—</span>';
+    td.appendChild(row); tr.appendChild(td); tb.appendChild(tr);
+  });
+}
+
+async function tick() {
+  try {
+    const r = await fetch('state', {cache:'no-store'});
+    const s = await r.json();
+    if (s.atlas) ATLAS = s.atlas;
+    render(s);
+  } catch (e) {
+    document.getElementById('conn').textContent = 'tracker not responding';
+    document.getElementById('dot').style.background = 'var(--crit)';
+  }
+  setTimeout(tick, 700);
+}
+tick();
+</script>
+</html>
