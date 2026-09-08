@@ -25,26 +25,59 @@ BGA_URL = "https://boardgamearena.com/gamepanel?game=flipseven"
 # Each probe is independent JS returning a small JSON-able object. One probe
 # failing (a global that does not exist, a selector that matches nothing) must
 # never abort the run, so every one is wrapped in try/catch by _run.
+PREAMBLE = """
+// BGA's tableview page is a wrapper; the game itself lives in an iframe. Resolve
+// the real game window once, and probe THAT. Falls back to the top document so
+// the probes still work if BGA ever stops using the iframe.
+const W = (() => {
+  try { if (window.gameui) return window; } catch (e) {}
+  for (const f of document.querySelectorAll('iframe')) {
+    try { if (f.contentWindow && f.contentWindow.gameui) return f.contentWindow; } catch (e) {}
+  }
+  for (const f of document.querySelectorAll('iframe')) {   // gameui not up yet?
+    try {
+      const d = f.contentDocument;
+      if (d && (d.querySelector('#logs') || d.querySelector('[class*="f7_"]'))) return f.contentWindow;
+    } catch (e) {}
+  }
+  return null;
+})();
+const GW = W || window;
+const D = GW.document;
+"""
+
 PROBES: dict[str, str] = {
     "page": """
         return {url: location.href, title: document.title,
-                isTop: window.top === window,
-                frames: window.frames.length};
+                isTop: window.top === window, frames: window.frames.length,
+                gameWindowFound: GW !== window,
+                iframes: [...document.querySelectorAll('iframe')].map(f => {
+                    let reach = 'blocked', hasGameui = null, bodyCls = null;
+                    try { reach = f.contentDocument ? 'same-origin' : 'cross-origin';
+                          hasGameui = typeof f.contentWindow.gameui;
+                          bodyCls = f.contentDocument.body ? f.contentDocument.body.className.slice(0,80) : null;
+                    } catch (e) {}
+                    return {id: f.id, name: f.name, src: (f.src||'').slice(0,120),
+                            cls: f.className, reach, hasGameui, bodyCls};
+                })};
     """,
     "globals": """
         const names = ['gameui','dojo','dijit','ebg','bgagame','g_gamedatas',
                        'g_gamethemeurl','g_themeurl','g_archive_mode','g_replayFrom',
                        'g_gamelogs','centrifuge','centrifugeConfiguration','io'];
         const out = {};
-        for (const n of names) { try { out[n] = typeof window[n]; } catch(e) { out[n] = 'ERR'; } }
-        out['parent.gameui'] = (() => { try { return typeof window.parent.gameui; } catch(e){ return 'blocked'; } })();
+        for (const n of names) { try { out[n] = typeof GW[n]; } catch(e) { out[n] = 'ERR'; } }
+        out['top.gameui'] = (() => { try { return typeof window.gameui; } catch(e){ return 'blocked'; } })();
+        out['__resolvedFromIframe'] = GW !== window;
         return out;
     """,
     "framework": """
-        if (typeof gameui === 'undefined') return {gameui: false};
+        const gameui = GW.gameui;
+        if (!gameui) return {gameui: false};
+        const dojo = GW.dojo;
         return {
             gameui: true,
-            dojoVersion: (typeof dojo !== 'undefined' && dojo.version) ? String(dojo.version) : null,
+            dojoVersion: (dojo && dojo.version) ? String(dojo.version) : null,
             gameName: gameui.game_name || null,
             tableId: gameui.table_id || null,
             playerId: gameui.player_id || null,
@@ -60,7 +93,8 @@ PROBES: dict[str, str] = {
         };
     """,
     "gamedatas": """
-        if (typeof gameui === 'undefined' || !gameui.gamedatas) return null;
+        const gameui = GW.gameui;
+        if (!gameui || !gameui.gamedatas) return null;
         const g = gameui.gamedatas;
         const out = {keys: Object.keys(g), types: {}};
         for (const k of Object.keys(g)) {
@@ -84,9 +118,9 @@ PROBES: dict[str, str] = {
         return out;
     """,
     "logs": """
-        const el = document.querySelector('#logs');
+        const el = D.querySelector('#logs');
         if (!el) {
-            const guesses = [...document.querySelectorAll('[id*="log" i], [class*="log" i]')]
+            const guesses = [...D.querySelectorAll('[id*="log" i], [class*="log" i]')]
                 .slice(0, 12).map(e => ({tag: e.tagName, id: e.id, cls: e.className}));
             return {found: false, candidates: guesses};
         }
@@ -105,18 +139,18 @@ PROBES: dict[str, str] = {
     """,
     "sprites": """
         // Card identity is expected to live in CSS classes like sprite-c7 / sprite-sf3.
-        const all = [...document.querySelectorAll('*')];
+        const all = [...D.querySelectorAll('*')];
         const cls = {};
         for (const el of all) for (const c of el.classList)
             if (/^sprite[-_]/i.test(c) || /^f7[-_]/i.test(c)) cls[c] = (cls[c]||0)+1;
-        const flip = document.querySelectorAll('.flippable-front').length;
+        const flip = D.querySelectorAll('.flippable-front').length;
         return {
             classCounts: Object.fromEntries(Object.entries(cls).sort((a,b)=>b[1]-a[1]).slice(0,80)),
             flippableFrontCount: flip,
             sampleCardEl: (() => {
-                const e = document.querySelector('.flippable-front');
+                const e = D.querySelector('.flippable-front');
                 if (!e) return null;
-                const cs = getComputedStyle(e);
+                const cs = GW.getComputedStyle(e);
                 return {cls: e.className, html: e.outerHTML.slice(0,400),
                         bgImage: cs.backgroundImage.slice(0,120),
                         bgPosition: cs.backgroundPosition};
@@ -124,18 +158,18 @@ PROBES: dict[str, str] = {
         };
     """,
     "deck_counter": """
-        const el = document.querySelector('.f7_deck');
-        const alts = [...document.querySelectorAll('[class*="deck" i]')].slice(0,10)
+        const el = D.querySelector('.f7_deck');
+        const alts = [...D.querySelectorAll('[class*="deck" i]')].slice(0,10)
             .map(e => ({cls: e.className, text: (e.textContent||'').trim().slice(0,40)}));
         return {found: !!el, text: el ? (el.textContent||'').trim() : null,
                 html: el ? el.outerHTML.slice(0,300) : null, alternatives: alts};
     """,
     "players_area": """
-        const c = document.querySelector('.f7_players_container') ||
-                  document.querySelector('[class*="players_container" i]');
+        const c = D.querySelector('.f7_players_container') ||
+                  D.querySelector('[class*="players_container" i]');
         if (!c) return {found: false,
-            appChildren: (document.querySelector('#app')
-                ? [...document.querySelector('#app').children].map(e => e.className).slice(0,15)
+            appChildren: (D.querySelector('#app')
+                ? [...D.querySelector('#app').children].map(e => e.className).slice(0,15)
                 : null)};
         return {found: true, cls: c.className, childCount: c.children.length,
                 childClasses: [...c.children].map(e => e.className).slice(0, 12),
@@ -145,48 +179,82 @@ PROBES: dict[str, str] = {
 
 TAP_JS = r"""
 // Read-only tee on the notification stream the client already receives.
-// Records what arrives; forwards every packet untouched.
-if (!window.__flip7_tap) {
-  window.__flip7_tap = {events: [], installed: [], errors: []};
+// Records what arrives; forwards every packet untouched. Installs into the game
+// iframe as well as the wrapper, because BGA publishes through both.
+const safe = (o, d) => {
+  d = d || 0;
+  if (o === null || o === undefined) return o;
+  const t = typeof o;
+  if (t === 'string') return o.length > 400 ? o.slice(0, 400) + '\u2026' : o;
+  if (t !== 'object') return o;
+  if (d > 5) return '\u2026';
+  if (Array.isArray(o)) return o.slice(0, 40).map(x => safe(x, d + 1));
+  const out = {};
+  let n = 0;
+  for (const k in o) {
+    if (n++ > 50) { out['\u2026'] = 'truncated'; break; }
+    try { out[k] = safe(o[k], d + 1); } catch (e) {}
+  }
+  return out;
+};
+
+const install = (win, tag) => {
+  const T = window.__flip7_tap;
   try {
-    if (window.gameui && gameui.notifqueue && gameui.notifqueue.onNotification) {
-      const orig = gameui.notifqueue.onNotification.bind(gameui.notifqueue);
-      gameui.notifqueue.onNotification = function (packet) {
-        try {
-          (packet && packet.data ? packet.data : []).forEach(n =>
-            window.__flip7_tap.events.push({
-              src: 'notifqueue', type: n.type,
-              args: JSON.parse(JSON.stringify(n.args ?? null)),
+    if (win.gameui && win.gameui.notifqueue && win.gameui.notifqueue.onNotification) {
+      const nq = win.gameui.notifqueue;
+      if (!nq.__f7_tapped) {
+        const orig = nq.onNotification.bind(nq);
+        nq.onNotification = function (packet) {
+          try {
+            ((packet && packet.data) ? packet.data : []).forEach(n => T.events.push({
+              src: tag + ':notifqueue', type: n.type, args: safe(n.args),
               log: typeof n.log === 'string' ? n.log.slice(0, 300) : null,
             }));
-        } catch (e) { window.__flip7_tap.errors.push('notif: ' + e.message); }
-        return orig(packet);
-      };
-      window.__flip7_tap.installed.push('gameui.notifqueue.onNotification');
+          } catch (e) { T.errors.push('notif: ' + e.message); }
+          return orig(packet);
+        };
+        nq.__f7_tapped = 1;
+        T.installed.push(tag + ':notifqueue.onNotification');
+      }
     }
-  } catch (e) { window.__flip7_tap.errors.push('install notif: ' + e.message); }
+  } catch (e) { T.errors.push('install notif ' + tag + ': ' + e.message); }
 
   try {
-    if (window.dojo && dojo.publish) {
-      const origPub = dojo.publish;
-      dojo.publish = function (topic, args) {
+    if (win.dojo && win.dojo.publish && !win.dojo.__f7_tapped) {
+      const origPub = win.dojo.publish;
+      win.dojo.publish = function (topic, args) {
+        // THE payload we need: dojo.publish carries the notification itself as
+        // args[0], which the first version of this tap discarded.
         try {
-          window.__flip7_tap.events.push({src: 'dojo.publish', type: String(topic),
-            args: null, log: null});
-        } catch (e) {}
+          const n = (args && args[0]) || null;
+          T.events.push({
+            src: tag + ':dojo.publish', type: String(topic),
+            args: safe(n && n.args !== undefined ? n.args : n),
+            log: (n && typeof n.log === 'string') ? n.log.slice(0, 300) : null,
+          });
+        } catch (e) { T.errors.push('pub: ' + e.message); }
         return origPub.apply(this, arguments);
       };
-      window.__flip7_tap.installed.push('dojo.publish');
+      win.dojo.__f7_tapped = 1;
+      T.installed.push(tag + ':dojo.publish');
     }
-  } catch (e) { window.__flip7_tap.errors.push('install publish: ' + e.message); }
+  } catch (e) { T.errors.push('install publish ' + tag + ': ' + e.message); }
+};
+
+if (!window.__flip7_tap) window.__flip7_tap = {events: [], installed: [], errors: []};
+install(window, 'top');
+for (const f of document.querySelectorAll('iframe')) {
+  try { if (f.contentWindow) install(f.contentWindow, 'iframe'); }
+  catch (e) { window.__flip7_tap.errors.push('iframe unreachable: ' + e.message); }
 }
 return {installed: window.__flip7_tap.installed, errors: window.__flip7_tap.errors};
 """
 
 
-def _run(page: cdp.Page, name: str, js: str):
+def _run(page: cdp.Page, name: str, js: str, context_id: int | None = None):
     try:
-        return page.evaluate(js)
+        return page.evaluate(PREAMBLE + js, context_id=context_id)
     except Exception as exc:  # a dead probe must not kill the report
         return {"__probe_error__": str(exc)[:300]}
 
@@ -227,14 +295,28 @@ def main() -> None:
         print(f"\nERROR: {exc}")
         sys.exit(1)
 
-    report: dict = {"probes": {}}
+    # The game runs in an iframe on BGA's tableview page, so address its context
+    # directly rather than reaching through the parent (which cross-origin blocks).
+    print("  locating the game frame ...", end=" ", flush=True)
+    page.discover_contexts()
+    ctx = page.find_context()
+    ctx_id = ctx["id"] if ctx else None
+    print(f"found in {ctx.get('origin') or ctx.get('name') or 'context'}" if ctx
+          else "NOT FOUND (probing top document instead)")
+
+    report: dict = {"probes": {},
+                    "contexts": [{k: c.get(k) for k in ("id", "origin", "name")}
+                                 for c in page.contexts],
+                    "gameContextId": ctx_id}
     for name, js in PROBES.items():
         print(f"  probing {name} ...", end=" ", flush=True)
-        report["probes"][name] = _run(page, name, js)
+        report["probes"][name] = _run(page, name, js, ctx_id)
         print("ok")
 
     print("  installing notification tap ...", end=" ", flush=True)
-    report["tap_install"] = _run(page, "tap", TAP_JS)
+    report["tap_install"] = _run(page, "tap", TAP_JS, ctx_id)
+    if ctx_id is not None:  # also tap the wrapper: BGA publishes through both
+        report["tap_install_top"] = _run(page, "tap", TAP_JS, None)
     print("ok")
 
     if args.capture:
@@ -248,13 +330,16 @@ def main() -> None:
             const t = window.__flip7_tap || {events: [], errors: []};
             const byType = {};
             for (const e of t.events) byType[e.src + ':' + e.type] = (byType[e.src+':'+e.type]||0)+1;
+            const interesting = t.events.filter(e =>
+                /moveTokens|card|deck|shuffle|round|bust|stay|freeze|flip|score|player/i.test(e.type));
             return {count: t.events.length, byType, errors: t.errors,
-                    events: t.events.filter(e => e.src === 'notifqueue').slice(0, 400)};
+                    events: interesting.slice(0, 300),
+                    otherSample: t.events.filter(e => !interesting.includes(e)).slice(0, 40)};
         """)
         # Re-probe now that cards are on the table: the empty-board snapshot above
         # tells us far less than one taken mid-round.
         for name in ("gamedatas", "logs", "sprites", "deck_counter", "players_area"):
-            report["probes"][name + "_after"] = _run(page, name, PROBES[name])
+            report["probes"][name + "_after"] = _run(page, name, PROBES[name], ctx_id)
 
     page.close()
 

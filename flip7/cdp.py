@@ -131,6 +131,9 @@ class Page:
                                               suppress_origin=True,
                                               max_size=64 * 1024 * 1024)
         self._id = 0
+        self._timeout = timeout
+        self.contexts: list[dict] = []
+        self._events: list[dict] = []
 
     @classmethod
     def attach(cls, match: str, port: int = DEFAULT_PORT) -> "Page":
@@ -140,23 +143,82 @@ class Page:
         self._id += 1
         self.ws.send(json.dumps({"id": self._id, "method": method,
                                  "params": params or {}}))
-        while True:  # skip unsolicited events until our reply arrives
+        while True:
             msg = json.loads(self.ws.recv())
+            if "method" in msg:
+                # Buffer, never discard: executionContextCreated events arrive
+                # BEFORE the Runtime.enable reply, and dropping them here was
+                # why context discovery came back empty.
+                self._events.append(msg)
+                continue
             if msg.get("id") == self._id:
                 if "error" in msg:
                     raise CDPError(f"{method}: {msg['error'].get('message')}")
                 return msg.get("result", {})
 
-    def evaluate(self, expression: str):
+    def discover_contexts(self, settle: float = 1.2) -> list[dict]:
+        """List every JS execution context, main page and iframes alike.
+
+        Reaching into an iframe from the parent breaks the moment the frame is
+        cross-origin. Evaluating directly in the frame's own context does not,
+        so this is how the game frame gets addressed regardless of origin.
+        """
+        self.contexts = []
+        self._events = []
+        self.send("Page.enable")
+        self.send("Runtime.enable")
+        self.ws.settimeout(0.25)
+        deadline = time.time() + settle
+        try:
+            while time.time() < deadline:
+                try:
+                    self._events.append(json.loads(self.ws.recv()))
+                except Exception:
+                    continue
+        finally:
+            self.ws.settimeout(self._timeout)
+        seen = set()
+        for msg in self._events:
+            if msg.get("method") == "Runtime.executionContextCreated":
+                ctx = msg["params"]["context"]
+                if ctx["id"] not in seen:
+                    seen.add(ctx["id"])
+                    self.contexts.append(ctx)
+        return self.contexts
+
+    def find_context(self, probe: str = "typeof window.gameui !== 'undefined'",
+                     wait: float = 20.0):
+        """The context where `probe` is true -- i.e. where the game actually lives.
+
+        Polls, because the game frame boots asynchronously: checking once can
+        easily run before the frame's own scripts have defined anything.
+        """
+        deadline = time.time() + wait
+        while True:
+            if not self.contexts:
+                self.discover_contexts()
+            for ctx in self.contexts:
+                try:
+                    if self.evaluate(f"return !!({probe})", context_id=ctx["id"]):
+                        return ctx
+                except CDPError:
+                    continue
+            if time.time() >= deadline:
+                return None
+            time.sleep(1.0)
+            self.contexts = []  # re-enumerate: frames may have appeared since
+
+    def evaluate(self, expression: str, context_id: int | None = None):
         """Run JS in the page and return the value, JSON round-tripped.
 
         Wrapped in an IIFE returning JSON text: returnByValue chokes on DOM
         nodes and cyclic objects, and stringifying in-page sidesteps both.
         """
         wrapped = f"JSON.stringify((() => {{ {expression} }})())"
-        result = self.send("Runtime.evaluate", {
-            "expression": wrapped, "returnByValue": True, "awaitPromise": True,
-        })
+        params = {"expression": wrapped, "returnByValue": True, "awaitPromise": True}
+        if context_id is not None:
+            params["contextId"] = context_id
+        result = self.send("Runtime.evaluate", params)
         if result.get("exceptionDetails"):
             exc = result["exceptionDetails"]
             raise CDPError(exc.get("exception", {}).get("description") or exc.get("text"))
