@@ -89,18 +89,24 @@ def _debugger_alive(port: int) -> bool:
 
 
 def open_tab(url: str, port: int = DEFAULT_PORT) -> dict | None:
-    """Open a new tab in the already-running Chrome, if it isn't open already."""
+    """Open a new tab in the already-running Chrome, if it isn't open already.
+
+    Chrome has moved this endpoint between verbs across versions -- newer
+    builds require PUT, older ones only answer GET -- so try both rather than
+    silently failing and leaving the user with no window.
+    """
+    target = f"http://127.0.0.1:{port}/json/new?{urllib.parse.quote(url, safe='')}"
     for t in list_targets(port):
         if t.get("url", "").startswith(url.split("?")[0]):
             return t
-    req = urllib.request.Request(
-        f"http://127.0.0.1:{port}/json/new?{urllib.parse.quote(url, safe='')}",
-        method="PUT")
-    try:
-        with urllib.request.urlopen(req, timeout=5) as fh:
-            return json.load(fh)
-    except urllib.error.HTTPError:
-        return None  # older Chrome wants GET; the tab may still have opened
+    for method in ("PUT", "GET"):
+        try:
+            req = urllib.request.Request(target, method=method)
+            with urllib.request.urlopen(req, timeout=5) as fh:
+                return json.load(fh)
+        except Exception:
+            continue
+    return None
 
 
 def list_targets(port: int = DEFAULT_PORT) -> list[dict]:

@@ -153,6 +153,8 @@ def main() -> None:
     ap.add_argument("--interval", type=float, default=0.5, help="poll seconds")
     ap.add_argument("--diagnose", action="store_true",
                     help="report what tabs and frames the tool can see, then exit")
+    ap.add_argument("--no-browser", action="store_true",
+                    help="don't try to open the UI automatically")
     ap.add_argument("--dump", action="store_true",
                     help="dump what the tracker currently believes, then exit")
     args = ap.parse_args()
@@ -181,13 +183,27 @@ def main() -> None:
     httpd = _Server(("127.0.0.1", args.port), Handler)
     threading.Thread(target=httpd.serve_forever, daemon=True).start()
     url = f"http://127.0.0.1:{args.port}/"
-    print(f"\nTracker UI: {url}")
-    print("Open that in any window and put it beside the game. Ctrl-C to stop.\n")
-
+    opened = None
     try:
-        cdp.open_tab(url, args.cdp_port)
+        opened = cdp.open_tab(url, args.cdp_port)
     except Exception:
-        pass
+        opened = None
+    if not args.no_browser and not opened:
+        # Chrome would not open it for us; the OS default browser will do.
+        try:
+            import webbrowser
+            opened = webbrowser.open(url)
+        except Exception:
+            opened = None
+
+    print("\n" + "=" * 66)
+    if opened:
+        print(f" Tracker UI opened: {url}")
+    else:
+        print(f" >>> OPEN THIS IN YOUR BROWSER:  {url}")
+        print(" (it could not be opened automatically -- copy the address above)")
+    print(" Put it beside the game. Ctrl-C here to stop.")
+    print("=" * 66 + "\n")
 
     last, last_said, dumped = None, 0.0, False
     try:
