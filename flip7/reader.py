@@ -135,6 +135,41 @@ class Reader:
             out.append((t.get("title") or u or "?")[:44])
         return out or ["none"]
 
+    def dump(self) -> str:
+        """One poll, then everything the tracker believes -- for diagnosing drift."""
+        from collections import Counter
+        lines = []
+        if not self.connect():
+            return "not connected: " + self.status
+        self.setup()
+        raw = self._eval(STATE_JS)
+        if raw is None:
+            return "gamedatas unreadable in the game frame"
+        cards = (raw.get("board") or {}).get("cards") or []
+        lines.append(f"gamedatas.board.cards      : {len(cards)} entries")
+        lines.append(f"  by location              : "
+                     f"{dict(Counter(c.get('location') for c in cards))}")
+        lines.append(f"  with a known materialId  : "
+                     f"{sum(1 for c in cards if c.get('materialId') is not None)}")
+        lines.append(f"  deck counter on screen   : {raw.get('deckShown')}")
+        lines.append(f"  sample                   : {cards[:2]}")
+        self.table.sync(raw)
+        t = self.table
+        lines.append(f"\ntracker view")
+        lines.append(f"  identities learned       : {len(t.identity)} / 94")
+        lines.append(f"  deck_size()              : {t.deck_size()}")
+        lines.append(f"  remaining() total        : {sum(t.remaining().values())}")
+        lines.append(f"  me                       : {t.me} "
+                     f"({t.players[t.me].name if t.me in t.players else '??'})")
+        rem = t.remaining()
+        from .deck import CARDS, COUNTS
+        left = " ".join(f"{CARDS[m].label}:{rem.get(m,0)}/{COUNTS[m]}" for m in sorted(CARDS))
+        lines.append(f"  remaining by card        : {left}")
+        for no, p in sorted(t.players.items()):
+            lines.append(f"    seat {no} {p.name:16} {str(p.status):8} "
+                         f"{[c.label for c in t.hand(no)]}")
+        return "\n".join(lines)
+
     def diagnose(self) -> str:
         """Human-readable dump of what the tool can actually see."""
         lines = []

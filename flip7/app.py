@@ -153,6 +153,8 @@ def main() -> None:
     ap.add_argument("--interval", type=float, default=0.5, help="poll seconds")
     ap.add_argument("--diagnose", action="store_true",
                     help="report what tabs and frames the tool can see, then exit")
+    ap.add_argument("--dump", action="store_true",
+                    help="dump what the tracker currently believes, then exit")
     args = ap.parse_args()
 
     print("=" * 66)
@@ -171,6 +173,9 @@ def main() -> None:
     reader = Reader(args.cdp_port, "boardgamearena", args.player)
     if args.diagnose:
         print("\n" + reader.diagnose() + "\n")
+        raise SystemExit(0)
+    if args.dump:
+        print("\n" + reader.dump() + "\n")
         raise SystemExit(0)
     Handler.reader = reader
     httpd = _Server(("127.0.0.1", args.port), Handler)
@@ -198,7 +203,9 @@ def main() -> None:
             if n:
                 t = reader.table
                 who = t.players[t.me].name if t.me in t.players else "?"
-                print(f"  +{n:3d} events · deck {t.deck_size():2d} · you: {who}")
+                print(f"  +{n:3d} ev · deck {t.deck_size():2d} · known {len(t.identity):2d}/94"
+                      f" · discard {sum(1 for l in t.location.values() if l == 'deck2'):2d}"
+                      f" · you: {who}")
             time.sleep(args.interval)
     except KeyboardInterrupt:
         print("\nstopped")

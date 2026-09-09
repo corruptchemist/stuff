@@ -268,3 +268,73 @@ def test_no_hit_stay_call_once_your_round_is_over():
         s = snapshot(FakeReader(t))
         assert s["advice"]["over"] is True, status
         assert s["advice"]["status"] == status
+
+
+# -- deck exhaustion and reshuffle --------------------------------------------
+
+def _snapshot(locations, identities):
+    """Build a gamedatas-shaped snapshot: {card id: location}."""
+    return {"players": {"7": {"id": "7", "no": "1", "name": "Me"},
+                        "8": {"id": "8", "no": "2", "name": "Them"}},
+            "board": {"cards": [
+                {"id": cid, "materialId": (str(identities[cid])
+                                           if loc != "deck" and cid in identities else None),
+                 "location": loc,
+                 "locationId": ("1" if loc == "player" and int(cid) % 2 else
+                                "2" if loc == "player" else None)}
+                for cid, loc in locations.items()]}}
+
+
+def test_reshuffled_deck_excludes_cards_still_in_hands():
+    """The rule: the deck is rebuilt from the DISCARD only. Hands stay out."""
+    ids = [str(i) for i in range(1, 95)]
+    identities = {}
+    mids = []
+    for mid, n in COUNTS.items():
+        mids += [mid] * n
+    for cid, mid in zip(ids, mids):
+        identities[cid] = mid
+
+    # Whole deck has been drawn: 20 cards sit in hands, 74 in the discard.
+    in_hand = ids[:20]
+    discarded = ids[20:]
+    loc = {c: ("player" if c in in_hand else "deck2") for c in ids}
+    t = Table()
+    t.sync(_snapshot(loc, identities))
+    assert t.deck_size() == 0
+    assert sum(t.remaining().values()) == 0
+
+    # Deck runs out: the discard is shuffled under, hands are untouched.
+    loc = {c: ("player" if c in in_hand else "deck") for c in ids}
+    t.sync(_snapshot(loc, identities))
+
+    assert t.deck_size() == 74
+    rem = t.remaining()
+    assert sum(rem.values()) == 74, "new deck must be exactly the old discard"
+
+    # And it is the RIGHT 74: the full deck minus what people are holding.
+    held = Counter(identities[c] for c in in_hand)
+    expected = Counter(COUNTS)
+    expected.subtract(held)
+    assert rem == +expected, "cards in hands must not reappear in the deck"
+
+    # Nothing anyone is holding can be drawn again.
+    for mid, n in held.items():
+        assert rem[mid] == COUNTS[mid] - n, f"material {mid} miscounted"
+
+
+def test_identities_are_not_forgotten_when_cards_go_back_under():
+    """After a reshuffle the deck is face-down again, but we know what is in it."""
+    ids = [str(i) for i in range(1, 95)]
+    identities = {}
+    mids = []
+    for mid, n in COUNTS.items():
+        mids += [mid] * n
+    for cid, mid in zip(ids, mids):
+        identities[cid] = mid
+    t = Table()
+    t.sync(_snapshot({c: "deck2" for c in ids}, identities))
+    assert len(t.identity) == 94
+    t.sync(_snapshot({c: "deck" for c in ids}, identities))   # all materialIds now null
+    assert len(t.identity) == 94, "a reshuffle must not erase what we saw"
+    assert sum(t.remaining().values()) == 94
