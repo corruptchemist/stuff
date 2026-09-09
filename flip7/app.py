@@ -151,6 +151,8 @@ def main() -> None:
     ap.add_argument("--no-launch", action="store_true",
                     help="attach to a Chrome already started with remote debugging")
     ap.add_argument("--interval", type=float, default=0.5, help="poll seconds")
+    ap.add_argument("--diagnose", action="store_true",
+                    help="report what tabs and frames the tool can see, then exit")
     args = ap.parse_args()
 
     print("=" * 66)
@@ -166,7 +168,10 @@ def main() -> None:
             raise SystemExit(1)
         print("Log into BGA in that window if needed, then open a Flip 7 table.")
 
-    reader = Reader(args.cdp_port, "flipseven", args.player)
+    reader = Reader(args.cdp_port, "boardgamearena", args.player)
+    if args.diagnose:
+        print("\n" + reader.diagnose() + "\n")
+        raise SystemExit(0)
     Handler.reader = reader
     httpd = _Server(("127.0.0.1", args.port), Handler)
     threading.Thread(target=httpd.serve_forever, daemon=True).start()
@@ -179,13 +184,17 @@ def main() -> None:
     except Exception:
         pass
 
-    last = None
+    last, last_said = None, 0.0
     try:
         while True:
             n = reader.poll()
-            if reader.status != last:
-                print(f"  [{time.strftime('%H:%M:%S')}] {reader.status}")
-                last = reader.status
+            # Repeat an unchanged status occasionally: silence for minutes on end
+            # is indistinguishable from the tool having hung.
+            now = time.monotonic()
+            if reader.status != last or now - last_said > 20:
+                suffix = "" if reader.status != last else "  (still waiting)"
+                print(f"  [{time.strftime('%H:%M:%S')}] {reader.status}{suffix}")
+                last, last_said = reader.status, now
             if n:
                 t = reader.table
                 who = t.players[t.me].name if t.me in t.players else "?"

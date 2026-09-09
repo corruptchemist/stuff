@@ -71,7 +71,7 @@ return {events: taken, installed: t.installed, errors: t.errors.splice(0)};
 class Reader:
     """Keeps a Table synchronised with a live table page."""
 
-    def __init__(self, port: int = cdp.DEFAULT_PORT, match: str = "flipseven",
+    def __init__(self, port: int = cdp.DEFAULT_PORT, match: str = "boardgamearena",
                  player_name: str | None = None):
         self.port, self.match = port, match
         self.player_name = player_name
@@ -88,23 +88,78 @@ class Reader:
 
     # -- connection ----------------------------------------------------------
 
-    def connect(self) -> bool:
+    def connect(self, wait: float = 2.0) -> bool:
+        """Find the tab, then the frame inside it that is actually running the game."""
         try:
-            self.page = cdp.Page.attach(self.match, self.port)
-            self.page.discover_contexts()
-            ctx = self.page.find_context(wait=8.0)
-            if ctx is None:
-                self.status = "no Flip 7 table found — open one in the bot's Chrome"
-                self.connected = False
-                return False
-            self.ctx = ctx["id"]
-            self.connected = True
-            self.status = "connected"
-            return True
-        except cdp.CDPError as exc:
-            self.status = str(exc)[:120]
+            tabs = cdp.list_targets(self.port)
+        except Exception as exc:
+            self.status = f"Chrome not reachable on port {self.port}: {str(exc)[:60]}"
             self.connected = False
             return False
+
+        # BGA's browser tab is .../tableview?table=..., and only the inner frame's
+        # URL says "flipseven" -- so match the site, then look for the game inside.
+        game_tabs = [t for t in tabs
+                     if self.match.lower() in (t.get("url", "") + t.get("title", "")).lower()]
+        if not game_tabs:
+            self.status = ("no Board Game Arena tab open in the bot's Chrome"
+                           + (f" (saw: {', '.join(self._tab_names(tabs))})" if tabs else ""))
+            self.connected = False
+            return False
+
+        for tab in game_tabs:
+            try:
+                page = cdp.Page(tab["webSocketDebuggerUrl"])
+                page.discover_contexts()
+                ctx = page.find_context(wait=wait)
+                if ctx is not None:
+                    self.page, self.ctx = page, ctx["id"]
+                    self.connected = True
+                    self.status = "connected"
+                    return True
+                page.close()
+            except cdp.CDPError:
+                continue
+
+        self.status = ("BGA is open but no game is running yet — "
+                       "start or join a Flip 7 table and wait for it to load "
+                       f"(tab: {self._tab_names(game_tabs)[0]})")
+        self.connected = False
+        return False
+
+    @staticmethod
+    def _tab_names(tabs) -> list[str]:
+        out = []
+        for t in tabs:
+            u = (t.get("url") or "").split("?")[0]
+            out.append((t.get("title") or u or "?")[:44])
+        return out or ["none"]
+
+    def diagnose(self) -> str:
+        """Human-readable dump of what the tool can actually see."""
+        lines = []
+        try:
+            tabs = cdp.list_targets(self.port)
+        except Exception as exc:
+            return f"Chrome not reachable on port {self.port}: {exc}"
+        lines.append(f"{len(tabs)} tab(s) open in the bot's Chrome:")
+        for t in tabs:
+            lines.append(f"   - {(t.get('title') or '')[:60]}")
+            lines.append(f"     {(t.get('url') or '')[:100]}")
+            try:
+                pg = cdp.Page(t["webSocketDebuggerUrl"])
+                ctxs = pg.discover_contexts()
+                for c in ctxs:
+                    try:
+                        has = pg.evaluate("return typeof window.gameui", context_id=c["id"])
+                        href = pg.evaluate("return location.href", context_id=c["id"])
+                    except cdp.CDPError:
+                        has, href = "?", "?"
+                    lines.append(f"       ctx {c['id']}: gameui={has}  {str(href)[:78]}")
+                pg.close()
+            except Exception as exc:
+                lines.append(f"       (could not inspect: {str(exc)[:60]})")
+        return "\n".join(lines)
 
     def _eval(self, js: str):
         return self.page.evaluate(PREAMBLE + js, context_id=self.ctx)
