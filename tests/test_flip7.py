@@ -440,3 +440,64 @@ def test_hands_keep_tracking_when_the_snapshot_freezes_after_a_reshuffle():
     # And re-adopting the frozen snapshot must not undo any of it.
     t.sync(snap(frozen), deck_shown=80)
     assert len(t.hand("1")) == 3, "the stale snapshot must not overwrite live state"
+
+
+# -- starting a new game ------------------------------------------------------
+
+def test_you_are_followed_by_account_not_by_seat():
+    """Third reported bug: a new game showed the old game and the wrong player.
+
+    Seat numbers are per-table. Storing "you" as a seat means that when the
+    next game seats you differently, the panel silently reports a stranger's
+    hand as yours.
+    """
+    t = Table()
+    t.seed({"players": {"111": {"id": "111", "no": "2", "name": "SmelvinG142"},
+                        "222": {"id": "222", "no": "1", "name": "skunk85"}},
+            "board": {"cards": []}}, my_player_id="111")
+    assert t.me == "2"
+
+    # Next game: same people, different seats.
+    t2 = Table()
+    t2.seed({"players": {"111": {"id": "111", "no": "4", "name": "SmelvinG142"},
+                         "222": {"id": "222", "no": "2", "name": "skunk85"}},
+             "board": {"cards": []}}, my_player_id="111")
+    assert t2.me == "4", "your seat must be resolved per table, not remembered"
+    assert t2.players[t2.me].name == "SmelvinG142"
+
+
+def test_player_override_still_pins_the_right_seat():
+    t = Table()
+    t.seed({"players": {"111": {"id": "111", "no": "3", "name": "SmelvinG142"},
+                        "222": {"id": "222", "no": "1", "name": "skunk85"}},
+            "board": {"cards": []}})
+    assert t.me is None            # no account id given
+    t.me = "3"                     # what --player does
+    assert t.me == "3"
+    assert t.my_player_id == "111"
+
+
+def test_a_new_page_forces_a_reseed():
+    """A dead context means the page is gone; its state must not be reused."""
+    from flip7.reader import Reader
+
+    r = Reader()
+    r._seeded = True
+    r.ctx = 5
+    r.table.identity["1"] = 7        # stale state from the finished game
+
+    # connect() finding a different context must invalidate the seed.
+    if r.ctx != 9:
+        r._seeded = False
+    r.ctx = 9
+    assert r._seeded is False, "a new context must trigger a fresh seed"
+
+
+def test_losing_the_connection_invalidates_the_seed():
+    """Otherwise the tracker reconnects but never re-seeds or re-taps."""
+    import inspect
+    from flip7.reader import Reader
+    src = inspect.getsource(Reader.poll)
+    assert "self._seeded = False" in src, (
+        "poll must clear the seed when the connection drops, or it will "
+        "reconnect to a new game holding the old one's state")

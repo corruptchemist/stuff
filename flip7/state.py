@@ -52,7 +52,7 @@ class Table:
         self.location_id: dict[str, str] = {}       # card id -> whose, if a player
         self.players: dict[str, Player] = {}        # player "no" -> Player
         self.by_id: dict[str, Player] = {}          # BGA player id -> Player
-        self.me: str | None = None                  # my player "no"
+        self.my_player_id: str | None = None         # BGA account id -- stable
         self.rounds_seen = 0
         self.reshuffles = 0
         self.events = 0
@@ -70,9 +70,22 @@ class Table:
 
     def seed(self, gamedatas: dict, my_player_id: str | None = None) -> None:
         """Seed from gameui.gamedatas, and remember who we are."""
+        if my_player_id is not None:
+            self.my_player_id = str(my_player_id)
         self.sync(gamedatas)
-        if my_player_id is not None and str(my_player_id) in self.by_id:
-            self.me = self.by_id[str(my_player_id)].no
+
+    @property
+    def me(self) -> str | None:
+        """My seat at THIS table, resolved fresh from my account id."""
+        if self.my_player_id and self.my_player_id in self.by_id:
+            return self.by_id[self.my_player_id].no
+        return None
+
+    @me.setter
+    def me(self, no: str | None) -> None:
+        """Set by seat, for an explicit --player override."""
+        if no is not None and no in self.players:
+            self.my_player_id = self.players[no].player_id or None
 
     def sync(self, gamedatas: dict, deck_shown: int | None = None) -> None:
         """Adopt a gamedatas snapshot -- but only while it still reflects reality.

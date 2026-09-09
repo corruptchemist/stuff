@@ -113,6 +113,12 @@ class Reader:
                 page.discover_contexts()
                 ctx = page.find_context(wait=wait)
                 if ctx is not None:
+                    # A new context means a new page: a new table, a reload, or
+                    # simply the next game. Everything must be learned again --
+                    # keeping the old table shows the finished game's cards and,
+                    # because seats are per-table, points "you" at a stranger.
+                    if self.ctx != ctx["id"]:
+                        self._seeded = False
                     self.page, self.ctx = page, ctx["id"]
                     self.connected = True
                     self.status = "connected"
@@ -212,9 +218,10 @@ class Reader:
         """Seed state, grab the card art, and install the tap."""
         seed = self._eval(SEED_JS)
         if seed:
+            # A different table is a different game: never carry state across.
             self.table = Table()
-            self.table.seed(seed, seed.get("playerId"))
             self.table_id = seed.get("tableId")
+            self.table.seed(seed, seed.get("playerId"))
             if self.player_name:  # explicit override wins over auto-detect
                 for p in self.table.players.values():
                     if p.name.lower() == self.player_name.lower():
@@ -267,6 +274,7 @@ class Reader:
             return len(used)
         except cdp.CDPError as exc:
             self.connected = False
+            self._seeded = False   # whatever we had belongs to a page that is gone
             self.status = f"lost connection: {str(exc)[:80]}"
             return 0
 
