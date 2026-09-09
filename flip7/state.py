@@ -63,6 +63,7 @@ class Table:
         self.discarded: set[str] = set()
         self.deck_shown: int | None = None
         self._prev_shown: int | None = None
+        self.snapshot_fresh = True
         self._last_seen: dict[str, str] = {}
 
     # -- ingest --------------------------------------------------------------
@@ -74,32 +75,58 @@ class Table:
             self.me = self.by_id[str(my_player_id)].no
 
     def sync(self, gamedatas: dict, deck_shown: int | None = None) -> None:
-        """Adopt a gamedatas snapshot wholesale as the authoritative state.
+        """Adopt a gamedatas snapshot -- but only while it still reflects reality.
 
-        BGA keeps `board.cards` current for this game, so re-reading it each
-        tick beats accumulating notifications: nothing can drift, a missed or
-        duplicated event cannot corrupt the count, and a round boundary or a
-        reshuffle needs no special handling -- the tableau simply empties.
+        BGA keeps board.cards current right up until the deck is first
+        reshuffled, and then the whole array freezes: cards stay filed under
+        the discard for the rest of the game, hands stop changing, nothing
+        moves. Adopting a frozen snapshot wipes out the live state built from
+        events, which is why hands vanished after a reshuffle while player
+        status -- carried by events -- kept working.
 
-        Identities are never unlearned. A card returning to the deck has its
-        materialId hidden again, but we already saw it, and remembering that is
-        exactly what makes the count exact after a reshuffle.
+        So the snapshot is checked against the counter the game itself shows.
+        While they agree it is adopted; once they diverge it is ignored and the
+        event stream carries the game. The first snapshot is always adopted, as
+        it is the only way to learn the position when attaching mid-game.
         """
         cards = (gamedatas.get("board") or {}).get("cards") or []
-        if cards:
-            self.location.clear()
-            self.location_id.clear()
 
-        # The on-screen counter is the only honest report of the draw pile: it
-        # is what the game itself shows the player. A rise in it can only mean
-        # the discard has been shuffled back under, so the discard we have been
-        # accumulating is now in the deck again and the count starts over.
+        # The on-screen counter is the only honest report of the draw pile. A
+        # rise in it can only mean the discard has been shuffled back under, so
+        # what we had accumulated as discarded is in the deck again.
         if isinstance(deck_shown, int) and deck_shown >= 0:
             if self._prev_shown is not None and deck_shown > self._prev_shown:
                 self.discarded.clear()
                 self.reshuffles += 1
             self._prev_shown = deck_shown
             self.deck_shown = deck_shown
+
+        deck_in_snapshot = sum(1 for c in cards
+                               if (c.get("location") or DECK) == DECK)
+        self.snapshot_fresh = (
+            not cards or deck_shown is None
+            or abs(deck_in_snapshot - deck_shown) <= 1)
+        first_time = not self.location
+        usable = self.snapshot_fresh or first_time
+
+        # Players come through even when the card array is empty or frozen:
+        # it is how seats and names are learned, and losing them would leave
+        # the panel unable to say which seat is yours.
+        if usable:
+            for pid, info in (gamedatas.get("players") or {}).items():
+                p = self._player(str(info.get("no")), str(pid), info.get("name", ""))
+                if "status" in info:
+                    p.status = info.get("status")
+                try:
+                    p.score = int(info.get("score") or 0)
+                except (TypeError, ValueError):
+                    pass
+
+        if not cards or not usable:
+            return  # frozen snapshot: keep the position the events have built
+
+        self.location.clear()
+        self.location_id.clear()
         for c in cards:
             cid = str(c["id"])
             self.location[cid] = c.get("location") or DECK
@@ -108,21 +135,9 @@ class Table:
             if c.get("location") == PLAYER and c.get("locationId") is not None:
                 self.location_id[cid] = str(c["locationId"])
 
-        # Until the first reshuffle gamedatas tracks the discard accurately, so
-        # rebuild from it; afterwards it goes stale on this point and the event
-        # stream carries the discard instead.
-        if cards and not self.reshuffles:
+        if not self.reshuffles:
             self.discarded = {cid for cid, loc in self.location.items()
                               if loc == DISCARD}
-
-        for pid, info in (gamedatas.get("players") or {}).items():
-            p = self._player(str(info.get("no")), str(pid), info.get("name", ""))
-            if "status" in info:
-                p.status = info.get("status")
-            try:
-                p.score = int(info.get("score") or 0)
-            except (TypeError, ValueError):
-                pass
         self._rebuild_hands()
 
     def _player(self, no: str, pid: str = "", name: str = "") -> Player:
@@ -153,7 +168,6 @@ class Table:
             cid, loc = str(t.get("id")), t.get("location")
             if t.get("materialId") is not None:
                 self.identity[cid] = int(t["materialId"])
-            prev = self.location.get(cid)
             self.location[cid] = loc
             if loc == DISCARD:
                 self.discarded.add(cid)
@@ -163,33 +177,9 @@ class Table:
                 self.location_id[cid] = str(t["locationId"])
             elif loc != PLAYER:
                 self.location_id.pop(cid, None)
-            # Discard -> deck is the reshuffle: the pile goes back under.
-            if prev == DISCARD and loc == DECK:
-                self.reshuffles += 1
         if bulk_discard:
             self.rounds_seen += 1
         self._rebuild_hands()
-
-    def note_transitions(self, args: dict) -> None:
-        """Count round ends and reshuffles from a moveTokens event.
-
-        The snapshot shows where every card *is*, never how it got there, so
-        these two transitions are read from the event stream instead: a whole
-        tableau sweeping to the discard at once is a round ending, and a card
-        coming back out of the discard is the pile being shuffled under.
-        """
-        tokens = args.get("tokens") or []
-        self.events += 1
-        if len(tokens) > 1 and all(t.get("location") == DISCARD for t in tokens):
-            self.rounds_seen += 1
-        for t in tokens:
-            cid = str(t.get("id"))
-            loc = t.get("location")
-            if loc == DISCARD:
-                self.discarded.add(cid)
-            elif loc in (DECK, PLAYER, WAIT):
-                self.discarded.discard(cid)   # drawn again, or shuffled back under
-            self._last_seen[cid] = loc
 
     def _update_players(self, args: dict) -> None:
         for pid, info in (args.get("players") or {}).items():

@@ -390,3 +390,53 @@ def test_deck_recovers_when_bga_leaves_cards_marked_as_discard():
         {"id": drawn, "materialId": str(identities[drawn]),
          "location": "player", "locationId": "1"}]})
     assert t.remaining()[identities[drawn]] == expected[identities[drawn]] - 1
+
+
+def test_hands_keep_tracking_when_the_snapshot_freezes_after_a_reshuffle():
+    """Second reported bug, from a real game log.
+
+    After BGA's first reshuffle the whole gamedatas card array stops updating,
+    not just the deck field -- the discard count sat frozen at 85 for the rest
+    of the game. Re-adopting that frozen snapshot every tick wiped the live
+    position, so hands vanished while player status, carried by events, kept
+    working. The snapshot must be ignored once it stops matching the counter.
+    """
+    ids = [str(i) for i in range(1, 95)]
+    mids = []
+    for mid, n in COUNTS.items():
+        mids += [mid] * n
+    identities = dict(zip(ids, mids))
+
+    def snap(loc_map):
+        return {"players": {"7": {"id": "7", "no": "1", "name": "Me"}},
+                "board": {"cards": [
+                    {"id": c, "materialId": (str(identities[c]) if l != "deck" else None),
+                     "location": l, "locationId": ("1" if l == "player" else None)}
+                    for c, l in loc_map.items()]}}
+
+    frozen = {c: ("player" if c in ids[:9] else "deck2") for c in ids}
+    t = Table()
+    t.sync(snap(frozen), deck_shown=0)
+    t.me = "1"
+    assert len(t.hand("1")) == 9
+
+    # Reshuffle: the counter jumps, gamedatas stays frozen from here on.
+    t.sync(snap(frozen), deck_shown=85)
+    assert t.snapshot_fresh is False, "a frozen snapshot must be recognised"
+
+    # Round ends. Only the event stream reports it.
+    t.handle("moveTokens", {"tokens": [
+        {"id": c, "materialId": str(identities[c]), "location": "deck2"}
+        for c in ids[:9]]})
+    assert t.hand("1") == [], "hand must clear even though the snapshot is stale"
+
+    # New cards are drawn. Again, only events say so.
+    for c in ids[20:23]:
+        t.handle("moveTokens", {"tokens": [
+            {"id": c, "materialId": str(identities[c]),
+             "location": "player", "locationId": "1"}]})
+    assert len(t.hand("1")) == 3, "new cards must appear from events alone"
+
+    # And re-adopting the frozen snapshot must not undo any of it.
+    t.sync(snap(frozen), deck_shown=80)
+    assert len(t.hand("1")) == 3, "the stale snapshot must not overwrite live state"

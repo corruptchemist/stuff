@@ -162,6 +162,9 @@ class Reader:
         self.table.sync(raw, raw.get("deckShown"))
         t = self.table
         lines.append(f"\ntracker view")
+        lines.append(f"  snapshot still accurate  : {t.snapshot_fresh}"
+                     f"   (BGA freezes it after a reshuffle)")
+        lines.append(f"  reshuffles seen          : {t.reshuffles}")
         lines.append(f"  identities learned       : {len(t.identity)} / 94")
         lines.append(f"  deck_size()              : {t.deck_size()}")
         lines.append(f"  remaining() total        : {sum(t.remaining().values())}")
@@ -254,11 +257,12 @@ class Reader:
             if preferred is None:
                 preferred = next(iter(sources), None)
             used = [e for e in events if e.get("src") == preferred]
-            # State already came from the snapshot above; events are used only
-            # to count round ends and reshuffles, which a snapshot cannot show.
+            # Events always drive the state. They agree with the snapshot while
+            # it is fresh (applying a move twice is idempotent), and they are
+            # the only source once BGA stops updating gamedatas after a
+            # reshuffle.
             for e in used:
-                if e.get("type") == "moveTokens":
-                    self.table.note_transitions(e.get("args") or {})
+                self.table.handle(e.get("type"), e.get("args") or {})
             self.status = "live"
             return len(used)
         except cdp.CDPError as exc:

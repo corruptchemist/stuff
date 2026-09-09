@@ -215,9 +215,11 @@ def main() -> None:
             if n:
                 t = reader.table
                 who = t.players[t.me].name if t.me in t.players else "?"
+                mine = len(t.hand(t.me)) if t.me in t.players else 0
                 print(f"  +{n:3d} ev · deck {t.deck_size():2d} · known {len(t.identity):2d}/94"
-                      f" · discard {sum(1 for l in t.location.values() if l == 'deck2'):2d}"
-                      f" · you: {who}")
+                      f" · out {len(t.discarded):2d} · your cards {mine}"
+                      f"{'' if t.snapshot_fresh else ' · events-only'}"
+                      f" · {who}")
             time.sleep(args.interval)
     except KeyboardInterrupt:
         print("\nstopped")
