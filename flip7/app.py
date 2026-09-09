@@ -189,10 +189,22 @@ def main() -> None:
     except Exception:
         pass
 
-    last, last_said = None, 0.0
+    last, last_said, dumped = None, 0.0, False
     try:
         while True:
             n = reader.poll()
+            # Print the state report once, shortly after the first real data
+            # arrives, so diagnosing never needs a second tool or a second run.
+            if not dumped and reader.connected and reader.table.location:
+                dumped = True
+                print("\n" + "-" * 66)
+                print(" STATE REPORT — copy this if something looks wrong")
+                print("-" * 66)
+                try:
+                    print(reader.state_report())
+                except Exception as exc:
+                    print(f" (could not build report: {exc})")
+                print("-" * 66 + "\n")
             # Repeat an unchanged status occasionally: silence for minutes on end
             # is indistinguishable from the tool having hung.
             now = time.monotonic()

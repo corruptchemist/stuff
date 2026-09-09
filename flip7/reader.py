@@ -137,11 +137,15 @@ class Reader:
 
     def dump(self) -> str:
         """One poll, then everything the tracker believes -- for diagnosing drift."""
-        from collections import Counter
-        lines = []
         if not self.connect():
             return "not connected: " + self.status
         self.setup()
+        return self.state_report()
+
+    def state_report(self) -> str:
+        """What BGA reported, beside what the tracker made of it."""
+        from collections import Counter
+        lines = []
         raw = self._eval(STATE_JS)
         if raw is None:
             return "gamedatas unreadable in the game frame"
@@ -153,6 +157,8 @@ class Reader:
                      f"{sum(1 for c in cards if c.get('materialId') is not None)}")
         lines.append(f"  deck counter on screen   : {raw.get('deckShown')}")
         lines.append(f"  sample                   : {cards[:2]}")
+        # Sync from this very snapshot, so any difference below is real drift
+        # rather than the half-second between two separate reads.
         self.table.sync(raw)
         t = self.table
         lines.append(f"\ntracker view")
