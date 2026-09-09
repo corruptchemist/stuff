@@ -56,22 +56,47 @@ class Table:
         self.rounds_seen = 0
         self.reshuffles = 0
         self.events = 0
+        self._last_seen: dict[str, str] = {}
 
     # -- ingest --------------------------------------------------------------
 
     def seed(self, gamedatas: dict, my_player_id: str | None = None) -> None:
-        """Seed from gameui.gamedatas -- the initial snapshot at page load."""
-        for c in (gamedatas.get("board") or {}).get("cards") or []:
+        """Seed from gameui.gamedatas, and remember who we are."""
+        self.sync(gamedatas)
+        if my_player_id is not None and str(my_player_id) in self.by_id:
+            self.me = self.by_id[str(my_player_id)].no
+
+    def sync(self, gamedatas: dict) -> None:
+        """Adopt a gamedatas snapshot wholesale as the authoritative state.
+
+        BGA keeps `board.cards` current for this game, so re-reading it each
+        tick beats accumulating notifications: nothing can drift, a missed or
+        duplicated event cannot corrupt the count, and a round boundary or a
+        reshuffle needs no special handling -- the tableau simply empties.
+
+        Identities are never unlearned. A card returning to the deck has its
+        materialId hidden again, but we already saw it, and remembering that is
+        exactly what makes the count exact after a reshuffle.
+        """
+        cards = (gamedatas.get("board") or {}).get("cards") or []
+        if cards:
+            self.location.clear()
+            self.location_id.clear()
+        for c in cards:
             cid = str(c["id"])
             self.location[cid] = c.get("location") or DECK
             if c.get("materialId") is not None:
                 self.identity[cid] = int(c["materialId"])
-                if c.get("locationId") is not None:
-                    self.location_id[cid] = str(c["locationId"])
-        for pid, p in (gamedatas.get("players") or {}).items():
-            self._player(str(p.get("no")), pid, p.get("name", ""))
-        if my_player_id is not None and str(my_player_id) in self.by_id:
-            self.me = self.by_id[str(my_player_id)].no
+            if c.get("location") == PLAYER and c.get("locationId") is not None:
+                self.location_id[cid] = str(c["locationId"])
+        for pid, info in (gamedatas.get("players") or {}).items():
+            p = self._player(str(info.get("no")), str(pid), info.get("name", ""))
+            if "status" in info:
+                p.status = info.get("status")
+            try:
+                p.score = int(info.get("score") or 0)
+            except (TypeError, ValueError):
+                pass
         self._rebuild_hands()
 
     def _player(self, no: str, pid: str = "", name: str = "") -> Player:
@@ -114,6 +139,24 @@ class Table:
         if bulk_discard:
             self.rounds_seen += 1
         self._rebuild_hands()
+
+    def note_transitions(self, args: dict) -> None:
+        """Count round ends and reshuffles from a moveTokens event.
+
+        The snapshot shows where every card *is*, never how it got there, so
+        these two transitions are read from the event stream instead: a whole
+        tableau sweeping to the discard at once is a round ending, and a card
+        coming back out of the discard is the pile being shuffled under.
+        """
+        tokens = args.get("tokens") or []
+        self.events += 1
+        if len(tokens) > 1 and all(t.get("location") == DISCARD for t in tokens):
+            self.rounds_seen += 1
+        for t in tokens:
+            cid = str(t.get("id"))
+            if t.get("location") == DECK and self._last_seen.get(cid) == DISCARD:
+                self.reshuffles += 1
+            self._last_seen[cid] = t.get("location")
 
     def _update_players(self, args: dict) -> None:
         for pid, info in (args.get("players") or {}).items():

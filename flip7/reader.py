@@ -47,6 +47,17 @@ return {board: g.board, players: g.players, gamestate: g.gamestate,
         playerId: GW.gameui.player_id, tableId: GW.gameui.table_id};
 """
 
+# BGA keeps board.cards current for this game, so this is read every tick and
+# treated as the truth, rather than rebuilding state from the event stream.
+STATE_JS = """
+const g = GW.gameui && GW.gameui.gamedatas;
+if (!g) return null;
+const deckEl = D.querySelector('.f7_card_count') || D.querySelector('.f7_deck');
+return {board: g.board, players: g.players,
+        gamestate: g.gamestate && g.gamestate.name,
+        deckShown: deckEl ? parseInt((deckEl.textContent||'').trim(), 10) : null};
+"""
+
 # Drain: hand back everything captured so far and clear it, so each event is
 # processed exactly once even if polling is slow.
 DRAIN_JS = """
@@ -71,6 +82,7 @@ class Reader:
         self.card_box = None
         self.connected = False
         self.table_id = None
+        self.deck_shown = None
         self.status = "starting"
         self._seeded = False
 
@@ -123,11 +135,18 @@ class Reader:
         try:
             if not self._seeded:
                 self.setup()
-            drained = self._eval(DRAIN_JS)
-            if drained is None:  # page reloaded and took the tap with it
+            snap = self._eval(STATE_JS)
+            if snap is None:  # page reloaded and took the game with it
                 self.status = "page reloaded — reseeding"
                 self._seeded = False
                 self.setup()
+                return 0
+            self.table.sync(snap)
+            self.deck_shown = snap.get("deckShown")
+
+            drained = self._eval(DRAIN_JS)
+            if drained is None:
+                self._eval(TAP_JS)  # tap lost; state is still correct from sync
                 return 0
             events = drained.get("events") or []
             # Both taps observe the same notifications, so exactly one source
@@ -139,8 +158,11 @@ class Reader:
             if preferred is None:
                 preferred = next(iter(sources), None)
             used = [e for e in events if e.get("src") == preferred]
+            # State already came from the snapshot above; events are used only
+            # to count round ends and reshuffles, which a snapshot cannot show.
             for e in used:
-                self.table.handle(e.get("type"), e.get("args") or {})
+                if e.get("type") == "moveTokens":
+                    self.table.note_transitions(e.get("args") or {})
             self.status = "live"
             return len(used)
         except cdp.CDPError as exc:

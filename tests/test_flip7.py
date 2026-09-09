@@ -186,3 +186,85 @@ def test_snapshot_deck_view_covers_every_card_type():
     assert len(s["deck"]) == 22                       # 13 numbers + 6 mods + 3 actions
     assert sum(d["total"] for d in s["deck"]) == DECK_SIZE
     assert sum(d["left"] for d in s["deck"]) == DECK_SIZE   # nothing drawn yet
+
+
+# -- round boundaries and Flip Three ------------------------------------------
+
+def test_round_end_clears_hands_from_a_snapshot():
+    """The reported bug: cards stayed on screen after the deck reset."""
+    t = Table()
+    t.seed({"players": {"1": {"id": "1", "no": "1", "name": "A"}},
+            "board": {"cards": [
+                {"id": "5", "materialId": "7", "location": "player", "locationId": "1"},
+                {"id": "6", "materialId": "9", "location": "player", "locationId": "1"},
+                {"id": "7", "materialId": None, "location": "deck", "locationId": None},
+            ]}}, my_player_id="1")
+    assert len(t.hand("1")) == 2
+
+    # New round: BGA's snapshot now shows those cards in the discard.
+    t.sync({"players": {"1": {"id": "1", "no": "1", "name": "A", "status": "FIRST_TURN"}},
+            "board": {"cards": [
+                {"id": "5", "materialId": "7", "location": "deck2", "locationId": None},
+                {"id": "6", "materialId": "9", "location": "deck2", "locationId": None},
+                {"id": "7", "materialId": None, "location": "deck", "locationId": None},
+            ]}})
+    assert t.hand("1") == [], "hand must empty when the tableau clears"
+    assert t.round_score("1") == 0
+
+
+def test_identities_survive_a_reshuffle():
+    """Cards go back under face-down, but we already saw them."""
+    t = Table()
+    t.sync({"players": {}, "board": {"cards": [
+        {"id": "5", "materialId": "7", "location": "deck2", "locationId": None}]}})
+    assert t.identity["5"] == 7
+    t.sync({"players": {}, "board": {"cards": [   # reshuffled: materialId hidden again
+        {"id": "5", "materialId": None, "location": "deck", "locationId": None}]}})
+    assert t.identity["5"] == 7, "a seen card must not become unknown again"
+    assert t.remaining()[7] == COUNTS[7]          # it is back in the deck
+
+
+def test_flip_three_prefers_the_opponent_most_likely_to_bust():
+    from flip7.stats import rank_flip_three
+    deck = Counter(full_deck())
+    ranked = rank_flip_three(deck, [
+        {"name": "me", "is_me": True, "numbers": {1}, "adds": 0},
+        {"name": "loaded", "is_me": False, "numbers": {8, 9, 10, 11, 12}, "adds": 0},
+        {"name": "empty", "is_me": False, "numbers": set(), "adds": 0},
+    ])
+    assert ranked[0].name == "loaded"             # most to lose, most likely to bust
+    assert ranked[0].p_bust > ranked[-1].p_bust
+
+
+def test_flip_three_skips_players_already_out():
+    from flip7.stats import rank_flip_three
+    ranked = rank_flip_three(Counter(full_deck()), [
+        {"name": "busted", "is_me": False, "numbers": {5}, "out": True},
+        {"name": "live", "is_me": False, "numbers": {5}},
+    ])
+    assert [t.name for t in ranked] == ["live"]
+
+
+def test_flip_three_on_an_empty_hand_is_safe():
+    from flip7.stats import three_draw_outcome
+    p_bust, ev = three_draw_outcome(Counter(full_deck()), set())
+    assert p_bust < 0.25 and ev > 0
+
+
+def test_no_hit_stay_call_once_your_round_is_over():
+    """Busted/stayed/frozen: there is no decision left, so do not offer one."""
+    from flip7.app import snapshot
+
+    class FakeReader:
+        connected, status, atlas = True, "live", {}
+        def __init__(self, table): self.table = table
+
+    for status in ("BUSTED", "STAYED", "FREEZED"):
+        t = Table()
+        t.seed({"players": {"7": {"id": "7", "no": "1", "name": "Me", "status": status}},
+                "board": {"cards": [
+                    {"id": "1", "materialId": "5", "location": "player", "locationId": "1"}]}},
+               my_player_id="7")
+        s = snapshot(FakeReader(t))
+        assert s["advice"]["over"] is True, status
+        assert s["advice"]["status"] == status

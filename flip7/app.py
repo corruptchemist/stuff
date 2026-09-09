@@ -17,7 +17,7 @@ from pathlib import Path
 from . import cdp
 from .deck import CARDS, COUNTS, NUMBER, SECOND_CHANCE, card
 from .reader import GAME_URL, Reader
-from .stats import analyse
+from .stats import analyse, rank_flip_three
 
 WEB_DIR = Path(__file__).parent / "web"
 
@@ -35,6 +35,10 @@ def snapshot(reader: Reader) -> dict:
     advice = None
     bust_list: list[dict] = []
     my_numbers: set[int] = set()
+    my_status = t.players[me_no].status if me_no in t.players else None
+    # Busted, stayed or frozen: the round is over for you, so there is no call
+    # to make and offering one would be nonsense.
+    my_turn_over = me_no in t.players and t.players[me_no].out
     if me_no is not None and me_no in t.players:
         hand = t.hand(me_no)
         my_numbers = {c.value for c in hand if c.kind == NUMBER}
@@ -48,6 +52,7 @@ def snapshot(reader: Reader) -> dict:
             "to_flip7": a.to_flip7, "protected": a.protected, "edge": a.edge,
             "margin_txt": f"{a.margin:+.1f} pts vs staying",
             "p_flip7_next": a.p_flip7_next,
+            "over": my_turn_over, "status": my_status,
         }
         for n in sorted(my_numbers):
             if remaining.get(n):
@@ -71,8 +76,32 @@ def snapshot(reader: Reader) -> dict:
             "cards": [{"sprite": c.sprite, "label": c.label} for c in t.hand(no)],
         })
 
+    # Flip Three: who to aim it at. Shown always (it is useful to know what a
+    # Flip Three would be worth), flagged when you actually hold one.
+    candidates = []
+    for no in t.players:
+        hand = t.hand(no)
+        candidates.append({
+            "name": t.players[no].name or f"seat {no}", "is_me": no == me_no,
+            "numbers": {c.value for c in hand if c.kind == NUMBER},
+            "adds": sum(c.value for c in hand
+                        if c.kind == "modifier" and c.multiplier == 1),
+            "doubled": any(c.multiplier == 2 for c in hand),
+            "protected": t.has_second_chance(no),
+            "out": t.players[no].out,
+        })
+    ranked = rank_flip_three(remaining, candidates)
+    flip3 = {
+        "holding": me_no is not None and any(
+            c.label == "Flip Three" for c in t.hand(me_no)),
+        "targets": [{"name": x.name, "is_me": x.is_me, "p_bust": x.p_bust,
+                     "at_risk": x.at_risk, "value": x.value, "reason": x.reason}
+                    for x in ranked],
+    }
+
     locs = Counter(t.location.values())
     return {
+        "flip3": flip3,
         "live": reader.connected, "status": reader.status, "banner": banner,
         "atlas": reader.atlas,
         "me": ({"name": t.players[me_no].name,

@@ -142,3 +142,110 @@ def _best(counts, numbers, adds, doubled, protected, depth) -> float:
     """Value of playing on optimally: the better of staying and drawing again."""
     return max(float(_score(numbers, adds, doubled)),
                _ev_hit(counts, numbers, adds, doubled, protected, depth))
+
+
+# --- Flip Three -------------------------------------------------------------
+# Flip Three forces a player to draw three cards. It can be aimed at yourself or
+# at an opponent, so its value is a comparison: what three forced draws are worth
+# to you, against how much they are likely to cost each opponent.
+
+@dataclass
+class FlipThreeTarget:
+    name: str
+    is_me: bool
+    p_bust: float            # chance three forced draws bust them
+    at_risk: int             # round points they would lose by busting
+    ev_after: float          # their expected round score after the three draws
+    ev_now: float            # what they have banked in hand right now
+    value: float             # value to YOU of aiming it here
+    reason: str
+
+
+def three_draw_outcome(remaining: Counter, numbers: set[int], adds: int = 0,
+                       doubled: bool = False, protected: bool = False,
+                       draws: int = 3) -> tuple[float, float]:
+    """(probability of busting, expected round score) over `draws` forced cards.
+
+    Exact: the deck is known, so this enumerates the draw paths rather than
+    sampling. Drawing stops early on a bust or on completing a Flip 7.
+    """
+    return _three(tuple(sorted(remaining.items())), frozenset(numbers), adds,
+                  doubled, protected, draws)
+
+
+@lru_cache(maxsize=200_000)
+def _three(counts: tuple, numbers: frozenset, adds: int, doubled: bool,
+           protected: bool, left: int) -> tuple[float, float]:
+    remaining = dict(counts)
+    total = sum(remaining.values())
+    if left <= 0 or total <= 0 or len(numbers) >= FLIP7_SIZE:
+        return 0.0, float(_score(numbers, adds, doubled))
+
+    p_bust, ev = 0.0, 0.0
+    for mid, n in remaining.items():
+        if not n:
+            continue
+        p = n / total
+        c = CARDS[mid]
+        nxt = dict(remaining)
+        nxt[mid] = n - 1
+        key = tuple(sorted(nxt.items()))
+
+        if c.kind == NUMBER and c.value in numbers:
+            if protected:                       # Second Chance eats the duplicate
+                b, e = _three(key, numbers, adds, doubled, False, left - 1)
+                p_bust += p * b
+                ev += p * e
+            else:
+                p_bust += p                     # busted: the round scores nothing
+            continue
+        if c.kind == NUMBER:
+            got = numbers | {c.value}
+            if len(got) == FLIP7_SIZE:
+                ev += p * _score(got, adds, doubled)   # round ends on the spot
+                continue
+            b, e = _three(key, got, adds, doubled, protected, left - 1)
+        elif c.kind == MODIFIER:
+            b, e = (_three(key, numbers, adds, True, protected, left - 1)
+                    if c.multiplier == 2
+                    else _three(key, numbers, adds + c.value, doubled, protected, left - 1))
+        elif c.label == SECOND_CHANCE:
+            b, e = _three(key, numbers, adds, doubled, True, left - 1)
+        else:
+            b, e = _three(key, numbers, adds, doubled, protected, left - 1)
+        p_bust += p * b
+        ev += p * e
+    return p_bust, ev
+
+
+def rank_flip_three(remaining: Counter, candidates: list[dict]) -> list[FlipThreeTarget]:
+    """Rank who to aim a Flip Three at, best first.
+
+    Each candidate is {name, is_me, numbers, adds, doubled, protected, out}.
+    Aimed at yourself it is worth the points it gains you; aimed at an opponent
+    it is worth the points it is likely to cost them.
+    """
+    out: list[FlipThreeTarget] = []
+    for c in candidates:
+        if c.get("out"):
+            continue  # already busted, stayed or frozen -- not a legal target
+        numbers = set(c.get("numbers") or ())
+        adds, doubled = c.get("adds", 0), c.get("doubled", False)
+        protected = c.get("protected", False)
+        now = float(_score(frozenset(numbers), adds, doubled))
+        p_bust, ev_after = three_draw_outcome(remaining, numbers, adds, doubled, protected)
+        if c["is_me"]:
+            value = ev_after - now
+            reason = (f"gains {value:+.1f} pts on average, {p_bust:.0%} chance of busting"
+                      if value >= 0 else
+                      f"loses {-value:.1f} pts on average, {p_bust:.0%} chance of busting")
+        else:
+            value = p_bust * now          # points you expect to deny them
+            reason = (f"{p_bust:.0%} chance of busting them out of {now:.0f} pts"
+                      if now else f"{p_bust:.0%} chance of busting them, but they hold nothing yet")
+        out.append(FlipThreeTarget(
+            name=c["name"], is_me=bool(c["is_me"]), p_bust=p_bust,
+            at_risk=int(now), ev_after=ev_after, ev_now=now,
+            value=value, reason=reason))
+    out.sort(key=lambda t: t.value, reverse=True)
+    return out

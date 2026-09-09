@@ -97,6 +97,18 @@
   .st-active{background:rgba(250,178,25,.18);color:#ffd479}
   .st-none{background:var(--panel-2);color:var(--ink-3)}
 
+  .f3row { display:grid; grid-template-columns:78px 1fr 62px 2fr; gap:10px;
+           align-items:center; padding:8px 10px; border-radius:8px;
+           background:var(--panel-2); margin-bottom:6px; }
+  .f3row.best { background:rgba(12,163,12,.13); border:1px solid rgba(12,163,12,.45); }
+  .f3rank { font-size:10px; font-weight:800; letter-spacing:.08em; color:var(--ink-3); }
+  .f3row.best .f3rank { color:var(--good); }
+  .f3who { font-weight:700; }
+  .f3val { font-weight:800; font-variant-numeric:tabular-nums; text-align:right; }
+  .f3why { font-size:11.5px; color:var(--ink-2); }
+  @media (max-width:720px){ .f3row{grid-template-columns:70px 1fr 60px; }
+                            .f3why{grid-column:1/-1;} }
+
   footer { display:flex; gap:14px; flex-wrap:wrap; color:var(--ink-3);
            font-size:11px; padding:10px 2px 4px; }
   .dot { width:7px; height:7px; border-radius:99px; display:inline-block;
@@ -141,6 +153,11 @@
   <div class="panel" style="margin-top:12px">
     <h2>Remaining deck <span id="decksum" style="color:var(--ink-2)"></span></h2>
     <div class="deck" id="deck"></div>
+  </div>
+
+  <div class="panel" style="margin-top:12px">
+    <h2>Flip Three <span id="f3hold" style="color:var(--ink-2)"></span></h2>
+    <div id="flip3"></div>
   </div>
 
   <div class="panel" style="margin-top:12px">
@@ -205,19 +222,25 @@ function render(s) {
   document.getElementById('whoami').textContent = me ? '· ' + me.name : '';
   const a = s.advice;
   if (a) {
+    const OVER = {BUSTED:['BUSTED','var(--crit)','you lost this round'],
+                  STAYED:['STAYED','var(--good)','points are banked'],
+                  FREEZED:['FROZEN','var(--accent)','frozen — points banked']};
+    const done = a.over ? (OVER[a.status] || ['OUT','var(--ink-3)','round over for you']) : null;
     const r = riskOf(a.p_bust);
     const call = document.getElementById('call');
-    call.firstChild.nodeValue = a.recommend;
-    call.style.color = a.recommend === 'HIT' ? 'var(--good)' : 'var(--warn)';
-    document.getElementById('callsub').textContent =
-      a.protected ? 'second chance protects you' : a.edge + ' — ' + a.margin_txt;
+    call.firstChild.nodeValue = done ? done[0] : a.recommend;
+    call.style.color = done ? done[1]
+      : (a.recommend === 'HIT' ? 'var(--good)' : 'var(--warn)');
+    document.getElementById('callsub').textContent = done ? done[2]
+      : (a.protected ? 'second chance protects you' : a.edge + ' — ' + a.margin_txt);
     const bp = document.getElementById('bustpct');
-    bp.textContent = a.protected ? '0.0%' : pct(a.p_bust);
-    bp.style.color = a.protected ? 'var(--good)' : r[1];
+    bp.textContent = done ? '—' : (a.protected ? '0.0%' : pct(a.p_bust));
+    bp.style.color = done ? 'var(--ink-3)' : (a.protected ? 'var(--good)' : r[1]);
     const m = document.getElementById('meter');
-    m.style.width = Math.min(100, a.p_bust*100) + '%';
+    m.style.width = done ? '0%' : Math.min(100, a.p_bust*100) + '%';
     m.style.background = r[1];
-    document.getElementById('riskword').textContent = a.protected ? 'protected' : r[2];
+    document.getElementById('riskword').textContent =
+      done ? 'waiting for the next round' : (a.protected ? 'protected' : r[2]);
     document.getElementById('t-stay').textContent = a.stay_value;
     document.getElementById('t-ev').textContent = a.ev_hit.toFixed(1);
     document.getElementById('t-uniq').textContent = a.to_flip7 === 0 ? 'DONE' : a.to_flip7;
@@ -261,6 +284,28 @@ function render(s) {
                   b.textContent='BUST'; el.appendChild(b); }
     deck.appendChild(el);
   });
+
+  const f3 = s.flip3 || {targets:[]};
+  document.getElementById('f3hold').textContent =
+    f3.holding ? '— you are holding one' : '— if you draw one';
+  const f3box = document.getElementById('flip3');
+  f3box.innerHTML = '';
+  if (!f3.targets.length) {
+    f3box.innerHTML = '<span class="empty">no legal targets right now</span>';
+  } else {
+    f3.targets.forEach((t, i) => {
+      const row = document.createElement('div');
+      row.className = 'f3row' + (i === 0 ? ' best' : '');
+      const who = t.is_me ? t.name + ' (yourself)' : t.name;
+      row.innerHTML =
+        `<span class="f3rank">${i === 0 ? 'AIM HERE' : '#' + (i + 1)}</span>` +
+        `<span class="f3who">${who}</span>` +
+        `<span class="f3val" style="color:${t.value > 0 ? 'var(--good)' : 'var(--crit)'}">` +
+        `${t.value > 0 ? '+' : ''}${t.value.toFixed(1)}</span>` +
+        `<span class="f3why">${t.reason}</span>`;
+      f3box.appendChild(row);
+    });
+  }
 
   const tb = document.getElementById('players');
   tb.innerHTML = '';
