@@ -159,7 +159,7 @@ class Reader:
         lines.append(f"  sample                   : {cards[:2]}")
         # Sync from this very snapshot, so any difference below is real drift
         # rather than the half-second between two separate reads.
-        self.table.sync(raw)
+        self.table.sync(raw, raw.get("deckShown"))
         t = self.table
         lines.append(f"\ntracker view")
         lines.append(f"  identities learned       : {len(t.identity)} / 94")
@@ -237,7 +237,7 @@ class Reader:
                 self._seeded = False
                 self.setup()
                 return 0
-            self.table.sync(snap)
+            self.table.sync(snap, snap.get("deckShown"))
             self.deck_shown = snap.get("deckShown")
 
             drained = self._eval(DRAIN_JS)

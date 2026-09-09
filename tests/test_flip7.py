@@ -338,3 +338,55 @@ def test_identities_are_not_forgotten_when_cards_go_back_under():
     t.sync(_snapshot({c: "deck" for c in ids}, identities))   # all materialIds now null
     assert len(t.identity) == 94, "a reshuffle must not erase what we saw"
     assert sum(t.remaining().values()) == 94
+
+
+def test_deck_recovers_when_bga_leaves_cards_marked_as_discard():
+    """The reported bug, reproduced from a real game log.
+
+    BGA reshuffles the discard back under, but never moves those cards out of
+    `deck2` in gamedatas -- they stay marked as discard for the rest of the
+    game. Trusting that field pinned the deck at 0 while play carried on. The
+    game's own on-screen counter is the honest number, and a rise in it can
+    only mean the pile was shuffled back.
+    """
+    ids = [str(i) for i in range(1, 95)]
+    mids = []
+    for mid, n in COUNTS.items():
+        mids += [mid] * n
+    identities = dict(zip(ids, mids))
+    in_hand, discarded = ids[:8], ids[8:]
+
+    def snap(loc_map):
+        return {"players": {"7": {"id": "7", "no": "1", "name": "Me"}},
+                "board": {"cards": [
+                    {"id": c, "materialId": (str(identities[c]) if l != "deck" else None),
+                     "location": l, "locationId": ("1" if l == "player" else None)}
+                    for c, l in loc_map.items()]}}
+
+    loc = {c: ("player" if c in in_hand else "deck2") for c in ids}
+    t = Table()
+    t.sync(snap(loc), deck_shown=0)          # exactly the state in the log
+    assert t.deck_size() == 0
+    assert sum(t.remaining().values()) == 0
+
+    # BGA reshuffles. gamedatas does not budge -- still deck 0, deck2 86 --
+    # but the counter on screen jumps to 86.
+    t.sync(snap(loc), deck_shown=86)
+
+    assert t.deck_size() == 86, "the game's own counter must win over stale gamedatas"
+    rem = t.remaining()
+    assert sum(rem.values()) == 86, "the reshuffled deck must not stay empty"
+    assert t.reshuffles == 1
+
+    # And it is the right 86: everything except what people are holding.
+    held = Counter(identities[c] for c in in_hand)
+    expected = Counter(COUNTS)
+    expected.subtract(held)
+    assert rem == +expected
+
+    # Play continues: a card is drawn, then discarded. It leaves the deck again.
+    drawn = discarded[0]
+    t.handle("moveTokens", {"tokens": [
+        {"id": drawn, "materialId": str(identities[drawn]),
+         "location": "player", "locationId": "1"}]})
+    assert t.remaining()[identities[drawn]] == expected[identities[drawn]] - 1

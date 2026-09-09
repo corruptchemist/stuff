@@ -56,6 +56,13 @@ class Table:
         self.rounds_seen = 0
         self.reshuffles = 0
         self.events = 0
+        # Cards we have seen leave play. Kept separately from gamedatas because
+        # BGA does NOT move them back to `deck` when the pile is reshuffled --
+        # they stay marked as discard forever, so trusting that field leaves the
+        # deck stuck at zero for the rest of the game.
+        self.discarded: set[str] = set()
+        self.deck_shown: int | None = None
+        self._prev_shown: int | None = None
         self._last_seen: dict[str, str] = {}
 
     # -- ingest --------------------------------------------------------------
@@ -66,7 +73,7 @@ class Table:
         if my_player_id is not None and str(my_player_id) in self.by_id:
             self.me = self.by_id[str(my_player_id)].no
 
-    def sync(self, gamedatas: dict) -> None:
+    def sync(self, gamedatas: dict, deck_shown: int | None = None) -> None:
         """Adopt a gamedatas snapshot wholesale as the authoritative state.
 
         BGA keeps `board.cards` current for this game, so re-reading it each
@@ -82,6 +89,17 @@ class Table:
         if cards:
             self.location.clear()
             self.location_id.clear()
+
+        # The on-screen counter is the only honest report of the draw pile: it
+        # is what the game itself shows the player. A rise in it can only mean
+        # the discard has been shuffled back under, so the discard we have been
+        # accumulating is now in the deck again and the count starts over.
+        if isinstance(deck_shown, int) and deck_shown >= 0:
+            if self._prev_shown is not None and deck_shown > self._prev_shown:
+                self.discarded.clear()
+                self.reshuffles += 1
+            self._prev_shown = deck_shown
+            self.deck_shown = deck_shown
         for c in cards:
             cid = str(c["id"])
             self.location[cid] = c.get("location") or DECK
@@ -89,6 +107,14 @@ class Table:
                 self.identity[cid] = int(c["materialId"])
             if c.get("location") == PLAYER and c.get("locationId") is not None:
                 self.location_id[cid] = str(c["locationId"])
+
+        # Until the first reshuffle gamedatas tracks the discard accurately, so
+        # rebuild from it; afterwards it goes stale on this point and the event
+        # stream carries the discard instead.
+        if cards and not self.reshuffles:
+            self.discarded = {cid for cid, loc in self.location.items()
+                              if loc == DISCARD}
+
         for pid, info in (gamedatas.get("players") or {}).items():
             p = self._player(str(info.get("no")), str(pid), info.get("name", ""))
             if "status" in info:
@@ -129,6 +155,10 @@ class Table:
                 self.identity[cid] = int(t["materialId"])
             prev = self.location.get(cid)
             self.location[cid] = loc
+            if loc == DISCARD:
+                self.discarded.add(cid)
+            elif loc in (DECK, PLAYER, WAIT):
+                self.discarded.discard(cid)
             if loc == PLAYER and t.get("locationId") is not None:
                 self.location_id[cid] = str(t["locationId"])
             elif loc != PLAYER:
@@ -154,9 +184,12 @@ class Table:
             self.rounds_seen += 1
         for t in tokens:
             cid = str(t.get("id"))
-            if t.get("location") == DECK and self._last_seen.get(cid) == DISCARD:
-                self.reshuffles += 1
-            self._last_seen[cid] = t.get("location")
+            loc = t.get("location")
+            if loc == DISCARD:
+                self.discarded.add(cid)
+            elif loc in (DECK, PLAYER, WAIT):
+                self.discarded.discard(cid)   # drawn again, or shuffled back under
+            self._last_seen[cid] = loc
 
     def _update_players(self, args: dict) -> None:
         for pid, info in (args.get("players") or {}).items():
@@ -182,18 +215,30 @@ class Table:
     # -- derived state -------------------------------------------------------
 
     def remaining(self) -> Counter:
-        """Exact composition of the draw pile, as {material_id: count}."""
+        """Composition of the draw pile, as {material_id: count}.
+
+        The draw pile is the full deck minus what is out of it: the cards in
+        front of players, and the cards discarded since the last reshuffle.
+        Everything else is down there -- whether it was never drawn, or was
+        drawn, discarded and shuffled back under.
+        """
         counts = Counter(full_deck())
-        counts.subtract(Counter(self.identity.values()))  # everything ever revealed
-        for cid, mid in self.identity.items():            # ...but reshuffled ones return
-            if self.location.get(cid) == DECK:
-                counts[mid] += 1
+        for cid, mid in self.identity.items():
+            loc = self.location.get(cid)
+            if loc in (PLAYER, WAIT) or cid in self.discarded:
+                counts[mid] -= 1
         return +counts  # drop zero/negative entries
 
+    def out_of_play(self) -> Counter:
+        """Cards held by players -- out until the round ends, reshuffle or not."""
+        return Counter(mid for cid, mid in self.identity.items()
+                       if self.location.get(cid) in (PLAYER, WAIT))
+
     def deck_size(self) -> int:
-        known = sum(1 for c in self.location.values() if c == DECK)
-        # Cards never mentioned at all are still down there too.
-        return known + max(0, DECK_SIZE - len(self.location))
+        """Cards left to draw. The game's own counter wins when we have it."""
+        if isinstance(self.deck_shown, int):
+            return self.deck_shown
+        return sum(self.remaining().values())
 
     def hand(self, no: str) -> list:
         return [card(self.identity[c]) for c in self.players[no].cards
