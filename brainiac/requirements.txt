@@ -1,0 +1,4 @@
+# Only needed to rebuild BRAINIAC.8xp or run the simulator on a computer.
+# The calculator itself needs nothing but dist/BRAINIAC.8xp.
+tivars==1.1.1
+pillow>=10

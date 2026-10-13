@@ -1,0 +1,373 @@
+// BRAINIAC -- a math solver for the TI-84 Plus CE (TI-BASIC source).
+//
+// Build it into BRAINIAC.8xp with:  python -m brainiac.build
+// Lines starting with // are notes for humans; the build strips them.
+// Everything else is sent to the calculator exactly as written.
+//
+// Variables the program uses:
+//   M  mode (1 = solve for X, 2 = find all zeros)
+//   A,B  the X range being searched     K,H  number of steps, step size
+//   N  how many answers (-1 = every X works)   R  search radius (solve mode)
+//   Str1  what you typed     Y0  the function f(X) being searched for zeros
+//   lists ZF ZV (samples), ZA ZB (brackets), ZR ZK (answers, kinds)
+// Answer kinds in ZK: 1 = graph crosses zero, 2 = graph only touches zero.
+
+ClrHome
+a+bi
+
+// ---------------------------------------------------------------- main menu
+Lbl M
+Menu("BRAINIAC V0.1","SOLVE FOR X",1,"FIND ALL ZEROS",2,"HOW TO USE",3,"QUIT",Q)
+
+// ---------------------------------------------------------------- solve for X
+// Turn "LEFT=RIGHT" into (LEFT)-(RIGHT), whose zeros are the solutions.
+Lbl 1
+1→M
+ClrHome
+Disp "SOLVE FOR X","","TYPE AN EQUATION IN X,","LIKE  2X+3=7","  OR  X²=5X-6","(= IS IN 2ND MATH)",""
+Input "EQ:",Str1
+If not(length(Str1)):Goto M
+inString(Str1,"=")→P
+If P=1 or P=length(Str1):Goto 5
+If P:Then
+"("+sub(Str1,1,P-1)+")-("+sub(Str1,P+1,length(Str1)-P)+")"→Str2
+Else
+Str1→Str2
+End
+Str2→Y₀
+// Two sweeps: -10..10 in fine steps (where most answers are), then -99..99
+// in coarse ones for answers further out. 99, not 100: 10^X overflows at 100.
+0→dim(ʟZR)
+0→dim(ʟZK)
+10→R
+Lbl R
+⁻R→A
+R→B
+Goto E
+
+// ---------------------------------------------------------------- find all zeros
+Lbl 2
+2→M
+ClrHome
+Disp "FIND ALL ZEROS","","TYPE F(X), LIKE X³-4X,","THEN THE X RANGE TO","SEARCH. LEAVE THE RANGE","BLANK FOR ⁻10 TO 10.",""
+Input "F(X)=",Str1
+If not(length(Str1)):Goto M
+Str1→Y₀
+Input "FROM X=",Str3
+⁻10→A
+If length(Str3):expr(Str3)→A
+Input "  TO X=",Str3
+10→B
+If length(Str3):expr(Str3)→B
+real(A)→A
+real(B)→B
+If A=B:Goto 6
+If A>B:Then
+A→T
+B→A
+T→B
+End
+0→dim(ʟZR)
+0→dim(ʟZK)
+Goto E
+
+// ---------------------------------------------------------------- the engine
+// Finds every X in A..B where Y0 is zero, adding them to ZR (and their kinds
+// to ZK). Runs in a+bi mode so that things
+// like √(X) at negative X give a complex number instead of stopping the
+// program with ERR:NONREAL ANS; complex samples are simply skipped.
+// The sweep starts a hair before A and ends a hair after B, so zeros right on
+// the ends count; the two hairs differ so that no sample ever lands exactly
+// on X=0 or another "nice" number where 1/X or ln(X) would blow up.
+// Sample I is at X = O+H(I-1).
+// The sweep works outward from the middle and gives up on a side once f
+// passes 10^60, so fast growers like e^(X²) never reach ERR:OVERFLOW; the
+// samples it skips stay marked as unusable.
+Lbl E
+ClrHome
+Output(1,1,"THINKING...")
+200→K
+(B-A)/K→H
+A-.000123H→O
+(B-A+.000444H)/K→H
+0→dim(ʟZF)
+0→dim(ʟZV)
+K+1→dim(ʟZF)
+K+1→dim(ʟZV)
+For(J,⁻1,1,2)
+K/2+1→I
+Repeat I<1 or I>K+1
+O+H(I-1)→X
+Y₀→F
+abs(imag(F))<ᴇ⁻9(1+abs(F))→ʟZV(I)
+real(F)→ʟZF(I)
+If not(fPart(I/8)):Output(3,I/8,"=")
+If abs(F)>ᴇ60:⁻5+(K+10)(J>0)→I
+I+J→I
+End
+End
+0→dim(ʟZA)
+0→dim(ʟZB)
+// Both sides always equal (like X+1=1+X): every X is a solution.
+min(ʟZV) and not(max(abs(ʟZF)))→Z
+If Z:Goto 7
+
+// A sample that is exactly zero is an answer as it stands.
+For(I,1,K+1)
+If ʟZV(I) and not(ʟZF(I)):Then
+O+H(I-1)→ʟZR(1+dim(ʟZR))
+1→ʟZK(dim(ʟZR))
+End
+End
+
+// Neighbouring samples with opposite signs bracket a crossing.
+For(I,1,K)
+If ʟZV(I) and ʟZV(I+1):Then
+ʟZF(I)→P
+ʟZF(I+1)→Q
+If (P<0 and Q>0) or (P>0 and Q<0):Then
+O+H(I-1)→ʟZA(1+dim(ʟZA))
+O+HI→ʟZB(1+dim(ʟZB))
+End
+End
+End
+
+// A dip toward zero with no sign change might be a touch (like (X-2)²) or
+// two crossings squeezed between samples. A parabola through the three
+// samples says whether the dip could reach zero; if it might, look closer.
+For(I,2,K)
+If ʟZV(I-1) and ʟZV(I) and ʟZV(I+1):Then
+ʟZF(I)→F
+abs(ʟZF(I-1))→P
+abs(F)→Q
+abs(ʟZF(I+1))→D
+If F≠0 and (F>0)=(ʟZF(I-1)>0) and (F>0)=(ʟZF(I+1)>0) and Q≤P and Q<D and max(P,D)<ᴇ40:Then
+If Q-(D-P)²/(16((P+D)/2-Q))<.1Q:Then
+// Rescan this stretch 24 times finer, looking for sign changes.
+O+H(I-2)→L
+H/12→G
+L→X
+Y₀→F
+abs(imag(F))<ᴇ⁻9(1+abs(F))→V
+real(F)→P
+ᴇ99→Q
+L→W
+If V:Then
+abs(P)→Q
+End
+0→C
+For(J,1,24)
+L+GJ→X
+Y₀→F
+abs(imag(F))<ᴇ⁻9(1+abs(F))→S
+real(F)→F
+If S and V and ((P<0 and F>0) or (P>0 and F<0)):Then
+X-G→ʟZA(1+dim(ʟZA))
+X→ʟZB(1+dim(ʟZB))
+1→C
+End
+If S and abs(F)<Q:Then
+abs(F)→Q
+X→W
+End
+S→V
+F→P
+End
+// No crossings: narrow in on the lowest point and see if it reaches zero.
+If not(C):Then
+W-G→L
+W+G→U
+For(J,1,40)
+L+.381966(U-L)→X
+Y₀→F
+abs(real(F))+ᴇ99(abs(imag(F))>ᴇ⁻9(1+abs(F)))→Y
+L+.618034(U-L)→X
+Y₀→F
+If abs(real(F))+ᴇ99(abs(imag(F))>ᴇ⁻9(1+abs(F)))<Y:Then
+L+.381966(U-L)→L
+Else
+L+.618034(U-L)→U
+End
+End
+(L+U)/2→X
+Y₀→F
+If abs(F)<ᴇ⁻8:Then
+X→ʟZR(1+dim(ʟZR))
+2→ʟZK(dim(ʟZR))
+End
+End
+End
+End
+End
+End
+
+// Halve each bracket until it is down to about 12 digits. A bracket around
+// a vertical asymptote (like 1/X at 0) ends with a huge value, not a zero,
+// so it is thrown out.
+For(J,1,dim(ʟZA))
+ʟZA(J)→L
+ʟZB(J)→U
+L→X
+real(Y₀)→P
+U→X
+max(abs(P),abs(real(Y₀)))→D
+0→I
+While U-L>ᴇ⁻12max(1,abs(L)) and I<60
+I+1→I
+(L+U)/2→X
+real(Y₀)→F
+If F=0:Then
+X→L
+X→U
+Else
+If (F<0)=(P<0):Then
+X→L
+Else
+X→U
+End
+End
+End
+(L+U)/2→X
+Y₀→F
+If abs(F)≤ᴇ⁻6(1+D):Then
+X→ʟZR(1+dim(ʟZR))
+1→ʟZK(dim(ʟZR))
+End
+End
+
+// Solve mode: after the fine sweep, do the wide one.
+If M=1 and R=10
+Goto 4
+
+// Sort, drop duplicates, and tidy the digits.
+dim(ʟZR)→N
+If N>1:SortA(ʟZR,ʟZK)
+If N:Then
+1→N
+For(I,2,dim(ʟZR))
+If abs(ʟZR(I)-ʟZR(N))>ᴇ⁻6max(1,abs(ʟZR(I))):Then
+N+1→N
+ʟZR(I)→ʟZR(N)
+ʟZK(I)→ʟZK(N)
+Else
+min(ʟZK(N),ʟZK(I))→ʟZK(N)
+End
+End
+N→dim(ʟZR)
+N→dim(ʟZK)
+// Prefer the shortest rounding (2, then 2.1, 2.14, ...) that fits the
+// equation at least as well as the raw answer, so a flat spot like (X-1)³
+// shows X=1 instead of X=1.000006. Only nudges of under 1/10000 are tried:
+// a bigger jump (.25 to 0 for 1/X=4) could land on a 1/0.
+// Touches can only be pinned to about 7 digits, so they show 6 decimals.
+For(I,1,N)
+ʟZR(I)→R
+R→X
+abs(Y₀)→E
+9-3(ʟZK(I)=2)→Z
+0→J
+Repeat J>Z
+round(R,J)→T
+If abs(T-R)≤ᴇ⁻4max(1,abs(R)):Then
+T→X
+If abs(Y₀)≤E:Then
+T→R
+Z+1→J
+End
+End
+J+1→J
+End
+If ʟZK(I)=2:round(R,6)→R
+If abs(R)<ᴇ⁻9:0→R
+R→ʟZR(I)
+End
+End
+Goto D
+Lbl 4
+99→R
+Goto R
+Lbl 7
+⁻1→N
+Goto D
+
+// ---------------------------------------------------------------- results
+Lbl D
+ClrHome
+If M=1:Output(1,1,"SOLVING:")
+If M=2:Output(1,1,"ZEROS OF:")
+Str1→Str4
+If length(Str1)>26:sub(Str1,1,23)+"..."→Str4
+Output(2,1,Str4)
+Output(3,1,"X FROM")
+Output(3,8,round(A,3))
+Output(3,17,"TO")
+Output(3,20,round(B,3))
+If N=⁻1:Then
+Output(5,1,"EVERY X WORKS!")
+Output(6,1,"BOTH SIDES ARE ALWAYS")
+Output(7,1,"EQUAL. (AN IDENTITY)")
+End
+If not(N):Then
+Output(5,1,"NO ANSWERS IN THIS RANGE.")
+If M=1:Output(7,1,"TRY FIND ALL ZEROS")
+If M=1:Output(8,1,"WITH A WIDER RANGE.")
+If M=2:Output(7,1,"TRY A WIDER RANGE.")
+End
+For(I,1,N)
+If I>1 and not(fPart((I-1)/6)):Then
+Output(10,1,"ENTER: MORE")
+Pause
+For(J,4,10)
+Output(J,1,"                          ")
+End
+End
+I+3-6iPart((I-1)/6)→J
+Output(J,1,"X=")
+Output(J,3,ʟZR(I))
+If ʟZK(I)=2:Output(J,20,"TOUCH")
+End
+Output(10,1,"ENTER: DONE")
+Pause
+Menu("WHAT NEXT?","AGAIN",A,"MAIN MENU",M,"QUIT",Q)
+Lbl A
+If M=1:Goto 1
+Goto 2
+
+// ---------------------------------------------------------------- messages
+Lbl 5
+ClrHome
+Disp "THAT EQUATION IS MISSING","A SIDE. TRY LIKE 2X=8."
+Pause
+Goto 1
+Lbl 6
+ClrHome
+Disp "THE RANGE IS EMPTY.","USE TWO DIFFERENT ENDS."
+Pause
+Goto 2
+
+// ---------------------------------------------------------------- help
+Lbl 3
+ClrHome
+Disp "SOLVE FOR X:"," TYPE AN EQUATION LIKE"," 2X+3=7 OR X²=5X-6."," GET = FROM 2ND MATH."
+Disp "FIND ALL ZEROS:"," TYPE F(X) AND A RANGE."," LISTS EVERY X WHERE"," F(X)=0 IN THAT RANGE."
+Pause
+ClrHome
+Disp "TOUCH MEANS THE GRAPH"," TOUCHES ZERO BUT DOES"," NOT CROSS (DOUBLE ROOT)."
+Disp "USE X AS THE ONLY LETTER."
+Disp "FOR CUBE ROOTS OF NEGATIVE"," NUMBERS USE MATH 4: ³√(."
+Disp "BRAINIAC USES Y0 AS ITS"," SCRATCH SPACE."
+Pause
+Goto M
+
+// ---------------------------------------------------------------- quit
+Lbl Q
+DelVar ʟZF
+DelVar ʟZV
+DelVar ʟZA
+DelVar ʟZB
+DelVar ʟZR
+DelVar ʟZK
+""→Y₀
+Real
+ClrHome
+Disp "THANKS FOR USING BRAINIAC"
