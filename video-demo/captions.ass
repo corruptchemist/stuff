@@ -1,0 +1,22 @@
+[Script Info]
+ScriptType: v4.00+
+PlayResX: 1280
+PlayResY: 720
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Pop,Inter Display Black,72,&H00FFFFFF,&H00FFFFFF,&H00000000,&H80000000,1,0,0,0,100,100,1,0,1,6,3,2,40,40,90,1
+Style: Title,Inter Display Black,110,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,1,0,0,0,100,100,4,0,1,0,8,5,0,0,0,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 1,0:00:00.20,0:00:01.80,Title,,0,0,0,,{\fad(200,300)\fscx60\fscy60\t(0,250,\fscx100\fscy100)\blur2}INTO THE {\c&H00E5FF&}FRACTAL
+Dialogue: 0,0:00:02.00,0:00:02.30,Pop,,0,0,0,,{\c&H00E5FF&\fscx115\fscy115}WAIT{\c&HFFFFFF&\fscx100\fscy100} FOR IT...
+Dialogue: 0,0:00:02.30,0:00:02.60,Pop,,0,0,0,,WAIT {\c&H00E5FF&\fscx115\fscy115}FOR{\c&HFFFFFF&\fscx100\fscy100} IT...
+Dialogue: 0,0:00:02.60,0:00:04.00,Pop,,0,0,0,,WAIT FOR {\c&H00E5FF&\fscx115\fscy115}IT...{\c&HFFFFFF&\fscx100\fscy100}
+Dialogue: 0,0:00:04.00,0:00:04.30,Pop,,0,0,0,,{\c&H00E5FF&\fscx115\fscy115}IT{\c&HFFFFFF&\fscx100\fscy100} NEVER ENDS
+Dialogue: 0,0:00:04.30,0:00:04.70,Pop,,0,0,0,,IT {\c&H00E5FF&\fscx115\fscy115}NEVER{\c&HFFFFFF&\fscx100\fscy100} ENDS
+Dialogue: 0,0:00:04.70,0:00:06.00,Pop,,0,0,0,,IT NEVER {\c&H00E5FF&\fscx115\fscy115}ENDS{\c&HFFFFFF&\fscx100\fscy100}
+Dialogue: 0,0:00:06.00,0:00:06.50,Pop,,0,0,0,,{\c&H00E5FF&\fscx115\fscy115}FOLLOW{\c&HFFFFFF&\fscx100\fscy100} FOR MORE
+Dialogue: 0,0:00:06.50,0:00:06.90,Pop,,0,0,0,,FOLLOW {\c&H00E5FF&\fscx115\fscy115}FOR{\c&HFFFFFF&\fscx100\fscy100} MORE
+Dialogue: 0,0:00:06.90,0:00:07.80,Pop,,0,0,0,,FOLLOW FOR {\c&H00E5FF&\fscx115\fscy115}MORE{\c&HFFFFFF&\fscx100\fscy100}
