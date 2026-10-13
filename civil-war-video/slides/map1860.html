@@ -1,0 +1,46 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="archival.css">
+<script src="../node_modules/d3/dist/d3.min.js"></script><script src="../node_modules/topojson-client/dist/topojson-client.min.js"></script>
+<style>
+h2{position:absolute;top:110px;left:140px;font-size:72px;z-index:5}
+.k2{position:absolute;top:78px;left:142px;z-index:5}
+.sub{position:absolute;top:200px;left:142px;font:italic 400 36px 'Old Standard TT';color:var(--ink-soft);z-index:5}
+#map{position:absolute;left:90px;top:250px;z-index:5}
+.legend{position:absolute;right:120px;top:300px;width:400px;z-index:5}
+.li{display:flex;align-items:center;gap:18px;margin-bottom:26px}
+.sw{width:46px;height:46px;border:2px solid var(--ink);flex:none}
+.nm{font:700 30px 'Libre Baskerville'}.ev{font:400 22px 'Special Elite';color:var(--ink-soft);margin-top:2px}
+.note{position:absolute;right:120px;bottom:110px;width:400px;font:italic 400 20px 'Old Standard TT';color:var(--ink-soft);z-index:5}
+.big{position:absolute;right:120px;top:770px;width:400px;font:900 34px 'Playfair Display';line-height:1.15;color:var(--red);z-index:5}
+</style></head><body><svg class="grain"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency=".8" numOctaves="3" stitchTiles="stitch"/><feColorMatrix values="0 0 0 0 .32  0 0 0 0 .23  0 0 0 0 .14  0 0 0 .95 0"/></filter><rect width="100%" height="100%" filter="url(#n)"/></svg>
+<div class="frame"></div>
+<div class="k2 kicker">THE ELECTION OF 1860</div>
+<h2>A President Without the South</h2>
+<div class="sub">Lincoln wasn’t even on the ballot in ten Southern states</div>
+<svg id="map" width="1300" height="790"></svg>
+<div class="legend">
+ <div class="li"><div class="sw" style="background:#3d5f8a"></div><div><div class="nm">Lincoln</div><div class="ev">REPUBLICAN · 180 EV</div></div></div>
+ <div class="li"><div class="sw" style="background:#9a3328"></div><div><div class="nm">Breckinridge</div><div class="ev">SOUTHERN DEMOCRAT · 72 EV</div></div></div>
+ <div class="li"><div class="sw" style="background:#c58a2c"></div><div><div class="nm">Bell</div><div class="ev">CONSTITUTIONAL UNION · 39 EV</div></div></div>
+ <div class="li"><div class="sw" style="background:#6e7a3a"></div><div><div class="nm">Douglas</div><div class="ev">NORTHERN DEMOCRAT · 12 EV</div></div></div>
+ <div class="li"><div class="sw" style="background:repeating-linear-gradient(45deg,#d9c7a0 0 6px,#bfa77a 6px 10px)"></div><div><div class="nm">Territory</div><div class="ev">NO ELECTORAL VOTES</div></div></div>
+</div>
+<div class="big">0 slave states<br>voted for Lincoln.</div>
+<div class="note">Modern state borders shown. New Jersey split its electors (Lincoln 4, Douglas 3).</div>
+<script>
+const R={Lincoln:"#3d5f8a",Breck:"#9a3328",Bell:"#c58a2c",Douglas:"#6e7a3a"};
+const by={Lincoln:"Maine,New Hampshire,Vermont,Massachusetts,Rhode Island,Connecticut,New York,New Jersey,Pennsylvania,Ohio,Indiana,Illinois,Michigan,Wisconsin,Minnesota,Iowa,California,Oregon",
+ Breck:"Delaware,Maryland,North Carolina,South Carolina,Georgia,Florida,Alabama,Mississippi,Louisiana,Texas,Arkansas",
+ Bell:"Virginia,West Virginia,Kentucky,Tennessee",Douglas:"Missouri"};
+const color={};for(const k in by)by[k].split(",").forEach(s=>color[s]=R[k]);
+const topo=JSON.parse(TOPO);
+const states=topojson.feature(topo,topo.objects.states).features.filter(f=>!["Alaska","Hawaii"].includes(f.properties.name));
+const svg=d3.select("#map"),g=svg.append("g").attr("transform","translate(0,0) scale(1.33)");
+const defs=svg.append("defs");
+defs.append("pattern").attr("id","terr").attr("width",8).attr("height",8).attr("patternUnits","userSpaceOnUse").attr("patternTransform","rotate(45)")
+ .html('<rect width="8" height="8" fill="#d9c7a0"/><rect width="3" height="8" fill="#bfa77a"/>');
+const path=d3.geoPath();
+g.selectAll("path").data(states).join("path").attr("d",path)
+ .attr("fill",d=>color[d.properties.name]||(d.properties.name==="District of Columbia"?"none":"url(#terr)"))
+ .attr("stroke","#241a12").attr("stroke-width",.9).attr("stroke-linejoin","round");
+</script>
+</body></html>
