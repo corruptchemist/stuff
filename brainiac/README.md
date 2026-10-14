@@ -176,7 +176,7 @@ and solves that line: `2^X=8`. Then logs finish the job.
 | `tibasic.py` | The simulator: a TI-BASIC interpreter covering what the programs use, graph screen included |
 | `play.py` / `screen.py` | Play in the terminal; draw screens as PNGs |
 | `shots.py` | `python -m brainiac.shots` regenerates `screenshots/` |
-| `../tests/test_brainiac.py`, `test_geometry.py` | `python -m pytest tests/test_brainiac.py tests/test_geometry.py` (about 330 tests) |
+| `../tests/test_brainiac.py`, `test_geometry.py` | `python -m pytest tests/test_brainiac.py tests/test_geometry.py` (273 tests) |
 
 The build refuses two kinds of mistake that would only show up on the
 calculator:
