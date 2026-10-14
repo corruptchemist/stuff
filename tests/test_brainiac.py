@@ -1040,3 +1040,11 @@ def test_solve_nonpoly_stress_fixes(equation, degree, shows):
 def test_trig_of_a_number_is_just_a_number_in_degree():
     m, lines = degree_run(SOLVE, "sin(30)X^2=2")      # was "0 TO 360": missed X=⁻2
     assert lines[1:4] == ["(SEARCHED ⁻99 TO 99)", "X=⁻2", "X=2"]
+
+
+@pytest.mark.parametrize("equation, shows", [
+    ("abs(X)=⁻X", "TRUE FOR EVERY X WITH"),            # parts that add up to 0 aren't noise
+    ("X/(X-3)=3/(X-3)+1", "EXCEPT WHERE A BOTTOM IS 0"),
+])
+def test_identities_with_conditions(equation, shows):
+    assert shows in answers_for(SOLVE, equation)

@@ -611,6 +611,8 @@ If J=5:ʟBA→ʟBV5
 If J=6:ʟBA→ʟBV6
 expr(Str9)→ʟBW
 max(θ,max(ʟBK*abs(expr(Str8))))→θ
+// (and the values themselves: (X)-(⁻X) has parts that add up to 0)
+max(θ,max(ʟBK*abs(ʟBW)))→θ
 // try the letter on the bottom, up to power 3 (for things like V/I), if
 // anything divides at all
 3(inString(Str9,"/")>0 or inString(Str9,"\x0C")>0)→S
@@ -2707,6 +2709,13 @@ If not(min(ʟZV)):"EVERY "+sub(Str7,1,1)+" WHERE BOTH SIDES"→Str0
 "ARE ALWAYS EQUAL."→Str0
 If not(min(ʟZV)):"HAVE A VALUE WORKS."→Str0
 #call line
+// a letter on a bottom: not where that bottom is 0
+#call eqn
+#call dens
+If not(Z):Goto @na_end
+"EXCEPT WHERE A BOTTOM IS 0"→Str0
+#call line
+Lbl @na_end
 #call done
 #return
 
