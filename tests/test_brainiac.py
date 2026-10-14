@@ -543,7 +543,7 @@ def test_number_line_dots_and_labels_line_up():
     assert [t for _, t in labels] == ["⁻2", "1"]
     # each label sits under its dot: dots at 20+224I/(N+1)
     for (col, t), x in zip(labels, [20 + 224 / 3, 20 + 448 / 3]):
-        assert abs(col + 3 * len(t) - x) < 4, (t, col)
+        assert abs(col + 4 * len(t) - x) < 4, (t, col)
     # ⁻2 is left open, 1 filled in: look just above the line, in the middle
     assert (int(20 + 448 / 3), 80) in pixels and (int(20 + 224 / 3), 80) not in pixels
 
@@ -878,3 +878,31 @@ def test_typed_text_becomes_calculator_tokens():
     assert [t.key for t in keyboard_to_tokens("PV=NRT")][:2] == ["P", "V"]   # not finance PV
     assert [t.key for t in keyboard_to_tokens("R²")] == ["R", "^^2"]         # not statistic R²
     assert [t.key for t in tokens_from_text("X²")] == ["X", "^^2"]
+
+
+# -- crashes found by the 0.5 stress tests ---------------------------------------------------------
+
+@pytest.mark.parametrize("degree, answers, shows", [
+    (True, (SOLVE, "tan(X)=1"), "X=225"),                    # a search point landed on tan(90)
+    (False, (POLY, ROOTS, "sin(X)"), "THAT ISN'T A POLYNOMIAL"),   # list BM read before made
+    (False, (POLY, FACTOR, "X-X"), "=0"),                    # dividing by a 0 common factor
+    (False, (HELP, "3", "4", "5", "X^2"), "QUOTIENT: 0"),     # a constant top: list BM again
+    (False, (SOLVE, "e^(X)=0"), "THAT IS NEVER 0 OR LESS."),  # ln(0)
+    (False, (SOLVE, "3^X=⁻9"), "THAT IS NEVER 0 OR LESS."),
+])
+def test_stress_test_crashes_are_fixed(degree, answers, shows):
+    m = load_program()
+    m.radians = not degree
+    m.run()
+    for a in [x for a in answers for x in (a if isinstance(a, tuple) else (a,))]:
+        m.answer(a)
+    assert m.wait.kind == "pause", (m.wait, m.statement_text())
+    assert shows in [ln.strip() for ln in m.screen.lines()]
+    assert_clean(m)
+
+
+def test_a_long_inequality_answer_stays_on_the_picture():
+    m, picture, lines = inequality("sin(X)>.5")                # Radian: many intervals
+    assert "ANSWER: SEE THE WORKING" in picture
+    texts, _ = m.number_line
+    assert all(len(t) <= 32 for row, col, t, _ in texts if row == 136)

@@ -20,7 +20,15 @@ are the usual ways TI-BASIC programs break:
     ERR:DIVIDE BY 0, results past 1E100 stop with ERR:OVERFLOW,
   - the If line without Then guards only the single next statement,
   - there are no empty strings: ""→Str1, ""+"A", length(""), a blank Input
-    into a string are all errors (Disp "" for a blank line is fine).
+    into a string are all errors (Disp "" for a blank line is fine),
+  - nor empty lists in use: after 0→dim(ʟA) only dim(ʟA) and storing into
+    it work; seq( never makes an empty list (ERR:INCREMENT) and augment( of
+    an empty list is ERR:INVALID DIM,
+  - Output(, sub(, inString( and round( want whole numbers (ERR:DOMAIN),
+    an unmatched ) is ERR:SYNTAX, seq( and expr( can't nest,
+  - Disp cuts a long line with "…", and Text( stops at the right edge
+    (graph.clipped lists what it cut).
+tests/test_simulator_fidelity.py has a test, with its source, for each rule.
 """
 
 from __future__ import annotations
@@ -29,6 +37,7 @@ import cmath
 import math
 import re
 from dataclasses import dataclass, field
+from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
 
 from tivars.tokenizer import encode
@@ -146,21 +155,34 @@ def fmt(v) -> str:
     if x == 0:
         return "0"
     neg = x < 0
-    x = abs(x)
-    if 1e-3 <= x < 1e10:
-        s = f"{x:.10g}"
-        if "e" in s:  # .10g can still choose exponent form near 1e10
-            s = f"{x:.0f}"
-        if "." in s:
-            s = s.rstrip("0").rstrip(".")
-        if s.startswith("0."):
-            s = s[1:]
+    digits, e = round10(abs(x))
+    # Normal mode: scientific notation below .001 and from 1ᴇ10 up (TI-84
+    # Plus CE guidebook, Normal/Sci/Eng mode: "If the answer cannot be
+    # displayed in 10 digits or the absolute value is less than .001")
+    if -3 <= e < 10:
+        if e >= 0:
+            whole, frac = digits[:e + 1].ljust(e + 1, "0"), digits[e + 1:]
+            s = whole + ("." + frac if frac else "")
+        else:
+            s = "." + "0" * (-e - 1) + digits
     else:
-        mant, exp = f"{x:.9e}".split("e")
-        mant = mant.rstrip("0").rstrip(".")
-        e = int(exp)
-        s = f"{mant}ᴇ{'⁻' if e < 0 else ''}{abs(e)}"
+        s = digits[0] + ("." + digits[1:] if len(digits) > 1 else "")
+        s += f"ᴇ{'⁻' if e < 0 else ''}{abs(e)}"
     return ("⁻" if neg else "") + s
+
+
+def round10(x: float) -> tuple[str, int]:
+    """x > 0 as the calculator shows it: its 14-digit value rounded to 10
+    significant digits, half away from zero (so .12345678905 shows as
+    .1234567891, which binary rounding of the float would get wrong).
+    Returns the digits without trailing zeros and the decimal exponent."""
+    d = Decimal(f"{x:.13e}")
+    e = d.adjusted()
+    mant = d.scaleb(-e).quantize(Decimal("1.000000000"), rounding=ROUND_HALF_UP)
+    if mant >= 10:                      # 9.9999999996 -> 10: one more digit
+        e += 1
+        mant = (mant / 10).quantize(Decimal("1.000000000"), rounding=ROUND_HALF_UP)
+    return str(mant).replace(".", "").rstrip("0") or "0", e
 
 
 # -- the screen ---------------------------------------------------------------
@@ -183,8 +205,13 @@ class Screen:
         return r
 
     def disp(self, text: str, right=False):
-        """One Disp line: strings on the left, numbers on the right."""
-        text = text[:COLS]
+        """One Disp line: strings on the left, numbers on the right.
+
+        Disp never wraps: a line too long for the screen is cut off with an
+        ellipsis in the last column (tibasicdev, Disp; 26 columns on the CE).
+        """
+        if len(text) > COLS:
+            text = text[:COLS - 1] + "…"
         r = self._newline_row()
         start = COLS - len(text) if right else 0
         for i, ch in enumerate(text):
@@ -237,11 +264,57 @@ class Screen:
 GW, GH = 265, 165            # the CE's graph area, in pixels
 
 
+# Pixel widths in the graph screen's small font (the Text( font) on the color
+# calculators: a character plus the blank columns after it. From the Cemetech
+# forum thread "Character Pixel Widths" (measured on a TI-84 Plus C SE, whose
+# fonts the CE kept): capitals and digits 6+2, M V W Y 8+2, N U X 7+2, space 2,
+# "." 2+2, "," and ":" 4+2, ";" 6+2, ( ) 4, + - / 6, * 8, the negative sign 4.
+# Anything it doesn't list counts as 4, so the estimate errs short: when it
+# says a text runs off the right edge, it surely does on the calculator.
+SMALL_FONT = {**{ch: 8 for ch in "ABCDEFGHIJKLOPQRSTZ0123456789"},
+              **{ch: 10 for ch in "MVWY"}, **{ch: 9 for ch in "NUX"},
+              " ": 2, ".": 4, ",": 6, ":": 6, ";": 8, "(": 4, ")": 4, "+": 6, "-": 6,
+              "/": 6, "*": 8, "⁻": 4}
+
+
+def text_fit(col: int, text: str) -> str:
+    """The part of `text` Text( shows from column `col`: it never wraps, and
+    stops before the first character that doesn't fit on the screen whole
+    (tibasicdev, Text(). The 2 blank columns after a character may hang off."""
+    x = col
+    for i, ch in enumerate(text):
+        w = SMALL_FONT.get(ch, 4)
+        if x + w - 2 > GW:
+            return text[:i]
+        x += w
+    return text
+
+
+def clip_segment(x1, y1, x2, y2, xmin, ymin, xmax, ymax):
+    """Liang-Barsky: the part of a segment inside a rectangle, or None."""
+    t0, t1 = 0.0, 1.0
+    dx, dy = x2 - x1, y2 - y1
+    for p, q in ((-dx, x1 - xmin), (dx, xmax - x1), (-dy, y1 - ymin), (dy, ymax - y1)):
+        if p == 0:
+            if q < 0:
+                return None
+        else:
+            t = q / p
+            if p < 0:
+                t0 = max(t0, t)
+            else:
+                t1 = min(t1, t)
+    if t0 > t1:
+        return None
+    return x1 + t0 * dx, y1 + t0 * dy, x1 + t1 * dx, y1 + t1 * dy
+
+
 class Graph:
     """The graph screen: a bitmap plus the text drawn on it with Text(."""
 
     def __init__(self):
         self.axes = True
+        self.clipped = []        # (row, col, text, shown): Text( cut off at the right edge
         self.clear()
 
     def clear(self):
@@ -253,6 +326,12 @@ class Graph:
             self.pixels.add((int(px), int(py)))
 
     def line(self, x1, y1, x2, y2):
+        # only the part on the screen matters (a line far off it would
+        # otherwise take forever to draw here; the calculator just clips it)
+        seg = clip_segment(x1, y1, x2, y2, -1, -1, GW, GH)
+        if seg is None:
+            return
+        x1, y1, x2, y2 = seg
         n = int(max(abs(x2 - x1), abs(y2 - y1))) + 1
         for i in range(n + 1):
             t = i / n
@@ -267,7 +346,10 @@ class Graph:
     def text(self, row, col, text, big=False):
         if not (0 <= row <= GH and 0 <= col <= GW):
             raise TIError("DOMAIN")
-        self.texts.append((int(row), int(col), text, big))
+        shown = text if big else text_fit(int(col), text)
+        if shown != text:
+            self.clipped.append((int(row), int(col), text, shown))
+        self.texts.append((int(row), int(col), shown, big))
 
     def rows(self) -> list[str]:
         """A coarse look for the terminal: 26x10 cells over the 265x165 pixels."""
@@ -331,6 +413,7 @@ class Machine:
         self.window = {"Xmin": -10.0, "Xmax": 10.0, "Xscl": 1.0,
                        "Ymin": -10.0, "Ymax": 10.0, "Yscl": 1.0}
         self.programs = {}           # other programs this one may run with prgm
+        self.gdbs = {}               # StoreGDB: graph databases
         self.frames = []             # programs we are inside, innermost last
         self.pc = 0
         self.blocks = []
@@ -342,6 +425,8 @@ class Machine:
         self.wait = None
         self._finish = None      # completes the statement we're waiting on
         self._cache = {}
+        self.in_seq = False      # inside a seq( (seq( can't nest: ILLEGAL NEST)
+        self.in_expr = False     # inside an expr( (nor can expr()
 
     @classmethod
     def from_file(cls, path, *others, **kw):
@@ -454,7 +539,12 @@ class Machine:
                 self.screen.disp(fmt(v), right=not isinstance(v, TIString))
         elif head == "Output(":
             row, col, val = [self.eval(a) for a in self.parse_args(pc, rest, 3)]
-            self.screen.output(int(self.real(row)), int(self.real(col)), fmt(val))
+            row, col = self.real(row), self.real(col)
+            if row != int(row) or col != int(col):
+                # tibasicdev, Output(: ERR:DOMAIN if the row or column is not
+                # an integer in range (even one a hair off from round-off)
+                raise TIError("DOMAIN (Output( needs whole-number row and column)")
+            self.screen.output(int(row), int(col), fmt(val))
         elif head == "Input ":
             return self.do_input(pc, rest)
         elif head == "Prompt ":
@@ -519,8 +609,26 @@ class Machine:
             return None
         elif head in ("Degree", "Radian"):
             self.radians = head == "Radian"
-        elif head == "Full":
-            pass            # full screen, not split (Horiz, G-T): all the simulator has
+        elif head in ("StoreGDB ", "RecallGDB "):
+            # a graph database: the window and the axes (on the calculator
+            # also the Y= selection, grid and format)
+            if len(rest) == 1 and rest[0].key.startswith("GDB"):
+                name = rest[0].key
+            else:
+                n = self.eval(Parser(rest).expr())
+                if not is_num(n) or n != int(n) or not 0 <= n <= 9:
+                    raise TIError("DOMAIN (StoreGDB/RecallGDB take 0-9)")
+                name = f"GDB{int(n)}"
+            if head == "StoreGDB ":
+                self.gdbs[name] = (dict(self.window), self.graph.axes)
+            elif name not in self.gdbs:
+                raise TIError("UNDEFINED (no " + name + ")")
+            else:
+                window, axes = self.gdbs[name]
+                self.window.update(window)
+                self.graph.axes = axes
+        elif head in ("Full", "Normal", "Float"):
+            pass            # full screen, Normal/Float display: all the simulator has
         elif head in ("ClrDraw", "AxesOff", "AxesOn ", "GridOff", "FnOff ", "PlotsOff ",
                       "BackgroundOff", "DispGraph", "TextColor(", "Line(", "Circle(",
                       "Pt-On(", "Text(", "Horizontal ", "Vertical "):
@@ -541,6 +649,7 @@ class Machine:
                 if name not in self.mats:
                     raise TIError("UNDEFINED")
                 rows, cols = self.mats[name].dims
+                v = self.real(v)            # no complex matrices on the TI-84
                 self.mats[name] = TIMatrix([[v] * cols for _ in range(rows)])
             elif target[0] == "listvar":
                 if name not in self.lists:
@@ -555,7 +664,7 @@ class Machine:
                 raise TIError("SYNTAX")
             n = max(len(c) for c in cols)
             self.mats[args[-1][1]] = TIMatrix(
-                [[c[i] if i < len(c) else 0.0 for c in cols] for i in range(n)])
+                [[self.real(c[i]) if i < len(c) else 0.0 for c in cols] for i in range(n)])
         elif head == "Matr>list(":
             args = self.parse_args(pc, rest)
             mat = self.eval(args[0])
@@ -858,11 +967,16 @@ class Machine:
             rows, cols = mat.dims
             if r > rows or c > cols:
                 raise TIError("INVALID DIM")
-            mat.rows[r - 1][c - 1] = self.number(val)
+            # the TI-84 Plus CE has no complex matrices: real numbers only
+            mat.rows[r - 1][c - 1] = self.real(val)
         elif kind == "mdim":
             if not isinstance(val, list) or len(val) != 2:
                 raise TIError("DATA TYPE")
             r, c = self.index(val[0]), self.index(val[1])
+            if r > 99 or c > 99:
+                # TI-84 Plus CE guidebook, error messages: INVALID DIM for a
+                # matrix dimension outside 1-99
+                raise TIError("INVALID DIM (matrices are at most 99x99)")
             old = self.mats.get(target[1], TIMatrix([]))
             self.mats[target[1]] = TIMatrix(
                 [[old.rows[i][j] if i < len(old.rows) and j < len(old.rows[i]) else 0.0
@@ -876,6 +990,9 @@ class Machine:
             raise TIError("SYNTAX")
 
     def delvar(self, rest):
+        if len(rest) == 1 and rest[0].key.startswith("GDB"):
+            self.gdbs.pop(rest[0].key, None)
+            return
         node = Parser(rest).target()
         kind = node[0]
         if kind == "listvar":
@@ -891,7 +1008,14 @@ class Machine:
 
     def sort(self, rest, descending):
         names = [Parser(g).target() for g in split_commas(rest)]
+        if any(n[0] != "listvar" for n in names):
+            raise TIError("DATA TYPE")
+        if any(n[1] not in self.lists for n in names):
+            raise TIError("UNDEFINED")
         lists = [self.lists[n[1]] for n in names]
+        if not lists[0]:
+            # like any other use of an empty list (see "listvar" in eval)
+            raise TIError("INVALID DIM (sorting an empty list)")
         # Brainiac only sorts real lists; insist on it, in case the calculator does
         if any(isinstance(x, complex) for l in lists for x in l):
             raise TIError("DATA TYPE")
@@ -915,7 +1039,7 @@ class Machine:
         if key not in self._cache:
             p = Parser(toks)
             args = p.arglist()
-            p.end()
+            p.end(close_ok=self.stmts[pc][0].key.endswith("("))
             self._cache[key] = args
         args = self._cache[key]
         if n is not None and len(args) != n:
@@ -1036,6 +1160,10 @@ FUNCS1 = {
 }
 FUNCSN = {"round(", "max(", "min(", "inString(", "sub(", "gcd(", "lcm(", "seq(", "augment(",
           "remainder("}
+# how many arguments each function takes (ERR:ARGUMENT otherwise)
+ARG_COUNTS = {"round(": (1, 2), "max(": (1, 2), "min(": (1, 2), "inString(": (2, 3),
+              "sub(": (3, 3), "gcd(": (2, 2), "lcm(": (2, 2), "seq(": (4, 5),
+              "augment(": (2, 2), "remainder(": (2, 2)}
 RELOPS = {"=", "!=", "<", ">", "<=", ">="}
 POSTFIX = {"^^2", "^^3", "^^-1", "!"}
 
@@ -1056,8 +1184,11 @@ class Parser:
         self.i += 1
         return tok
 
-    def end(self):
-        if self.peek() == ")":   # a stray close paren at the very end is fine
+    def end(self, close_ok=False):
+        """Nothing may follow. close_ok: the ")" of a command like Output(
+        may end the statement; anywhere else an unmatched ")" is ERR:SYNTAX,
+        as on the calculator."""
+        if close_ok and self.peek() == ")":
             self.i += 1
         if self.peek() is not None:
             raise TIError(f"SYNTAX (unexpected {self.t[self.i].glyph!r})")
@@ -1316,6 +1447,11 @@ class Evaluator:
         if kind == "listvar":
             if node[1] not in m.lists:
                 raise TIError("UNDEFINED")
+            if not m.lists[node[1]]:
+                # A list of dimension 0 (after 0→dim() exists, but only dim(
+                # can look at it: any other use errors "just as for a deleted
+                # list" (tibasicdev, dim(); recalling one is ERR:INVALID DIM
+                raise TIError("INVALID DIM (an empty list used in an expression)")
             return list(m.lists[node[1]])
         if kind == "listelem":
             if node[1] not in m.lists:
@@ -1478,6 +1614,8 @@ class Evaluator:
     def relation(self, op, a, b):
         if isinstance(a, list) or isinstance(b, list):
             n = len(a) if isinstance(a, list) else len(b)
+            if isinstance(a, list) and isinstance(b, list) and len(a) != len(b):
+                raise TIError("DIM MISMATCH")
             aa = a if isinstance(a, list) else [a] * n
             bb = b if isinstance(b, list) else [b] * n
             return [self.relation(op, x, y) for x, y in zip(aa, bb)]
@@ -1500,7 +1638,14 @@ class Evaluator:
     def call(self, name, arg_nodes):
         m = self.m
         if name == "dim(":
+            if len(arg_nodes) != 1:
+                raise TIError("ARGUMENT")
             node = arg_nodes[0]
+            if node[0] == "listvar":
+                # dim( is the one thing an empty list can be used in
+                if node[1] not in m.lists:
+                    raise TIError("UNDEFINED")
+                return float(len(m.lists[node[1]]))
             v = self.eval(node)
             if isinstance(v, TIMatrix):
                 return [float(x) for x in v.dims]
@@ -1509,11 +1654,16 @@ class Evaluator:
             return float(len(v))
         if name == "seq(":
             return self.seq(arg_nodes)
-        args = [self.eval(a) for a in arg_nodes]
-        if name in FUNCS1 and len(args) != 1:
+        if name in FUNCS1 and len(arg_nodes) != 1:
             raise TIError("ARGUMENT")
+        lo, hi = ARG_COUNTS.get(name, (1, 1))
+        if not lo <= len(arg_nodes) <= hi:
+            raise TIError("ARGUMENT")
+        if name == "expr(":
+            return self.expr_(self.eval(arg_nodes[0]))
+        args = [self.eval(a) for a in arg_nodes]
 
-        if name in ("length(", "expr(", "inString(", "sub(", "toString("):
+        if name in ("length(", "inString(", "sub(", "toString("):
             return self.string_func(name, args)
         if name in ("prod(", "DeltaList(", "cumSum("):
             v = args[0]
@@ -1536,6 +1686,10 @@ class Evaluator:
         if name == "augment(":
             a, b = args
             if isinstance(a, list) and isinstance(b, list):
+                if not a or not b:
+                    # tibasicdev, augment(: ERR:INVALID DIM if either list
+                    # has dimension 0
+                    raise TIError("INVALID DIM (augment( of an empty list)")
                 if any(isinstance(x, complex) for x in a + b):
                     raise TIError("DATA TYPE (augment( of complex lists: unknown on the "
                                   "calculator)")
@@ -1570,7 +1724,14 @@ class Evaluator:
         if name == "round(":
             if len(args) == 1:
                 args.append(9.0)
-            v, n = args[0], int(m.real(args[1]))
+            if len(args) != 2:
+                raise TIError("ARGUMENT")
+            v, n = args[0], m.real(args[1])
+            if n != int(n):
+                # tibasicdev, round(: ERR:DOMAIN unless the number of places
+                # is an integer 0 through 9
+                raise TIError("DOMAIN (round( places must be a whole number 0-9)")
+            n = int(n)
 
             def one(x):
                 x = m.number(x)
@@ -1619,7 +1780,9 @@ class Evaluator:
             if name == "conj(":
                 return v.conjugate() if z else v
             if name == "angle(":
-                return cmath.phase(v) if z else (0.0 if v >= 0 else math.pi)
+                # in the current angle mode, like the inverse trig functions
+                a = cmath.phase(v) if z else (0.0 if v >= 0 else math.pi)
+                return a if m.radians else a * 180 / math.pi
             if name == "not(":
                 return float(not m.truth(v))
             if name == "int(":
@@ -1677,13 +1840,21 @@ class Evaluator:
         m = self.m
         if len(nodes) not in (4, 5) or nodes[1][0] != "var":
             raise TIError("ARGUMENT")
+        if m.in_seq:
+            # TI-84 Plus CE guidebook, error messages: ILLEGAL NEST "such as
+            # seq( within expression for seq(" (also reached through expr()
+            raise TIError("ILLEGAL NEST (seq( inside seq()")
         var = nodes[1][1]
         start, end = m.real(self.eval(nodes[2])), m.real(self.eval(nodes[3]))
         step = m.real(self.eval(nodes[4])) if len(nodes) == 5 else 1.0
-        if step == 0:
-            raise TIError("INCREMENT")
+        if step == 0 or (step > 0 and start > end) or (step < 0 and start < end):
+            # TI-84 Plus CE guidebook, error messages: INCREMENT "The
+            # increment, step, in seq( is 0 or has the wrong sign": seq(
+            # never makes an empty list
+            raise TIError("INCREMENT (seq( from a start past its end)")
         saved = m.reals.get(var, 0.0)
         out, k = [], start
+        m.in_seq = True
         try:
             while (step > 0 and k <= end + 1e-12) or (step < 0 and k >= end - 1e-12):
                 m.reals[var] = k
@@ -1700,7 +1871,24 @@ class Evaluator:
                 k = m.number(k + step)
         finally:
             m.reals[var] = saved
+            m.in_seq = False
         return out
+
+    def expr_(self, s):
+        m = self.m
+        if not isinstance(s, TIString):
+            raise TIError("DATA TYPE")
+        if not s.tokens:
+            raise TIError("INVALID (expr( of an empty string)")
+        if m.in_expr:
+            # tibasicdev, expr(: ERR:ILLEGAL NEST if the string being
+            # evaluated contains expr( itself
+            raise TIError("ILLEGAL NEST (expr( inside expr()")
+        m.in_expr = True
+        try:
+            return self.eval(Parser(s.tokens).whole())
+        finally:
+            m.in_expr = False
 
     def string_func(self, name, args):
         m = self.m
@@ -1711,22 +1899,22 @@ class Evaluator:
             if not s.tokens:
                 raise TIError("INVALID DIM (the calculator has no empty strings)")
             return float(len(s.tokens))
-        if name == "expr(":
-            s = args[0]
-            if not isinstance(s, TIString):
-                raise TIError("DATA TYPE")
-            if not s.tokens:
-                raise TIError("SYNTAX")
-            return self.eval(Parser(s.tokens).whole())
         if name == "toString(":
             if isinstance(args[0], (TIString, list, TIMatrix)):
                 raise TIError("DATA TYPE")
             return text_to_string(fmt(m.number(args[0])))
         if name == "inString(":
+            if len(args) not in (2, 3):
+                raise TIError("ARGUMENT")
             s, sub_ = args[0], args[1]
-            start = int(m.real(args[2])) if len(args) > 2 else 1
+            start = m.real(args[2]) if len(args) > 2 else 1
             if not isinstance(s, TIString) or not isinstance(sub_, TIString):
                 raise TIError("DATA TYPE")
+            # tibasicdev, inString(: ERR:DOMAIN if the start is not a positive
+            # integer; a start past the end of the string is fine (gives 0)
+            if start != int(start) or start < 1:
+                raise TIError("DOMAIN (inString( start must be a whole number 1 or more)")
+            start = int(start)
             hay, needle = s.tokens, sub_.tokens
             if not hay or not needle:
                 raise TIError("INVALID DIM (the calculator has no empty strings)")
@@ -1740,9 +1928,15 @@ class Evaluator:
                 raise TIError("ARGUMENT")
             if not s.tokens:
                 raise TIError("INVALID DIM (the calculator has no empty strings)")
-            start, length = int(m.real(args[1])), int(m.real(args[2]))
-            if start < 1 or length < 1 or start + length - 1 > len(s.tokens):
-                raise TIError("DOMAIN")
+            start, length = m.real(args[1]), m.real(args[2])
+            # tibasicdev, sub(: ERR:DOMAIN if the start or length is not an
+            # integer or is below 1 (so no empty result); ERR:INVALID DIM if
+            # they reach past the end of the string
+            if start != int(start) or length != int(length) or start < 1 or length < 1:
+                raise TIError("DOMAIN (sub( start and length must be whole numbers 1 or more)")
+            start, length = int(start), int(length)
+            if start + length - 1 > len(s.tokens):
+                raise TIError("INVALID DIM (sub( past the end of the string)")
             return TIString(s.tokens[start - 1:start - 1 + length])
         raise TIError("SYNTAX")
 

@@ -290,7 +290,7 @@ class Expect:
 ERRS = {"tri": "THOSE DON'T MAKE A", "one0": "TYPE 0 FOR EXACTLY ONE OF",
         "two0": "TYPE 0 FOR EXACTLY TWO OF", "hyp": "THE HYPOTENUSE MUST BE",
         "ang": "THAT IS OUT OF RANGE.", "pos": "LENGTHS MUST BE POSITIVE.",
-        "circ": "THAT ISN'T A CIRCLE:"}
+        "circ": "THAT ISN'T A CIRCLE:", "leg": "A SLANTED SIDE CAN'T BE"}
 
 PI = mp.pi
 
@@ -474,16 +474,17 @@ def o_trap(u, v, h, s3=None, s4=None):
     area = (u + v) * h / 2
     lines = [["AREA=(B1+B2)/2×H"], [" =", N(area)]]
     labels = [["B1=", N(u)], ["B2=", N(v)], ["H=", N(h)], ["AREA=", N(area)]]
+    if s3 < 0 or s4 < 0:
+        return bad("pos")
+    if (0 < s3 < h) or (0 < s4 < h):
+        return bad("leg")
     if s3 > 0:
         labels.append(["S3=", N(s3)])
     if s4 > 0:
         labels.append(["S4=", N(s4)])
     if s3 > 0 and s4 > 0:
         lines += [["PERIMETER=B1+B2+S3+S4"], [" =", N(u + v + s3 + s4)]]
-    e = Expect(True, lines, labels)
-    if (0 < s3 < h) or (0 < s4 < h):
-        e.flag = "a slanted side shorter than the height is impossible, yet the perimeter is given"
-    return e
+    return Expect(True, lines, labels)
 
 
 def o_box(l, w, h):
@@ -1317,6 +1318,7 @@ def run_comb(ops, degree, cplx, end):
     m = new_geometry(degree, cplx)
     r = Runner(m, mode_name(degree, cplx), "comb")
     total = mp.mpf(0)
+    parts = 0
     try:
         r.ans("3")
         r.ans("5")
@@ -1340,29 +1342,35 @@ def run_comb(ops, degree, cplx, end):
                     raise Abort
                 r.ans(v.text)
             area = f(*[v.x for v in vals])
-            total += sign * area
-            if any(v.x < 0 for v in vals) and not flagged:
-                r.fail("misleading", f"a negative length ({[v.text for v in vals]}) is accepted for a "
-                                     f"{name.lower()}")
-                flagged = True
             lines = [ln.strip() for ln in m.screen.lines() if ln.strip()]
-            want1 = [name + ": " + ("+" if sign > 0 else "-"), N(area)]
-            want2 = ["TOTAL SO FAR: ", N(total)]
-            if len(lines) < 2 or match(want1, lines[0]) or match(want2, lines[1]):
-                sev = "cosmetic" if len(lines) >= 2 and "text" in (match(want1, lines[0]) or "",
-                                                                   match(want2, lines[1]) or "") else "wrong"
-                r.fail(sev, f"after a {name.lower()}: {lines[:2]} should read "
-                            f"{[show(want1), show(want2)]}")
+            if any(v.x < 0 for v in vals):
+                # 0.5: a negative length is refused and the part isn't added
+                if lines[:2] != ["LENGTHS CAN'T BE NEGATIVE.", "THAT PART WASN'T ADDED."]:
+                    r.fail("misleading", f"a negative length ({[v.text for v in vals]}) is accepted "
+                                         f"for a {name.lower()}: {lines[:2]}")
+                r.ans("")
+                continue
+            parts += 1
+            total += sign * area
+            # 0.5: the name, then the signed area, then the total, on their own lines
+            want = [[name + ":"], [("+" if sign > 0 else "-"), N(area)], ["TOTAL SO FAR:"], [N(total)]]
+            if len(lines) < 4 or any(match(w, g) for w, g in zip(want, lines)):
+                bad_text = len(lines) >= 4 and all("text" in (match(w, g) or "text")
+                                                   for w, g in zip(want, lines))
+                r.fail("cosmetic" if bad_text else "wrong",
+                       f"after a {name.lower()}: {lines[:4]} should read {[show(w) for w in want]}")
+            if total < 0 and "(MORE TAKEN AWAY THAN" not in lines:
+                r.fail("misleading", f"total area is negative ({mp.nstr(total, 8)}) with no warning")
             r.ans("")
-        if total < 0:
-            r.fail("misleading", f"total area is negative ({mp.nstr(total, 8)}) and is shown as an area")
         r.menu("COMBINED SHAPE")
         start = len(m.screen.olog)
         r.ans("6")
         # the result screen comes straight up (there is no figure)
         log = [e["text"] for e in m.screen.olog[start:] if not e["text"].startswith("ENTER:")]
-        want = [["COMBINED SHAPE: ", N(len(ops)), " PARTS"], ["TOTAL AREA=", N(total)]]
-        if len(log) < 2 or any(match(w, g) for w, g in zip(want, log[-2:])):
+        want = [["COMBINED SHAPE: ", N(parts), " PARTS"], ["TOTAL AREA=", N(total)]]
+        if total < 0:
+            want += [["THAT'S LESS THAN 0: MORE"], ["WAS TAKEN AWAY THAN ADDED."]]
+        if len(log) < len(want) or any(match(w, g) for w, g in zip(want, log[-len(want):])):
             r.fail("wrong", f"result {log} should read {[show(w) for w in want]}")
         r.ans("")
         r.menu("WHAT NEXT?")
@@ -1500,7 +1508,7 @@ def session_tests(rng, cases, quick):
         b.run()
         r = Runner(b, mode_name(degree, False) + " via BRAINIAC", "brainiac")
         try:
-            r.menu("BRAINIAC 0.4")
+            r.menu("BRAINIAC 0.5")
             r.ans("5")
             r.menu("GEOMETRY & UNITS")
             r.ans("1")
@@ -1521,7 +1529,7 @@ def session_tests(rng, cases, quick):
                     drive_valid(r, case)
                 prev = case
             r.ans("3")                                       # BACK TO BRAINIAC
-            r.menu("BRAINIAC 0.4")
+            r.menu("BRAINIAC 0.5")
             if not b.radians or b.leaks or b.blocks:
                 r.fail("wrong", f"back in BRAINIAC: radians={b.radians} leaks={b.leaks} blocks={b.blocks}")
             for k in ("GS", "GW", "PX", "PY", "Z1", "Z2"):
@@ -1531,7 +1539,7 @@ def session_tests(rng, cases, quick):
             r.ans("1")
             r.menu("GEOMETRY")
             r.ans("7")                                       # GEOMETRY menu's own BACK TO BRAINIAC
-            r.menu("BRAINIAC 0.4")
+            r.menu("BRAINIAC 0.5")
             r.ans("1")
             r.ans("5X=30")
             if "X=6" not in [ln.strip() for ln in b.screen.lines()]:
@@ -1540,7 +1548,7 @@ def session_tests(rng, cases, quick):
                 r.ans("")
             r.menu("WHAT NEXT?")
             r.ans(str(b.wait.options.index("MAIN MENU") + 1))
-            r.menu("BRAINIAC 0.4")
+            r.menu("BRAINIAC 0.5")
             r.ans("7")                                       # QUIT
             while b.wait.kind == "pause":
                 r.ans("")

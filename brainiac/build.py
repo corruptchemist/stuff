@@ -260,7 +260,7 @@ def check(data: bytes):
     for i, token in enumerate(tokens):
         # capitals that fused into one built-in token (FV, PV, L1...): the
         # program only ever means separate letters
-        if re.fullmatch(r"[A-Z0-9θ%]{2,}", token.accessible):
+        if re.fullmatch(r"[A-Z0-9θ%]{2,}", token.accessible) and not re.fullmatch(r"GDB\d", token.accessible):
             context = "".join(t.display for t in tokens[max(0, i - 8):i + 4])
             raise BuildError(f"letters fused into the token {token.accessible!r} near {context!r}")
         if token.bits[:1] == b"\xbb" and 0xB0 <= token.bits[1] <= 0xCA:

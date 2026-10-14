@@ -21,10 +21,15 @@
 ClrHome
 // remember the calculator's own settings, then use degrees and pixels
 {abs(sin(90)-1)<ᴇ⁻9,Xmin,Xmax,Ymin,Ymax,Xscl,Yscl}→ʟGW
+// the axes, grid and which Y= functions are on, to put back at the end
+StoreGDB 9
 0→dim(ʟGS)
 Degree
-// a split screen (Horiz, G-T) would make the graph too short for the labels
+// a split screen (Horiz, G-T) would make the graph too short for the
+// labels; Fix or Sci display would change how numbers read
 Full
+Normal
+Float
 0→Xmin
 264→Xmax
 0→Ymin
@@ -109,9 +114,9 @@ End
 #return
 
 // Str0 centred at pixel (P,Q). Text( wants whole numbers (ERR:DOMAIN
-// otherwise), and the text is kept on the screen, at 6 pixels a character.
+// otherwise), and the text is kept on the screen, at about 8 pixels a character (the CE graph font).
 #sub tx
-Text(iPart(max(0,min(150,164-Q-4))),iPart(max(0,min(264-6length(Str0),P-3length(Str0)))),Str0)
+Text(iPart(max(0,min(150,164-Q-4))),iPart(max(0,min(264-8length(Str0),P-4length(Str0)))),Str0)
 #return
 
 // Str0 just inside corner I of the figure (an angle label). Changes G J P Q.
@@ -1856,7 +1861,8 @@ Lbl @quit
 ʟGW(5)→Ymax
 ʟGW(6)→Xscl
 ʟGW(7)→Yscl
-AxesOn 
+RecallGDB 9
+DelVar GDB9
 If not(ʟGW(1)):Radian
 ClrDraw
 DelVar ʟGS

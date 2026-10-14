@@ -22,6 +22,9 @@
 // and to, V = the amount, R = next home-screen row, θ = return address.
 
 ClrHome
+// numbers are shown with toString(: no Fix/Sci display
+Normal
+Float
 0→dim(ʟUQ)
 Goto @menu
 

@@ -35,6 +35,10 @@
 // Str9 the expression ready for expr(, Str0 output text. Others are scratch.
 
 ClrHome
+// answers are read back as text: no Fix/Sci display, no split screen
+Normal
+Float
+Full
 a+bi
 // DG(1) = 1 if the calculator was in Degree mode, so quitting can put it
 // back. Brainiac's own math runs in Radian: in Degree, the TI-84 Plus CE
@@ -408,6 +412,7 @@ If Str7≠"1":Str2+Str7→Str2
 #sub extract
 Radian
 1→Z
+{0}→ʟBM
 // sin( cos( tan( and the like can't take complex numbers: never a polynomial
 "\xC2\xC3\xC4\xC5\xC6\xC7\xC8\xC9\xCA\xCB\xCC\xCD\xB1\xB9\xBA\x12\x19\x1A\x2D\x6A\x6B\x6C\x6D\x6E\x6F\x94\x95\xAB"→Str8
 For(I,1,length(Str9))
@@ -1286,8 +1291,13 @@ real(expr(Str9))→ʟZ2
 ʟZ3ʟBV1+(1-ʟZ3)ʟZA→ʟZA
 ʟZ3ʟZB+(1-ʟZ3)ʟBV1→ʟZB
 End
-(ʟZA+ʟZB)/2→ʟBV1
+// judge each bracket by its two ends, which were worked out already: a new
+// point could land exactly on a pole, like tan(90) in Degree (ERR:DOMAIN)
+ʟZA→ʟBV1
 abs(expr(Str9))→ʟZ2
+ʟZB→ʟBV1
+min(ʟZ2,abs(expr(Str9)))→ʟZ2
+(ʟZA+ʟZB)/2→ʟBV1
 For(I,1,N)
 If ʟZ2(I)≤ᴇ⁻6(1+ʟZ4(I)):Then
 ʟBV1(I)→ʟZR(1+dim(ʟZR))
@@ -1711,7 +1721,8 @@ seq(ʟZX(ʟZ2(I)),I,1,N)→ʟZA
 seq(ʟZX(ʟZ2(I)+1),I,1,N)→ʟZB
 seq(ʟZV(ʟZ2(I)),I,1,N)→ʟZ3
 #call ang
-For(J,1,34)
+// 28 halvings: 9 digits, without crowding the point where log( starts
+For(J,1,28)
 (ʟZA+ʟZB)/2→ʟBV1
 expr(Str9)→ʟBW
 (abs(imag(ʟBW))<ᴇ⁻9(1+abs(ʟBW)))=ʟZ3→ʟZ4
@@ -2166,6 +2177,12 @@ Lbl @ex1
 // and Str2, which pow leaves alone
 Str8→Str4
 Str3→Str2
+// a positive base to any power is never 0 or less (and ln(0) would stop
+// the program)
+0→E
+If not(inString(Str6,sub(Str7,1,1))):real(expr(Str6))≤0→E
+If E:real(expr(Str4))>0→E
+If E:Goto @ex_none
 ClrHome
 1→R
 "SOLVING: "+Str1→Str0
@@ -2202,6 +2219,18 @@ Str9→Str4
 Str0+"=0"→Str0
 #call line
 #call roots
+#call done
+Goto @s1_end
+
+Lbl @ex_none
+ClrHome
+1→R
+"SOLVING: "+Str1→Str0
+#call line
+"NO ANSWER: A POWER LIKE"→Str0
+#call line
+"THAT IS NEVER 0 OR LESS."→Str0
+#call line
 #call done
 Goto @s1_end
 
@@ -2364,6 +2393,8 @@ ClrHome
 // coordinates (see GEOMETRY), and Radian.
 #sub numline
 {Xmin,Xmax,Ymin,Ymax,Xscl,Yscl}→ʟIW
+// the axes, grid and which Y= functions are on, to put back afterwards
+StoreGDB 9
 Full
 0→Xmin
 264→Xmax
@@ -2410,11 +2441,14 @@ End
 #call numstr
 // long decimals crowd each other: 3 places on the picture
 If length(Str0)>6:toString(round(ʟIB(I),3))→Str0
-Text(90,iPart(max(0,min(264-6length(Str0),W-3length(Str0)))),Str0)
+// (the graph font is about 8 pixels a character: centre it, keep it on)
+Text(90,iPart(max(0,min(264-8length(Str0),W-4length(Str0)))),Str0)
 I+1→I
 Goto @nl_dot
 Lbl @nl_done
-Text(136,2,Str8)
+// a long answer would run off the picture (about 32 characters fit)
+If length(Str8)≤32:Text(136,2,Str8)
+If length(Str8)>32:Text(136,2,"ANSWER: SEE THE WORKING")
 Text(150,2,"ENTER FOR THE WORKING")
 Pause
 ʟIW(1)→Xmin
@@ -2423,7 +2457,8 @@ Pause
 ʟIW(4)→Ymax
 ʟIW(5)→Xscl
 ʟIW(6)→Yscl
-AxesOn
+RecallGDB 9
+DelVar GDB9
 ClrDraw
 #return
 
@@ -2906,6 +2941,8 @@ Output(1,1,"THINKING...")
 #call extract
 If not(Z):Goto @e_notpoly
 If max(ʟBM):Goto @e_notpoly
+// everything cancels, like X-X: it's just 0
+If not(max(abs(ʟPC))):Goto @fc_zero
 If G≠1:Goto @fc_common
 If max(ʟPK)<1:Goto @fc_common
 If not(min(ʟPQ)) or max(abs(ʟPE)):Goto @fc_common
@@ -2932,6 +2969,16 @@ Lbl @fc_d
 Goto @next
 
 // several letters (or π, or decimals): take out what every term shares
+Lbl @fc_zero
+ClrHome
+1→R
+Str1→Str0
+#call line
+"=0"→Str0
+#call line
+#call done
+Goto @next
+
 Lbl @fc_common
 0→H
 1→L
