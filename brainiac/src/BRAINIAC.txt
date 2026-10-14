@@ -386,6 +386,30 @@ Radian
 If ʟDG(2):Degree
 #return
 
+// What would stop the program at expr( instead of giving an answer: a )
+// with nothing to close, or dividing by a plain 0. Checks Str1. Z=0 and
+// Str0 = what's wrong if so. Changes I J Str0 Str3 Str9.
+#sub valid
+1→Z
+#call opens
+0→J
+For(I,1,length(Str1))
+sub(Str1,I,1)→Str3
+J+(0<inString(Str9,Str3))-(Str3=")")→J
+If J<0:0→Z
+End
+"A ) HAS NOTHING TO CLOSE."→Str0
+If not(Z):Goto @va_end
+// /0 with no more digits after it (/0.5 is fine)
+inString(Str1+" ","/0")→I
+While I and Z
+If not(inString("0123456789.",sub(Str1+" ",I+2,1))):0→Z
+inString(Str1+" ","/0",I+1)→I
+End
+"THAT DIVIDES BY 0."→Str0
+Lbl @va_end
+#return
+
 // Cross-multiply: left Str5 = right Str6  ->  Str2 = (Ltop)(Rbot)-(Rtop)(Lbot),
 // with no fractions left on the top level. Changes Str3 Str4 Str7 Str8 and
 // what split changes.
@@ -1630,6 +1654,8 @@ Lbl @m_solve
 ClrHome
 Disp "SOLVE FOR X","  ","TYPE AN EQUATION, LIKE","  2X+3=7  OR  X²=5X-6","OR AN INEQUALITY, LIKE","  X²-4<0  (2ND MATH)","  "
 Input "EQ:",Str1
+#call valid
+If not(Z):Goto @e_input
 {0,0}→ʟCK
 {0,0,0,0,0,0}→ʟIQ
 // an inequality sign sends it to the inequality solver
@@ -2531,6 +2557,8 @@ Lbl @m_zeros
 ClrHome
 Disp "FIND ZEROS OF F(X)","  ","TYPE F(X), LIKE X³-4X.","EVERY X THAT MAKES IT 0","IS AN ANSWER.","  "
 Input "F(X)=",Str1
+#call valid
+If not(Z):Goto @e_input
 {0,0}→ʟCK
 {0,0,0,0,0,0}→ʟIQ
 If inString(Str1,"="):Goto @e_eq
@@ -2544,6 +2572,8 @@ Lbl @m_roots
 ClrHome
 Disp "POLYNOMIAL ROOTS","  ","TYPE A POLYNOMIAL, LIKE","X^4-1 OR X³-2X+5, TO","GET ALL ITS ROOTS, EVEN","COMPLEX ONES.","  "
 Input "P(X)=",Str1
+#call valid
+If not(Z):Goto @e_input
 {0,0}→ʟCK
 {0,0,0,0,0,0}→ʟIQ
 If inString(Str1,"="):Goto @e_eq
@@ -2601,6 +2631,8 @@ Lbl @m_rearr
 ClrHome
 Disp "REARRANGE A FORMULA","  ","TYPE IT WITH CAPITAL","LETTERS, LIKE A=BH/2,","THEN THE LETTER TO","SOLVE FOR.","  "
 Input "FORMULA:",Str1
+#call valid
+If not(Z):Goto @e_input
 #call eqn
 If E:Goto @e_side
 If not(inString(Str1,"=")):Goto @e_noeq
@@ -2658,6 +2690,8 @@ Lbl @m_inv
 ClrHome
 Disp "INVERSE FUNCTION","  ","TYPE F(X), LIKE 2X+3","OR (X+1)/(X-2).","  "
 Input "F(X)=",Str1
+#call valid
+If not(Z):Goto @e_input
 If inString(Str1,"="):Goto @e_eq
 Str1→Str2
 #call tmpl
@@ -2713,6 +2747,8 @@ Lbl @m_quad
 ClrHome
 Disp "QUADRATIC STEPS + FORMS","  ","TYPE A QUADRATIC IN ANY","FORM: 2X²+3X-5, 2X²=5-3X,","(X-1)(X+3) OR 3(X-2)²+1.","  "
 Input "EQ:",Str1
+#call valid
+If not(Z):Goto @e_input
 #call eqn
 If E:Goto @e_side
 #call tmpl
@@ -2891,6 +2927,8 @@ Lbl @m_simp
 ClrHome
 Disp "SIMPLIFY / EXPAND","  ","TYPE AN EXPRESSION, LIKE","3X(X-2)+(X+1)²","OR 2A+3B-A.","  "
 Input "EXPR:",Str1
+#call valid
+If not(Z):Goto @e_input
 If inString(Str1,"="):Goto @e_eq
 Str1→Str2
 #call tmpl
@@ -2932,6 +2970,8 @@ Lbl @m_fact
 ClrHome
 Disp "FACTOR","  ","TYPE A POLYNOMIAL, LIKE","X²-9 OR 6AB+9A.","  "
 Input "EXPR:",Str1
+#call valid
+If not(Z):Goto @e_input
 If inString(Str1,"="):Goto @e_eq
 Str1→Str2
 #call tmpl
@@ -3046,6 +3086,14 @@ ClrHome
 Disp "DIVIDE POLYNOMIALS","  ","FOR (X³-1)/(X-1), TYPE","THE TOP, THEN THE BOTTOM.","  "
 Input "TOP:",Str1
 Input "BOTTOM:",Str4
+#call valid
+If not(Z):Goto @e_input
+// the bottom too
+Str1→Str8
+Str4→Str1
+#call valid
+Str8→Str1
+If not(Z):Goto @e_input
 // both must use the same one letter
 Str1+"+"+Str4→Str2
 #call tmpl
@@ -3167,6 +3215,8 @@ If N=3:Input "EQ3:",Str1
 If N=4:Input "EQ4:",Str1
 If N=5:Input "EQ5:",Str1
 If N=6:Input "EQ6:",Str1
+#call valid
+If not(Z):Goto @e_input
 #call eqn
 If E:Goto @e_side
 #call tmpl
@@ -3420,6 +3470,10 @@ Stop
 
 // ======================================================== messages
 
+Lbl @e_input
+ClrHome
+Disp Str0,"CHECK WHAT YOU TYPED."
+Goto @e_wait
 Lbl @e_side
 ClrHome
 Disp "AN EQUATION NEEDS ONE =","WITH SOMETHING ON BOTH","SIDES, LIKE 2X=8."

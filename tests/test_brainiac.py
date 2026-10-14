@@ -906,3 +906,27 @@ def test_a_long_inequality_answer_stays_on_the_picture():
     assert "ANSWER: SEE THE WORKING" in picture
     texts, _ = m.number_line
     assert all(len(t) <= 32 for row, col, t, _ in texts if row == 136)
+
+
+@pytest.mark.parametrize("answers, message", [
+    ((SOLVE, "2X+3=7)"), "A ) HAS NOTHING TO CLOSE."),     # was ERR:SYNTAX at expr(
+    ((SOLVE, "X/0=1"), "THAT DIVIDES BY 0."),              # was ERR:DIVIDE BY 0
+    ((ZEROS, "X^2-1)"), "A ) HAS NOTHING TO CLOSE."),
+    ((POLY, ROOTS, "X)"), "A ) HAS NOTHING TO CLOSE."),
+    ((POLY, SIMPLIFY, "(X+1))^2"), "A ) HAS NOTHING TO CLOSE."),
+    ((POLY, DIVIDE, "X^2", "X)"), "A ) HAS NOTHING TO CLOSE."),
+    (REARRANGE + ("A=BH/2)",), "A ) HAS NOTHING TO CLOSE."),
+    (INVERSE + ("2X)",), "A ) HAS NOTHING TO CLOSE."),
+    ((SYSTEM, "2", "X+Y=10)"), "A ) HAS NOTHING TO CLOSE."),
+])
+def test_typing_mistakes_get_a_message_not_an_error(answers, message):
+    m, lines = run(*answers)
+    assert lines[:2] == [message, "CHECK WHAT YOU TYPED."]
+    m.answer("")
+    assert m.wait.kind == "input"                     # straight back to typing
+
+
+@pytest.mark.parametrize("text", ["X/0.5=1", "((X+1)=2", "(X+1=2", "2/(X-1)=1"])
+def test_the_input_check_lets_good_input_through(text):
+    m, lines = run(SOLVE, text)
+    assert lines[0].startswith("SOLVING:")
