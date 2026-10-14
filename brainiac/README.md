@@ -157,6 +157,10 @@ choose **Replace**.
   ends of 0..360). **SEARCH A RANGE** with a smaller range finds them.
 - Very small answers, like 10^⁻10 for `-log(X)=10`, come out a few digits
   short (`9.9995ᴇ⁻11`).
+- Simplify/Factor of a power that grows very slowly, like `e^(X/50)`, can
+  be taken for a polynomial and shown as a series of tiny decimals.
+  (Fractions and roots like `1/(X+60)` or `√(X+150)` are checked far out and
+  refused; powers aren't, because far out they would overflow.)
 
 ### Good to know
 
