@@ -65,15 +65,23 @@ def expand(lines: list[tuple[int, str]]) -> list[tuple[int, str]]:
             calls.setdefault(line.split()[1], []).append(len(sum(calls.values(), [])) + 1)
 
     codes: dict[str, str] = {}
+    skipped: list[str] = []
 
     def code(name: str) -> str:
         if name not in codes:
-            # A0..A9, AA..AZ, B0.. : a letter then a digit or letter (936 in all)
-            i = len(codes)
-            if i >= 26 * 36:
-                raise BuildError("out of 2-character labels")
-            second = LABEL_CHARS[26:] + LABEL_CHARS[:26]
-            codes[name] = LABEL_CHARS[i // 36] + second[i % 36]
+            # A0..A9, AA..AZ, B0.. : a letter then a digit or letter, skipping
+            # pairs the calculator reads as one built-in token (FV and PV are
+            # finance variables, L1..L6 are lists): "Lbl FV" is ERR:SYNTAX.
+            while True:
+                i = len(codes) + len(skipped)
+                if i >= 26 * 36:
+                    raise BuildError("out of 2-character labels")
+                second = LABEL_CHARS[26:] + LABEL_CHARS[:26]
+                candidate = LABEL_CHARS[i // 36] + second[i % 36]
+                if len(decode(encode(candidate)[0])[0]) == 2:
+                    break
+                skipped.append(candidate)
+            codes[name] = candidate
         return codes[name]
 
     out = []
@@ -203,9 +211,16 @@ def check(data: bytes):
 
     The program is written entirely in capitals, so a lowercase-letter token
     means a command name was mistyped and got spelled out letter by letter.
+    And capitals that fused into one token (like FV, a finance variable) are
+    never what the program means.
     """
     tokens, _ = decode(data)
     for i, token in enumerate(tokens):
+        # capitals that fused into one built-in token (FV, PV, L1...): the
+        # program only ever means separate letters
+        if re.fullmatch(r"[A-Z0-9θ%]{2,}", token.accessible):
+            context = "".join(t.display for t in tokens[max(0, i - 8):i + 4])
+            raise BuildError(f"letters fused into the token {token.accessible!r} near {context!r}")
         if token.bits[:1] == b"\xbb" and 0xB0 <= token.bits[1] <= 0xCA:
             context = "".join(t.display for t in tokens[max(0, i - 8):i + 4])
             raise BuildError(f"lowercase token {token.display!r} near {context!r}")

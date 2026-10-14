@@ -93,6 +93,27 @@ def test_build_refuses_a_list_bracket_meant_as_multiplication(line):
         check_list_brackets([(1, line)])
 
 
+def test_labels_are_plain_letters_on_the_calculator():
+    """Every label must be one or two separate letter/digit tokens.
+
+    The first 0.2 build named a label FV, which the calculator reads as the
+    finance variable FV: ERR:SYNTAX at "Lbl FV".
+    """
+    from tivars.tokenizer import encode
+    from tivars.tokenizer.decoder import decode
+    for line in source_lines():
+        if line.startswith(("Lbl ", "Goto ")):
+            tokens, _ = decode(encode(line)[0])
+            assert len(tokens) <= 3 and all(len(t.accessible) == 1 for t in tokens[1:]), line
+
+
+def test_build_refuses_letters_that_fuse_into_one_token():
+    from brainiac.build import check
+    from tivars.tokenizer import encode
+    with pytest.raises(BuildError, match="fused"):
+        check(encode("Lbl FV")[0])
+
+
 def test_every_displayed_text_fits_the_screen():
     for line in source_lines():
         for lit in re.findall(r'(?:Disp |Menu\()(.*)', line):

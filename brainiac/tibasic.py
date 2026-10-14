@@ -248,6 +248,7 @@ class Wait:
 
 OPENERS = {"Then", "While ", "Repeat ", "For("}
 LETTERS = set("ABCDEFGHIJKLMNOPQRSTUVWXYZ") | {"theta"}
+LABEL_TOKENS = LETTERS | set("0123456789")
 STR_VARS = {f"Str{i}" for i in range(10)}
 Y_VARS = {f"{{Y{i}}}" for i in range(10)}
 MAT_VARS = {f"[{c}]" for c in "ABCDEFGHIJ"}
@@ -262,7 +263,10 @@ class Machine:
         self.labels = {}
         for i, st in enumerate(self.stmts):
             if st and st[0].key == "Lbl ":
-                self.labels.setdefault(label_name(st[1:]), i)
+                try:
+                    self.labels.setdefault(label_name(st[1:]), i)
+                except TIError:
+                    pass                # reported when the program reaches it
         self.reals = {}
         self.strings = {}
         self.yvars = {}
@@ -367,7 +371,7 @@ class Machine:
         elif head == "Menu(":
             return self.do_menu(pc, rest)
         elif head == "Lbl ":
-            pass
+            label_name(rest)            # ERR:SYNTAX on a label like FV
         elif head == "Goto ":
             self.goto(label_name(rest))
             return None
@@ -788,7 +792,15 @@ def split_statements(tokens: list[Tok]) -> list[list[Tok]]:
 
 
 def label_name(toks) -> str:
-    return "".join(t.key for t in toks if t.key != ")")
+    """A label is one or two letters, digits or θ, each its own token.
+
+    "Lbl FV" fails on the calculator: FV is one token (a finance variable),
+    not the letters F and V.
+    """
+    toks = [t for t in toks if t.key != ")"]
+    if not 1 <= len(toks) <= 2 or any(t.key not in LABEL_TOKENS for t in toks):
+        raise TIError(f"SYNTAX (bad label {glyphs(toks)!r})")
+    return "".join(t.key for t in toks)
 
 
 def split_commas(toks):
