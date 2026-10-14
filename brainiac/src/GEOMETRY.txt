@@ -23,6 +23,8 @@ ClrHome
 {abs(sin(90)-1)<ᴇ⁻9,Xmin,Xmax,Ymin,Ymax,Xscl,Yscl}→ʟGW
 0→dim(ʟGS)
 Degree
+// a split screen (Horiz, G-T) would make the graph too short for the labels
+Full
 0→Xmin
 264→Xmax
 0→Ymin
@@ -37,7 +39,8 @@ Goto @menu
 
 // X -> Str0, rounded to 3 places (fa: angles, 2 places).
 #sub fm
-toString(round(X,3))→Str0
+round(X,3)→X
+toString(X)→Str0
 #return
 #sub fa
 toString(round(X,2))→Str0
@@ -46,7 +49,11 @@ toString(round(X,2))→Str0
 // Show Str0 from home-screen row R down, turning the page when full.
 // Changes J.
 #sub line
-iPart((length(Str0)-1)/26)+1→J
+0→J
+For(I,1,length(Str0))
+J+1+(sub(Str0,I,1)="√(")→J
+End
+iPart((J-1)/26)+1→J
 If R+J>10:Then
 Output(10,1,"ENTER: MORE")
 Pause
@@ -104,7 +111,7 @@ End
 // Str0 centred at pixel (P,Q). Text( wants whole numbers (ERR:DOMAIN
 // otherwise), and the text is kept on the screen, at 6 pixels a character.
 #sub tx
-Text(iPart(max(0,min(152,164-Q-4))),iPart(max(0,min(264-6length(Str0),P-3length(Str0)))),Str0)
+Text(iPart(max(0,min(150,164-Q-4))),iPart(max(0,min(264-6length(Str0),P-3length(Str0)))),Str0)
 #return
 
 // Str0 just inside corner I of the figure (an angle label). Changes G J P Q.
@@ -154,7 +161,7 @@ Line(ʟPX(I)+G,ʟPY(I)+N,ʟPX(I)+P+G,ʟPY(I)+Q+N)
 // C runs along the bottom. The corners go into PX, PY, fitted.
 #sub tri3
 {0,C,(B²+C²-A²)/(2C)}→ʟPX
-{0,0,√(B²-ʟPX(3)²)}→ʟPY
+{0,0,√(max(0,B²-ʟPX(3)²))}→ʟPY
 #call fit
 #return
 
@@ -510,6 +517,7 @@ Input "ADJ=",D
 Input "HYP=",H
 If (A=0)+(O=0)+(D=0)+(H=0)≠2:Goto @e_two0
 If A≥90 or A<0 or O<0 or D<0 or H<0:Goto @e_ang
+If H and max(O,D)≥H:Goto @e_hyp
 If A:Goto @tg_side
 If O and H:Then
 "SIN(A)=OPP/HYP"→Str9
@@ -583,7 +591,7 @@ Goto @next
 // on sides C A B), triangle 2 is K times bigger (labels Str1 Str2 Str3).
 #sub dr_sm
 {0,C,(B²+C²-A²)/(2C)}→ʟPX
-{0,0,√(B²-ʟPX(3)²)}→ʟPY
+{0,0,√(max(0,B²-ʟPX(3)²))}→ʟPY
 max(ʟPX)-min(ʟPX)+.3max(C,KC)-Kmin(ʟPX)→S
 augment(ʟPX,KʟPX+S)→ʟPX
 augment(ʟPY,KʟPY)→ʟPY
@@ -863,7 +871,11 @@ Input "B=",B
 Input "C=",C
 If A≤0 or B≤0 or C≤0 or A+B≤C or A+C≤B or B+C≤A:Goto @e_tri
 (A+B+C)/2→S
-√(S(S-A)(S-B)(S-C))→T
+// Heron's formula, in the order that keeps its digits for thin triangles
+// (Kahan): sides sorted biggest first
+{A,B,C}→ʟZ1
+SortD(ʟZ1)
+.25√((ʟZ1(1)+(ʟZ1(2)+ʟZ1(3)))(ʟZ1(3)-(ʟZ1(1)-ʟZ1(2)))(ʟZ1(3)+(ʟZ1(1)-ʟZ1(2)))(ʟZ1(1)+(ʟZ1(2)-ʟZ1(3))))→T
 C→X
 #call fm
 Str0→Str4
@@ -1045,13 +1057,16 @@ Lbl @a_trap
 #call dr_trap
 Text(2,2,"B1, B2 PARALLEL; H BETWEEN")
 #call ref
-Disp "TRAPEZOID","  ","FOR THE PERIMETER ALSO TYPE","S3 AND S4 (OR 0 TO SKIP).","  "
+Disp "TRAPEZOID","  ","FOR THE PERIMETER, TYPE","S3 AND S4 TOO (0 TO SKIP).","  "
 Input "B1=",U
 Input "B2=",V
 Input "H=",H
 If U≤0 or V≤0 or H≤0:Goto @e_pos
 Input "S3=",C
 Input "S4=",D
+// a slanted side reaches across the height, so it can't be shorter
+If C<0 or D<0:Goto @e_pos
+If (C>0 and C<H) or (D>0 and D<H):Goto @e_leg
 U→X
 #call fm
 "B1="+Str0→Str4
@@ -1137,6 +1152,7 @@ Lbl @cb_c
 Lbl @cb_c1
 ClrHome
 Input "RADIUS=",L
+0→W
 πL²→A
 "CIRCLE"→Str9
 Goto @cb_add
@@ -1145,20 +1161,29 @@ Lbl @cb_h
 Lbl @cb_h1
 ClrHome
 Input "RADIUS=",L
+0→W
 πL²/2→A
 "HALF CIRCLE"→Str9
 Lbl @cb_add
+If min(L,W)<0:Goto @cb_bad
 T+SA→T
 N+1→N
 A→X
 #call fm
-If S>0:Str9+": +"+Str0→Str9
-If S<0:Str9+": -"+Str0→Str9
 ClrHome
-Disp Str9
+// (label and number on their own lines: a big area won't fit after it)
+Disp Str9+":"
+If S>0:Disp " +"+Str0
+If S<0:Disp " -"+Str0
 T→X
 #call fm
-Disp "TOTAL SO FAR: "+Str0
+Disp "TOTAL SO FAR:"," "+Str0
+If T<0:Disp "(MORE TAKEN AWAY THAN","ADDED: CHECK THE PARTS)"
+Pause 
+Goto @cb_loop
+Lbl @cb_bad
+ClrHome
+Disp "LENGTHS CAN'T BE NEGATIVE.","THAT PART WASN'T ADDED."
 Pause 
 Goto @cb_loop
 Lbl @cb_done
@@ -1170,6 +1195,12 @@ T→X
 #call fm
 "TOTAL AREA="+Str0→Str0
 #call line
+If T≥0:Goto @cb_ok
+"THAT'S LESS THAN 0: MORE"→Str0
+#call line
+"WAS TAKEN AWAY THAN ADDED."→Str0
+#call line
+Lbl @cb_ok
 #call done
 Goto @next
 
@@ -1511,6 +1542,7 @@ Input "R=",V
 Input "D=",D
 Input "C=",C
 Input "AREA=",E
+If min({V,D,C,E})<0:Goto @e_pos
 If (V>0)+(D>0)+(C>0)+(E>0)≠1:Goto @e_one0
 If D>0:D/2→V
 If C>0:C/(2π)→V
@@ -1565,7 +1597,8 @@ Line(132+44cos(5I),82+44sin(5I),132+44cos(5I+5),82+44sin(5I+5))
 End
 Str4→Str0
 132+24cos(T/2)→P
-82+24sin(T/2)→Q
+// (a small angle's label would sit on the radius line)
+82+max(14,24sin(T/2))→Q
 #call tx
 Str5→Str0
 157→P
@@ -1626,7 +1659,7 @@ ClrDraw
 50→Z
 #call ring
 If abs(H)<2.6C:Line(132-HS,20,132-HS,144)
-If abs(K)<2.6C:Line(20,82-KS,244,82-KS)
+If abs(K)<1.6C:Line(20,82-KS,244,82-KS)
 Pt-On(132,82)
 Line(132,82,182,82)
 Str4→Str0
@@ -1648,7 +1681,7 @@ Lbl @c_eq
 #call dr_ce
 Text(2,2,"CENTER (H,K), RADIUS R")
 #call ref
-Menu("CIRCLE EQUATION","CENTER+RADIUS TO EQUATION",@ce_build,"EQUATION TO CENTER+RADIUS",@ce_read,"BACK",@m_cir)
+Menu("CIRCLE EQUATION","FROM CENTER AND RADIUS",@ce_build,"FROM AN EQUATION",@ce_read,"BACK",@m_cir)
 Lbl @ce_build
 ClrHome
 Disp "CENTER (H,K), RADIUS R","  "
@@ -1691,11 +1724,11 @@ C→X
 "STANDARD FORM:"→Str0
 #call line
 "(X"→Str0
-If H>0:Str0+"-"+Str8→Str0
-If H<0:Str0+"+"+sub(Str8,2,length(Str8)-1)→Str0
+If round(H,3)>0:Str0+"-"+Str8→Str0
+If round(H,3)<0:Str0+"+"+sub(Str8,2,length(Str8)-1)→Str0
 Str0+")²+(Y"→Str0
-If K>0:Str0+"-"+Str9→Str0
-If K<0:Str0+"+"+sub(Str9,2,length(Str9)-1)→Str0
+If round(K,3)>0:Str0+"-"+Str9→Str0
+If round(K,3)<0:Str0+"+"+sub(Str9,2,length(Str9)-1)→Str0
 Str0→Str9
 C²→X
 #call fm
@@ -1804,6 +1837,10 @@ Goto @e_wait
 Lbl @e_pos
 ClrHome
 Disp "LENGTHS MUST BE POSITIVE."
+Goto @e_wait
+Lbl @e_leg
+ClrHome
+Disp "A SLANTED SIDE CAN'T BE","SHORTER THAN THE HEIGHT."
 Goto @e_wait
 Lbl @e_circ
 ClrHome

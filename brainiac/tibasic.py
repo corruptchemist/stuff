@@ -519,6 +519,8 @@ class Machine:
             return None
         elif head in ("Degree", "Radian"):
             self.radians = head == "Radian"
+        elif head == "Full":
+            pass            # full screen, not split (Horiz, G-T): all the simulator has
         elif head in ("ClrDraw", "AxesOff", "AxesOn ", "GridOff", "FnOff ", "PlotsOff ",
                       "BackgroundOff", "DispGraph", "TextColor(", "Line(", "Circle(",
                       "Pt-On(", "Text(", "Horizontal ", "Vertical "):
@@ -1786,10 +1788,25 @@ def load_program(name="BRAINIAC", test=False) -> Machine:
     """A program freshly built from source (so tests never run a stale .8xp),
     with the other programs available to prgm. test=True builds the test
     channel (BRAINUNS runs GEOMUNS and UNITSUNS)."""
-    from brainiac.build import PROGRAMS, TEST_NAMES, program_bytes, source_path
-    m = Machine(tokens_from_bytes(program_bytes(name, test)))
+    from brainiac.build import PROGRAMS, TEST_NAMES, source_path
+    m = Machine(_built_tokens(name, test))
     for other in PROGRAMS:
         if other != name and source_path(other).exists():
             key = TEST_NAMES[other] if test else other
-            m.programs[key] = tokens_from_bytes(program_bytes(other, test))
+            m.programs[key] = _built_tokens(other, test)
     return m
+
+
+_BUILT = {}
+
+
+def _built_tokens(name, test):
+    """Tokens built from source, rebuilt whenever the source file or the build
+    script changes (so tests never run a stale program), else reused."""
+    import brainiac.build as build
+    stamp = (build.source_path(name).stat().st_mtime_ns,
+             Path(build.__file__).stat().st_mtime_ns)
+    key = (name, test)
+    if key not in _BUILT or _BUILT[key][0] != stamp:
+        _BUILT[key] = (stamp, tokens_from_bytes(build.program_bytes(name, test)))
+    return _BUILT[key][1]

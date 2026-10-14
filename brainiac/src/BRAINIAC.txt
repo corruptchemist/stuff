@@ -2364,6 +2364,7 @@ ClrHome
 // coordinates (see GEOMETRY), and Radian.
 #sub numline
 {Xmin,Xmax,Ymin,Ymax,Xscl,Yscl}→ʟIW
+Full
 0→Xmin
 264→Xmax
 0→Ymin
