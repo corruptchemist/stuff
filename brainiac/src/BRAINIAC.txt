@@ -777,7 +777,9 @@ expr(Str9)→ʟBW
 ʟBW(1)Y^(P-1)→A
 sum(ʟBC*Y^ʟBE)→B
 sum(abs(ʟBC)*ᴇ3^ʟBE)→C
-If abs(A-B)>ᴇ⁻9C+ᴇ⁻12(E+1)max(H,θ)ᴇ3^E:0→D
+// (rounding puts about ᴇ⁻14θ on every term that is kept, small ones too:
+// X^4/1000-9000000 is a polynomial)
+If abs(A-B)>ᴇ⁻9C+ᴇ⁻12max(H,θ)sum((abs(ʟBC)>0)ᴇ3^ʟBE):0→D
 End
 If D:Then
 P-1→ʟBM(J)
