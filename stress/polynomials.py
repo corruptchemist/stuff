@@ -180,6 +180,9 @@ def drive(m: Machine, rec: Recorder, mode: str, inputs: list[str]) -> Result:
             res.kind = "message"
             res.message = [ln.strip() for ln in view(m) if ln.strip()]
             m.answer("")
+            # 0.5: a message leads to WHAT NEXT?, whose AGAIN asks again
+            if m.wait.kind == "menu" and m.wait.title == "WHAT NEXT?":
+                m.answer("1")
             if m.wait.kind != "input" or m.wait.prompt != PROMPTS[mode][0]:
                 res.problems.append(f"after the message it did not ask again: {m.wait}")
             break

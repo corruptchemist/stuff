@@ -450,6 +450,16 @@ If not(inString("0123456789.",sub(Str1+" ",I+2,1))):0→Z
 inString(Str1+" ","/0",I+1)→I
 End
 "THAT DIVIDES BY 0."→Str0
+If not(Z):Goto @va_end
+// ^ and 3 or more digits (X^150) would overflow on the way
+inString(Str1,"^")→I
+While I and Z
+If I+3≤length(Str1):Then
+If inString("0123456789",sub(Str1,I+1,1))inString("0123456789",sub(Str1,I+2,1))inString("0123456789",sub(Str1,I+3,1)):0→Z
+End
+inString(Str1,"^",I+1)→I
+End
+"THAT POWER IS TOO BIG."→Str0
 Lbl @va_end
 #return
 
@@ -1483,6 +1493,8 @@ Lbl @ss_end
 #sub isolate
 0→dim(ʟOU)
 iPart(10fPart(ʟPK/10^T))→ʟBY
+// (one letter: its power is the whole number, which may be 10 to 14)
+If G=1:ʟPK→ʟBY
 max(ʟBY)→K
 min(ʟBY+(K+1)(ʟBY=0))→J
 If K and J≠K:⁻K→K
@@ -3750,11 +3762,11 @@ Disp "THAT LETTER APPEARS WITH","TWO DIFFERENT POWERS (LIKE","X AND X²), SO IT 
 Goto @e_wait
 Lbl @e_rearr
 ClrHome
-Disp "CAN'T REARRANGE THIS ONE","YET. (NO TRIG, LOGS OR","LETTERS IN POWERS.)"
+Disp "CAN'T REARRANGE THIS ONE","YET. IT TAKES +-*/, √( AND","WHOLE POWERS UP TO 6 (14","WITH ONE LETTER): NO TRIG,","LOGS OR LETTERS IN POWERS."
 Goto @e_wait
 Lbl @e_inv
 ClrHome
-Disp "CAN'T FIND THIS INVERSE","YET. (NO TRIG, LOGS OR X","IN A POWER.)"
+Disp "CAN'T FIND THIS INVERSE","YET. IT TAKES +-*/, √( AND","WHOLE POWERS: NO TRIG,","LOGS, ³√( OR X IN A POWER."
 Goto @e_wait
 Lbl @e_inv2
 ClrHome

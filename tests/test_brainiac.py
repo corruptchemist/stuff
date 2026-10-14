@@ -979,3 +979,13 @@ def test_inequality_stress_test_fixes(text, degree, answer):
 def test_a_double_inequality_is_explained_not_misread():
     m, lines = run(SOLVE, "⁻3<2X+1<7")                # was "EVERY X WORKS"
     assert lines[0] == "ONE SIGN AT A TIME. FOR"
+
+
+@pytest.mark.parametrize("answers, shows", [
+    ((FORMULAS, "1", "X^10=1024", "X"), "X=(1024)^(1/10)"),   # said THAT LETTER CANCELS OUT
+    ((FORMULAS, "1", "X^11=2048", "X"), "X=(2048)^(1/11)"),   # said X=2048/X^10
+    ((POLY, SIMPLIFY, "X^200"), "THAT POWER IS TOO BIG."),     # was ERR:OVERFLOW
+])
+def test_big_powers(answers, shows):
+    m, lines = run(*answers)
+    assert shows in lines
