@@ -139,6 +139,12 @@ choose **Replace**.
   number past 1ᴇ99, still stops the program: TI-BASIC can't catch errors.
 - Geometry expects real numbers: a complex number typed at a geometry
   prompt stops it.
+- The numeric search looks at 201 points across the range. It can miss
+  answers of something that wiggles fast (like `tan(3X)=.2` across ⁻99..99)
+  and some places where the graph only touches 0 (like `cos(X)=1` at the
+  ends of 0..360). **SEARCH A RANGE** with a smaller range finds them.
+- Very small answers, like 10^⁻10 for `-log(X)=10`, come out a few digits
+  short (`9.9995ᴇ⁻11`).
 
 ### Good to know
 
