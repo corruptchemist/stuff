@@ -1381,6 +1381,8 @@ class Parser:
             text += self.next().key
         if self.peek() == "|E":
             self.next()
+            if text.count(".") > 1 or text == ".":
+                raise TIError("SYNTAX")
             mant = float(text) if text else 1.0
             sign = 1
             if self.peek() == "~":
@@ -1391,7 +1393,9 @@ class Parser:
                 exp += self.next().key
             if not exp:
                 raise TIError("SYNTAX")
-            return mant * 10 ** (sign * int(exp))
+            if len(exp) > 2:                      # the calculator's exponents stop at 99
+                raise TIError("SYNTAX")
+            return check_range(mant * 10.0 ** (sign * int(exp)))
         if text.count(".") > 1 or text == ".":
             raise TIError("SYNTAX")
         return float(text)
