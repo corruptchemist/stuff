@@ -50,7 +50,8 @@ class Tok:
 
 def tokens_from_bytes(data: bytes) -> list[Tok]:
     tokens, _ = decode(data)
-    return [Tok(t.accessible, t.display) for t in tokens]
+    # the token tables spell the apostrophe's glyph with an escaping backslash
+    return [Tok(t.accessible, t.display.replace("\\'", "'")) for t in tokens]
 
 
 def tokens_from_text(text: str) -> list[Tok]:
@@ -77,7 +78,13 @@ def keyboard_to_tokens(text: str) -> list[Tok]:
             prev = ch
         out.append(ch)
     text = "".join(out).replace("￿", "𝑒^(")
-    data, _ = encode(text, mode="max")
+    # Capital letters are keys of their own on the calculator: PV is P then V,
+    # and R² is R then ², never the finance variable PV or the statistic R²
+    # that a longest-match tokenizer would pick.
+    data = b""
+    for part in re.split(r"([A-Zθ])", text):
+        if part:
+            data += encode(part, mode="max")[0]
     return tokens_from_bytes(data)
 
 
@@ -95,6 +102,26 @@ class TIString:
         return glyphs(self.tokens)
 
 
+class TIMatrix:
+    """A matrix variable like [J]: a list of rows."""
+
+    def __init__(self, rows):
+        self.rows = [list(r) for r in rows]
+
+    @property
+    def dims(self):
+        return len(self.rows), len(self.rows[0]) if self.rows else 0
+
+
+# glyphs toString( can produce, mapped back to the tokens they are
+GLYPH_TOKENS = {"⁻": Tok("~", "⁻"), "ᴇ": Tok("|E", "ᴇ"), "𝑖": Tok("[i]", "𝑖"),
+                "-": Tok("-", "-"), "+": Tok("+", "+"), ".": Tok(".", ".")}
+
+
+def text_to_string(text: str) -> "TIString":
+    return TIString(tuple(GLYPH_TOKENS.get(ch) or Tok(ch, ch) for ch in text))
+
+
 def is_num(v):
     return isinstance(v, (int, float, complex)) and not isinstance(v, bool)
 
@@ -108,7 +135,7 @@ def fmt(v) -> str:
     if isinstance(v, complex):
         re_, im = v.real, v.imag
         s = "" if re_ == 0 else fmt(re_)
-        sign = "-" if im < 0 else ("+" if s else "")
+        sign = ("-" if s else "⁻") if im < 0 else ("+" if s else "")
         mag = "" if abs(im) == 1 else fmt(abs(im))
         return s + sign + mag + "𝑖"
     x = float(v)
@@ -223,6 +250,7 @@ OPENERS = {"Then", "While ", "Repeat ", "For("}
 LETTERS = set("ABCDEFGHIJKLMNOPQRSTUVWXYZ") | {"theta"}
 STR_VARS = {f"Str{i}" for i in range(10)}
 Y_VARS = {f"{{Y{i}}}" for i in range(10)}
+MAT_VARS = {f"[{c}]" for c in "ABCDEFGHIJ"}
 COMMANDS = {"ClrHome", "Disp ", "Output(", "Input ", "Prompt ", "Pause ", "Menu(", "Lbl ",
             "Goto ", "If ", "Then", "Else", "End", "While ", "Repeat ", "For(", "Stop",
             "Return", "DelVar ", "a+bi", "Real", "SortA(", "SortD("}
@@ -239,6 +267,7 @@ class Machine:
         self.strings = {}
         self.yvars = {}
         self.lists = {}
+        self.mats = {}
         self.ans = 0.0
         self.complex_mode = False
         self.radians = True
@@ -248,6 +277,7 @@ class Machine:
         self.leaks = 0           # Gotos taken from inside a block
         self.max_depth = 0
         self.steps = 0
+        self.ops = 0             # arithmetic done, list elements counted one by one
         self.max_steps = max_steps
         self.wait = None
         self._finish = None      # completes the statement we're waiting on
@@ -279,6 +309,11 @@ class Machine:
         except TIError as e:
             self.wait = Wait("error", message=f"ERR:{e}", line=self.pc + 1)
         return self.wait
+
+    def statement_text(self, pc=None) -> str:
+        """The statement at pc (default: where it stopped), as the calculator shows it."""
+        pc = self.pc if pc is None else pc
+        return glyphs(self.stmts[pc]) if 0 <= pc < len(self.stmts) else ""
 
     def answer(self, value: str = "") -> Wait:
         """Respond to what the program is waiting for, then keep running."""
@@ -376,6 +411,36 @@ class Machine:
             self.complex_mode = False
         elif head in ("SortA(", "SortD("):
             self.sort(rest, descending=head == "SortD(")
+        elif head == "Fill(":
+            value, target = self.parse_args(pc, rest, 2)
+            v = self.number(self.eval(value))
+            name = target[1]
+            if target[0] == "matvar":
+                if name not in self.mats:
+                    raise TIError("UNDEFINED")
+                rows, cols = self.mats[name].dims
+                self.mats[name] = TIMatrix([[v] * cols for _ in range(rows)])
+            elif target[0] == "listvar":
+                if name not in self.lists:
+                    raise TIError("UNDEFINED")
+                self.lists[name] = [v] * len(self.lists[name])
+            else:
+                raise TIError("SYNTAX")
+        elif head == "List>matr(":
+            args = self.parse_args(pc, rest)
+            cols = [self.eval(a) for a in args[:-1]]
+            if args[-1][0] != "matvar" or not all(isinstance(c, list) for c in cols):
+                raise TIError("SYNTAX")
+            n = max(len(c) for c in cols)
+            self.mats[args[-1][1]] = TIMatrix(
+                [[c[i] if i < len(c) else 0.0 for c in cols] for i in range(n)])
+        elif head == "Matr>list(":
+            args = self.parse_args(pc, rest)
+            mat = self.eval(args[0])
+            for j, target in enumerate(args[1:]):
+                if target[0] != "listvar":
+                    raise TIError("SYNTAX")
+                self.lists[target[1]] = [row[j] for row in mat.rows]
         else:
             self.statement_expr(pc, st)
         self.pc += 1
@@ -575,6 +640,27 @@ class Machine:
                 lst.append(v)
             else:
                 lst[i - 1] = v
+        elif kind == "matvar":
+            if not isinstance(val, TIMatrix):
+                raise TIError("DATA TYPE")
+            self.mats[target[1]] = TIMatrix(val.rows)
+        elif kind == "matelem":
+            mat = self.mats.get(target[1])
+            if mat is None:
+                raise TIError("UNDEFINED")
+            r, c = self.index(self.eval(target[2])), self.index(self.eval(target[3]))
+            rows, cols = mat.dims
+            if r > rows or c > cols:
+                raise TIError("INVALID DIM")
+            mat.rows[r - 1][c - 1] = self.number(val)
+        elif kind == "mdim":
+            if not isinstance(val, list) or len(val) != 2:
+                raise TIError("DATA TYPE")
+            r, c = self.index(val[0]), self.index(val[1])
+            old = self.mats.get(target[1], TIMatrix([]))
+            self.mats[target[1]] = TIMatrix(
+                [[old.rows[i][j] if i < len(old.rows) and j < len(old.rows[i]) else 0.0
+                  for j in range(c)] for i in range(r)])
         elif kind == "dim":
             n = self.index(val, allow_zero=True)
             lst = self.lists.setdefault(target[1], [])
@@ -594,10 +680,15 @@ class Machine:
             self.strings.pop(node[1], None)
         elif kind == "yvar":
             self.yvars.pop(node[1], None)
+        elif kind == "matvar":
+            self.mats.pop(node[1], None)
 
     def sort(self, rest, descending):
         names = [Parser(g).target() for g in split_commas(rest)]
         lists = [self.lists[n[1]] for n in names]
+        # Brainiac only sorts real lists; insist on it, in case the calculator does
+        if any(isinstance(x, complex) for l in lists for x in l):
+            raise TIError("DATA TYPE")
         if any(len(l) != len(lists[0]) for l in lists):
             raise TIError("DIM MISMATCH")
         order = sorted(range(len(lists[0])), key=lambda i: self.real(lists[0][i]),
@@ -667,7 +758,10 @@ def check_range(x: float) -> float:
         raise TIError("OVERFLOW")
     if abs(x) < 1e-99:
         return 0.0
-    return x
+    # The calculator keeps 14 significant digits (in decimal), so 3*.1 is
+    # exactly .3 there. Rounding every result the same way keeps the
+    # simulator's arithmetic close to the calculator's.
+    return float(f"{x:.14g}")
 
 
 # -- statements and labels ----------------------------------------------------
@@ -723,9 +817,11 @@ def split_commas(toks):
 FUNCS1 = {
     "abs(", "sqrt(", "cuberoot(", "ln(", "log(", "e^^(", "10^^(", "sin(", "cos(", "tan(",
     "sin^-1(", "cos^-1(", "tan^-1(", "sinh(", "cosh(", "tanh(", "int(", "iPart(", "fPart(",
-    "not(", "real(", "imag(", "length(", "expr(", "dim(", "sum(",
+    "not(", "real(", "imag(", "length(", "expr(", "dim(", "sum(", "prod(", "DeltaList(",
+    "conj(", "angle(", "rref(", "toString(", "cumSum(",
 }
-FUNCSN = {"round(", "max(", "min(", "inString(", "sub(", "gcd(", "lcm("}
+FUNCSN = {"round(", "max(", "min(", "inString(", "sub(", "gcd(", "lcm(", "seq(", "augment(",
+          "remainder("}
 RELOPS = {"=", "!=", "<", ">", "<=", ">="}
 POSTFIX = {"^^2", "^^3", "^^-1", "!"}
 
@@ -842,7 +938,7 @@ class Parser:
             return False
         return (k[0].isdigit() or k in (".", "|E", "(", '"', "{", "|L", "Ans", "pi", "[e]",
                                          "[i]", "rand")
-                or k in LETTERS or k in STR_VARS or k in Y_VARS
+                or k in LETTERS or k in STR_VARS or k in Y_VARS or k in MAT_VARS
                 or k in FUNCS1 or k in FUNCSN)
 
     def atom(self):
@@ -891,6 +987,18 @@ class Parser:
         if k in STR_VARS:
             self.next()
             return ("strvar", k)
+        if k in MAT_VARS:
+            self.next()
+            if self.peek() == "(":
+                self.next()
+                r = self.expr()
+                if self.peek() != ",":
+                    raise TIError("SYNTAX")
+                self.next()
+                c = self.expr()
+                self.close()
+                return ("matelem", k[1], r, c)
+            return ("matvar", k[1])
         if k in LETTERS:
             self.next()
             return ("var", k)
@@ -947,13 +1055,17 @@ class Parser:
         k = self.peek()
         if k == "dim(":
             self.next()
-            if self.next().key != "|L":
+            tok = self.next().key
+            if tok in MAT_VARS:
+                self.close()
+                return ("mdim", tok[1])
+            if tok != "|L":
                 raise TIError("SYNTAX")
             name = self.list_name()
             self.close()
             return ("dim", name)
         node = self.atom()
-        if node[0] not in ("var", "strvar", "yvar", "listvar", "listelem"):
+        if node[0] not in ("var", "strvar", "yvar", "listvar", "listelem", "matvar", "matelem"):
             raise TIError("SYNTAX (can't store there)")
         self.end()
         return node
@@ -992,6 +1104,19 @@ class Evaluator:
             if i > len(lst):
                 raise TIError("INVALID DIM")
             return lst[i - 1]
+        if kind == "matvar":
+            if node[1] not in m.mats:
+                raise TIError("UNDEFINED")
+            return TIMatrix(m.mats[node[1]].rows)
+        if kind == "matelem":
+            mat = m.mats.get(node[1])
+            if mat is None:
+                raise TIError("UNDEFINED")
+            r, c = m.index(self.eval(node[2])), m.index(self.eval(node[3]))
+            rows, cols = mat.dims
+            if r > rows or c > cols:
+                raise TIError("INVALID DIM")
+            return mat.rows[r - 1][c - 1]
         if kind == "yvar":
             return self.equation(node[1])
         if kind == "ycall":
@@ -1010,15 +1135,23 @@ class Evaluator:
             return self.post(node[1], self.eval(node[2]))
         if kind == "rel":
             return self.relation(node[1], self.eval(node[2]), self.eval(node[3]))
-        if kind == "and":
-            a, b = self.eval(node[1]), self.eval(node[2])
-            return float(m.truth(a) and m.truth(b))
-        if kind in ("or", "xor"):
-            a, b = m.truth(self.eval(node[1])), m.truth(self.eval(node[2]))
-            return float(a or b) if kind == "or" else float(a != b)
+        if kind in ("and", "or", "xor"):
+            return self.logic(kind, self.eval(node[1]), self.eval(node[2]))
         if kind == "call":
             return self.call(node[1], node[2])
         raise TIError(f"SYNTAX ({kind})")
+
+    def logic(self, kind, a, b):
+        m = self.m
+        if isinstance(a, list) or isinstance(b, list):
+            n = len(a) if isinstance(a, list) else len(b)
+            if isinstance(a, list) and isinstance(b, list) and len(a) != len(b):
+                raise TIError("DIM MISMATCH")
+            aa = a if isinstance(a, list) else [a] * n
+            bb = b if isinstance(b, list) else [b] * n
+            return [self.logic(kind, x, y) for x, y in zip(aa, bb)]
+        x, y = m.truth(a), m.truth(b)
+        return float({"and": x and y, "or": x or y, "xor": x != y}[kind])
 
     def equation(self, n):
         toks = self.m.yvars.get(n)
@@ -1033,6 +1166,7 @@ class Evaluator:
 
     def arith(self, op, a, b):
         m = self.m
+        m.ops += 1
         if isinstance(a, TIString) or isinstance(b, TIString):
             if op == "+" and isinstance(a, TIString) and isinstance(b, TIString):
                 return TIString(a.tokens + b.tokens)
@@ -1130,17 +1264,61 @@ class Evaluator:
         if name == "dim(":
             node = arg_nodes[0]
             v = self.eval(node)
+            if isinstance(v, TIMatrix):
+                return [float(x) for x in v.dims]
             if not isinstance(v, list):
                 raise TIError("DATA TYPE")
             return float(len(v))
+        if name == "seq(":
+            return self.seq(arg_nodes)
         args = [self.eval(a) for a in arg_nodes]
         if name in FUNCS1 and len(args) != 1:
             raise TIError("ARGUMENT")
 
-        if name in ("length(", "expr(", "inString(", "sub("):
+        if name in ("length(", "expr(", "inString(", "sub(", "toString("):
             return self.string_func(name, args)
+        if name in ("prod(", "DeltaList(", "cumSum("):
+            v = args[0]
+            if not isinstance(v, list):
+                raise TIError("DATA TYPE")
+            if name == "prod(":
+                r = 1.0
+                for x in v:
+                    r = self.arith("*", r, x)
+                return r
+            if name == "DeltaList(":
+                if len(v) < 2:
+                    raise TIError("INVALID DIM")
+                return [self.arith("-", v[i + 1], v[i]) for i in range(len(v) - 1)]
+            out, total = [], 0.0
+            for x in v:
+                total = self.arith("+", total, x)
+                out.append(total)
+            return out
+        if name == "augment(":
+            a, b = args
+            if isinstance(a, list) and isinstance(b, list):
+                if len(a) + len(b) > 999:
+                    raise TIError("INVALID DIM")
+                return a + b
+            raise TIError("DATA TYPE")
+        if name == "rref(":
+            return rref(m, args[0])
+        if name == "remainder(":
+            a, b = int(m.real(args[0])), int(m.real(args[1]))
+            if b == 0:
+                raise TIError("DIVIDE BY 0")
+            return float(a % b)
         if name in ("max(", "min("):
             pick = max if name == "max(" else min
+            if len(args) == 2 and (isinstance(args[0], list) or isinstance(args[1], list)):
+                a, b = args
+                n = len(a) if isinstance(a, list) else len(b)
+                aa = a if isinstance(a, list) else [a] * n
+                bb = b if isinstance(b, list) else [b] * n
+                if len(aa) != len(bb):
+                    raise TIError("DIM MISMATCH")
+                return [pick(m.real(x), m.real(y)) for x, y in zip(aa, bb)]
             if len(args) == 1:
                 if not isinstance(args[0], list) or not args[0]:
                     raise TIError("DATA TYPE" if not isinstance(args[0], list) else "INVALID DIM")
@@ -1152,19 +1330,33 @@ class Evaluator:
             if len(args) == 1:
                 args.append(9.0)
             v, n = args[0], int(m.real(args[1]))
+
+            def one(x):
+                x = m.number(x)
+                if isinstance(x, complex):
+                    return m.number(complex(round_ti(x.real, n), round_ti(x.imag, n)))
+                return round_ti(x, n)
             if isinstance(v, list):
-                return [round_ti(m.real(x), n) for x in v]
-            if isinstance(m.number(v), complex):
-                v = m.number(v)
-                return complex(round_ti(v.real, n), round_ti(v.imag, n))
-            return round_ti(m.real(v), n)
+                return [one(x) for x in v]
+            return one(v)
         if name == "sum(":
             if not isinstance(args[0], list):
                 raise TIError("DATA TYPE")
             return m.number(sum(args[0]))
         if name in ("gcd(", "lcm("):
-            a, b = int(m.real(args[0])), int(m.real(args[1]))
-            return float(math.gcd(a, b) if name == "gcd(" else math.lcm(a, b))
+            def one(x, y):
+                x, y = m.real(x), m.real(y)
+                # the calculator wants whole numbers that aren't negative
+                if x != int(x) or y != int(y) or x < 0 or y < 0 or max(x, y) >= 1e12:
+                    raise TIError("DOMAIN")
+                return float(math.gcd(int(x), int(y)) if name == "gcd(" else math.lcm(int(x), int(y)))
+            a, b = args
+            if isinstance(a, list) or isinstance(b, list):
+                n = len(a) if isinstance(a, list) else len(b)
+                aa = a if isinstance(a, list) else [a] * n
+                bb = b if isinstance(b, list) else [b] * n
+                return [one(x, y) for x, y in zip(aa, bb)]
+            return one(a, b)
 
         v = args[0]
         if isinstance(v, list):
@@ -1173,6 +1365,7 @@ class Evaluator:
 
     def unary(self, name, v):
         m = self.m
+        m.ops += 1
         v = m.number(v)
         z = isinstance(v, complex)
         try:
@@ -1182,6 +1375,10 @@ class Evaluator:
                 return v.real if z else v
             if name == "imag(":
                 return v.imag if z else 0.0
+            if name == "conj(":
+                return v.conjugate() if z else v
+            if name == "angle(":
+                return cmath.phase(v) if z else (0.0 if v >= 0 else math.pi)
             if name == "not(":
                 return float(not m.truth(v))
             if name == "int(":
@@ -1232,6 +1429,31 @@ class Evaluator:
             raise TIError("DOMAIN")
         raise TIError(f"SYNTAX ({name})")
 
+    def seq(self, nodes):
+        m = self.m
+        if len(nodes) not in (4, 5) or nodes[1][0] != "var":
+            raise TIError("ARGUMENT")
+        var = nodes[1][1]
+        start, end = m.real(self.eval(nodes[2])), m.real(self.eval(nodes[3]))
+        step = m.real(self.eval(nodes[4])) if len(nodes) == 5 else 1.0
+        if step == 0:
+            raise TIError("INCREMENT")
+        saved = m.reals.get(var, 0.0)
+        out, k = [], start
+        try:
+            while (step > 0 and k <= end + 1e-12) or (step < 0 and k >= end - 1e-12):
+                m.reals[var] = k
+                v = self.eval(nodes[0])
+                if isinstance(v, (list, TIString, TIMatrix)):
+                    raise TIError("DATA TYPE")
+                out.append(m.number(v))
+                if len(out) > 999:
+                    raise TIError("INVALID DIM")
+                k = m.number(k + step)
+        finally:
+            m.reals[var] = saved
+        return out
+
     def string_func(self, name, args):
         m = self.m
         if name == "length(":
@@ -1246,12 +1468,20 @@ class Evaluator:
             if not s.tokens:
                 raise TIError("SYNTAX")
             return self.eval(Parser(s.tokens).whole())
+        if name == "toString(":
+            if isinstance(args[0], (TIString, list, TIMatrix)):
+                raise TIError("DATA TYPE")
+            return text_to_string(fmt(m.number(args[0])))
         if name == "inString(":
             s, sub_ = args[0], args[1]
             start = int(m.real(args[2])) if len(args) > 2 else 1
             if not isinstance(s, TIString) or not isinstance(sub_, TIString):
                 raise TIError("DATA TYPE")
             hay, needle = s.tokens, sub_.tokens
+            # unsure what the calculator does with an empty string here, so
+            # Brainiac must never ask
+            if not hay or not needle:
+                raise TIError("INVALID DIM (inString of an empty string)")
             for i in range(start - 1, len(hay) - len(needle) + 1):
                 if hay[i:i + len(needle)] == needle:
                     return float(i + 1)
@@ -1265,6 +1495,32 @@ class Evaluator:
                 raise TIError("DOMAIN")
             return TIString(s.tokens[start - 1:start - 1 + length])
         raise TIError("SYNTAX")
+
+
+def rref(m: "Machine", mat) -> "TIMatrix":
+    """Reduced row echelon form, by Gauss-Jordan with partial pivoting (as TI does)."""
+    if not isinstance(mat, TIMatrix):
+        raise TIError("DATA TYPE")
+    a = [[m.number(x) for x in row] for row in mat.rows]
+    rows, cols = mat.dims
+    if cols < rows:
+        raise TIError("INVALID DIM")
+    r = 0
+    for c in range(cols):
+        if r >= rows:
+            break
+        p = max(range(r, rows), key=lambda i: abs(a[i][c]))
+        if abs(a[p][c]) < 1e-13 * max(1.0, max(abs(x) for row in a for x in row)):
+            continue
+        a[r], a[p] = a[p], a[r]
+        piv = a[r][c]
+        a[r] = [m.number(x / piv) for x in a[r]]
+        for i in range(rows):
+            if i != r and a[i][c] != 0:
+                f = a[i][c]
+                a[i] = [m.number(x - f * y) for x, y in zip(a[i], a[r])]
+        r += 1
+    return TIMatrix(a)
 
 
 def round_ti(x: float, n: int) -> float:
