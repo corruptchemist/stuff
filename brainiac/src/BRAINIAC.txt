@@ -172,36 +172,17 @@ sub(Str9,2,length(Str9)-1)→Str9
 End
 #return
 
-// One side of an equation, Str3 -> top Str4 and bottom Str8 (either may be
-// "1"), so that side = top/bottom. "2A/B" gives 2A and (B). A side that is a
-// sum, like 1/A+1/B, is left whole. Changes D E I J K N S Str0 Str9.
-#sub split
-// the tokens that open a bracket: ( √( ³√( sin( cos( tan( ln( log( 𝑒^(
-// abs( sin⁻¹( cos⁻¹( tan⁻¹( 10^(
+// Str9 = the tokens that open a bracket: ( √( ³√( sin( cos( tan( ln( log(
+// 𝑒^( abs( sin⁻¹( cos⁻¹( tan⁻¹( 10^(
+#sub opens
 "(\xBC\xBD\xC2\xC4\xC6\xBE\xC0\xBF\xB2\xC3\xC5\xC7\xC1"→Str9
-// N = its length; a spare space on the end lets the scans below look one
-// token ahead without running off the end (TI's "and" checks both sides)
-length(Str3)→N
-Str3+" "→Str3
-0→D
-0→S
-For(I,1,N)
-sub(Str3,I,1)→Str0
-If inString(Str9,Str0):D+1→D
-If Str0=")":D-1→D
-If not(D) and (Str0="+" or Str0="-"):1→S
-End
-sub(Str3,1,N)→Str4
-"?"→Str8
-If not(S):Then
-"?"→Str4
-0→D
-1→I
-While I≤N
-sub(Str3,I,1)→Str0
-If Str0="/" and not(D) and I<N:Then
-// the next factor goes on the bottom: a number, a letter or a (...)
-I+1→J
+#return
+
+// The factor starting at place J of Str3 (a number, a letter or a (...)
+// group, with any ², ³, ⁻¹ or ^power stuck to it) ends at K. Needs Str9
+// from opens, and N = length(Str3) with a spare space on the end of Str3.
+// Changes E K Str0.
+#sub grab
 J→K
 sub(Str3,K,1)→Str0
 If inString(Str9,Str0):Then
@@ -219,7 +200,6 @@ K+1→K
 End
 End
 End
-// ...with any ², ³, ⁻¹ or ^power stuck to it
 While K<N and inString("²³\x0C^",sub(Str3,K+1,1))
 K+1→K
 If sub(Str3,K,1)="^" and K<N:Then
@@ -241,18 +221,50 @@ End
 End
 End
 End
-Str8+"("+sub(Str3,J,K-J+1)+")"→Str8
-K+1→I
-Else
+#return
+
+// One side of an equation, Str3 -> top Str4 and bottom Str8 (either may be
+// "1"), so that side = top/bottom. "2A/B" gives 2A and (B). A side that is a
+// sum, like 1/A+1/B, is left whole. Changes D I J N S Str0 Str9 and what
+// grab changes.
+#sub split
+#call opens
+// a spare space on the end lets the scans look one token ahead without
+// running off the end (TI's "and" checks both sides)
+length(Str3)→N
+Str3+" "→Str3
+0→D
+0→S
+For(I,1,N)
+sub(Str3,I,1)→Str0
+If inString(Str9,Str0):D+1→D
+If Str0=")":D-1→D
+If not(D) and (Str0="+" or Str0="-"):1→S
+End
+sub(Str3,1,N)→Str4
+"?"→Str8
+If S:Goto @sp_bot
+"?"→Str4
+0→D
+1→I
+Lbl @sp_loop
+If I>N:Goto @sp_top
+sub(Str3,I,1)→Str0
+If Str0="/" and not(D) and I<N:Goto @sp_div
 If inString(Str9,Str0):D+1→D
 If Str0=")":D-1→D
 Str4+Str0→Str4
 I+1→I
-End
-End
-End
+Goto @sp_loop
+Lbl @sp_div
+// the next factor goes on the bottom
+I+1→J
+#call grab
+Str8+"("+sub(Str3,J,K-J+1)+")"→Str8
+K+1→I
+Goto @sp_loop
 // take the ? off, or make it a 1 if nothing was added
-If S:Goto @sp_bot
+Lbl @sp_top
 If length(Str4)>1:Then
 sub(Str4,2,length(Str4)-1)→Str4
 Else
@@ -264,6 +276,73 @@ sub(Str8,2,length(Str8)-1)→Str8
 Else
 "1"→Str8
 End
+#return
+
+// The bottoms in Str2 that have the letter in them -> Str8, one after the
+// other in brackets, like (X-2)(X+1); Z = how many. Changes I J N Str0 Str3
+// Str9 and what grab changes.
+#sub dens
+#call opens
+Str2→Str3
+length(Str3)→N
+Str3+" "→Str3
+"?"→Str8
+0→Z
+1→I
+Lbl @dn_loop
+If I>N:Goto @dn_end
+If sub(Str3,I,1)≠"/" or I=N:Goto @dn_next
+I+1→J
+#call grab
+sub(Str3,J,K-J+1)→Str0
+If sub(Str0,1,1)≠"(":"("+Str0+")"→Str0
+// (each bottom once, even if it is on both sides)
+If inString(Str0,sub(Str7,1,1)) and not(inString(Str8,Str0)):Then
+Str8+Str0→Str8
+Z+1→Z
+End
+K→I
+Lbl @dn_next
+I+1→I
+Goto @dn_loop
+Lbl @dn_end
+If Z:sub(Str8,2,length(Str8)-1)→Str8
+#return
+
+// Z=1 if Str3 is one bracket, opened by the token in Str0, that closes at
+// the very end: abs(2X-3) yes, abs(X)+1 no. Changes E I N Str8 Str9.
+#sub wraps
+#call opens
+0→Z
+length(Str3)→N
+If N<3:Goto @wr_end
+If sub(Str3,1,1)≠Str0:Goto @wr_end
+1→E
+2→I
+While E and I≤N
+sub(Str3,I,1)→Str8
+If inString(Str9,Str8):E+1→E
+If Str8=")":E-1→E
+I+1→I
+End
+If not(E) and I=N+1:1→Z
+Lbl @wr_end
+#return
+
+// After a root X: add a verdict to Str0 when there is a check to pass.
+// Str4 is the check, ready for expr(; ʟCK(1)=1 means it must come out 0
+// (a squared or abs equation), 2 means it must not (a bottom of a
+// fraction). Changes E and list BW.
+#sub verdict
+If not(ʟCK(1)):Goto @vd_end
+If abs(imag(X))>ᴇ⁻9(1+abs(X)):Goto @vd_end
+{real(X)}→ʟBV1
+expr(Str4)→ʟBW
+abs(ʟBW(1))→E
+If sub(Str0,length(Str0),1)=" ":sub(Str0,1,length(Str0)-1)→Str0
+If ʟCK(1)=1 and E>ᴇ⁻6(1+abs(X)):Str0+" NO: FAILS CHECK"→Str0
+If ʟCK(1)=2 and E<ᴇ⁻9:Str0+" NO: BOTTOM=0"→Str0
+Lbl @vd_end
 #return
 
 // Cross-multiply: left Str5 = right Str6  ->  Str2 = (Ltop)(Rbot)-(Rtop)(Lbot),
@@ -914,6 +993,8 @@ End
 1→T
 Lbl @ro_dk
 sub(Str7,1,1)+"="+toString(ʟFZ(T))→Str0
+ʟFZ(T)→X
+#call verdict
 #call line
 T+1→T
 If T≤dim(ʟFZ):Goto @ro_dk
@@ -927,6 +1008,8 @@ X→W
 sub(Str7,1,1)+"="+Str0→Str0
 If fPart(W):Str0+"="+toString(W)→Str0
 Str0+Str8→Str0
+W→X
+#call verdict
 #call line
 Goto @ro_next
 Lbl @ro_quad
@@ -937,6 +1020,8 @@ Lbl @ro_quad
 ʟFM(ʟFI(L))→N
 #call times
 sub(Str7,1,1)+"="+Str5+Str8→Str0
+U→X
+#call verdict
 #call line
 // the decimals too, unless they say the same thing (X=𝑖)
 toString(U)→Str3
@@ -945,6 +1030,8 @@ If Str3=Str5:Goto @ro_q2
 #call line
 Lbl @ro_q2
 sub(Str7,1,1)+"="+Str6+Str8→Str0
+V→X
+#call verdict
 #call line
 toString(V)→Str3
 If Str3=Str6:Goto @ro_next
@@ -975,6 +1062,8 @@ If dim(ʟFA)=1:Goto @ro_end
 1→T
 Lbl @ro_dl
 sub(Str7,1,1)+"="+toString(ʟFZ(T))→Str0
+ʟFZ(T)→X
+#call verdict
 #call line
 T+1→T
 If T≤dim(ʟFZ):Goto @ro_dl
@@ -1419,13 +1508,19 @@ End
 
 // (Menu( takes at most 7 options)
 Lbl @menu
-Menu("BRAINIAC 0.2","SOLVE FOR X",@m_solve,"FIND ZEROS OF F(X)",@m_zeros,"POLYNOMIALS",@m_poly,"SYSTEM OF EQUATIONS",@m_sys,"FORMULAS",@m_form,"HOW TO USE",@m_help,"QUIT",@m_quit)
+Menu("BRAINIAC 0.3","SOLVE FOR X",@m_solve,"POLYNOMIALS",@m_poly,"SYSTEM OF EQUATIONS",@m_sys,"FORMULAS",@m_form,"GEOMETRY",@m_geo,"HOW TO USE",@m_help,"QUIT",@m_quit)
+
+// Geometry lives in its own program, so that neither one slows the other
+// down (a Goto has to scan the program from the top for its label).
+Lbl @m_geo
+prgmGEOMETRY
+Goto @menu
 
 Lbl @m_form
 Menu("FORMULAS","REARRANGE A FORMULA",@m_rearr,"INVERSE FUNCTION",@m_inv,"BACK",@menu)
 
 Lbl @m_poly
-Menu("POLYNOMIALS","ROOTS (WITH COMPLEX)",@m_roots,"QUADRATIC STEPS",@m_quad,"SIMPLIFY / EXPAND",@m_simp,"FACTOR",@m_fact,"DIVIDE",@m_div,"BACK",@menu)
+Menu("POLYNOMIALS","ROOTS (WITH COMPLEX)",@m_roots,"QUADRATIC STEPS+FORMS",@m_quad,"SIMPLIFY / EXPAND",@m_simp,"FACTOR",@m_fact,"DIVIDE",@m_div,"FIND ZEROS OF F(X)",@m_zeros,"BACK",@menu)
 
 // After an answer.
 Lbl @next
@@ -1451,11 +1546,12 @@ Lbl @m_solve
 ClrHome
 Disp "SOLVE FOR X","  ","TYPE AN EQUATION, LIKE","  2X+3=7  OR  X²=5X-6","GET = FROM 2ND MATH.","  "
 Input "EQ:",Str1
+{0,0}→ʟCK
 #call eqn
 If E:Goto @e_side
 #call tmpl
 If G>6:Goto @e_many
-If G=1:Goto @one
+If G=1:Goto @special
 If G=0:Goto @nolet
 // several letters: rearrange for X, or for the letter they pick
 "X"→Str4
@@ -1463,11 +1559,154 @@ If inString(Str7,"X"):Goto @solvefor
 Input "SOLVE FOR:",Str4
 Goto @solvefor
 
+// One letter: an abs(, √( or ³√( around a whole side, or the letter on the
+// bottom of a fraction, gets the textbook treatment with a check of each
+// answer. Anything else goes to @one.
+Lbl @special
+ClrHome
+Output(1,1,"THINKING...")
+"\xB2"→Str0
+Str5→Str3
+#call wraps
+If Z:Goto @abs1
+Str6→Str3
+#call wraps
+If not(Z):Goto @rad
+Str5→Str3
+Str6→Str5
+Str3→Str6
+Lbl @abs1
+{1,0}→ʟCK
+sub(Str5,2,length(Str5)-2)→Str3
+"\xB2"+Str3+")-("+Str6+")"→Str2
+#call tmpl
+Str9→Str4
+sub(Str5,2,length(Str5)-2)→Str3
+ClrHome
+1→R
+"SOLVING: "+Str1→Str0
+#call line
+"CASE 1: "+Str3+"="+Str6→Str0
+#call line
+"("+Str3+")-("+Str6+")"→Str2
+#call tmpl
+#call extract
+If not(Z):Goto @num_plain
+#call roots
+// (roots used the strings: get the two sides back)
+#call eqn
+"\xB2"→Str0
+Str5→Str3
+#call wraps
+If Z:Goto @abs2
+Str5→Str3
+Str6→Str5
+Str3→Str6
+Lbl @abs2
+sub(Str5,2,length(Str5)-2)→Str3
+"CASE 2: "+Str3+"=⁻("+Str6+")"→Str0
+#call line
+"("+Str3+")+("+Str6+")"→Str2
+#call tmpl
+#call extract
+If not(Z):Goto @num_plain
+#call roots
+#call done
+Goto @next
+
+Lbl @rad
+// √( or ³√( around a whole side: square or cube both sides
+2→P
+"\xBC"→Str0
+Str5→Str3
+#call wraps
+If Z:Goto @rad1
+Str6→Str3
+#call wraps
+If Z:Goto @rad_swap
+3→P
+"\xBD"→Str0
+Str5→Str3
+#call wraps
+If Z:Goto @rad1
+Str6→Str3
+#call wraps
+If not(Z):Goto @rat
+Lbl @rad_swap
+Str5→Str3
+Str6→Str5
+Str3→Str6
+Lbl @rad1
+"("+Str5+")-("+Str6+")"→Str2
+#call tmpl
+Str9→Str4
+sub(Str5,2,length(Str5)-2)→Str3
+{1,0}→ʟCK
+ClrHome
+1→R
+"SOLVING: "+Str1→Str0
+#call line
+If P=2:"SQUARE BOTH SIDES:"→Str0
+If P=3:"CUBE BOTH SIDES:"→Str0
+#call line
+If P=2:Str3+"=("+Str6+")²"→Str0
+If P=3:Str3+"=("+Str6+")³"→Str0
+#call line
+If P=2:"("+Str3+")-("+Str6+")²"→Str2
+If P=3:"("+Str3+")-("+Str6+")³"→Str2
+#call tmpl
+#call extract
+If not(Z):Goto @num_plain
+#call roots
+#call done
+Goto @next
+
+Lbl @rat
+// the letter on the bottom: multiply everything by those bottoms
+#call dens
+If not(Z):Goto @plain
+Str8→Str4
+Str4→Str2
+#call tmpl
+#call eqn
+"("+Str2+")"+Str4→Str2
+ClrHome
+1→R
+"SOLVING: "+Str1→Str0
+#call line
+"TIMES "+Str4→Str0
+#call line
+Str9→Str4
+{2,0}→ʟCK
+#call tmpl
+#call extract
+If not(Z):Goto @num_plain
+#call print
+Str0+"=0"→Str0
+#call line
+#call roots
+#call done
+Goto @next
+
+// nothing special about it after all
+Lbl @plain
+#call eqn
+#call tmpl
+Goto @one
+
+// the textbook way didn't work out: search for the answers instead
+Lbl @num_plain
+{0,0}→ʟCK
+#call eqn
+#call tmpl
+Goto @num
+
 Lbl @m_zeros
 2→M
 ClrHome
 Disp "FIND ZEROS OF F(X)","  ","TYPE F(X), LIKE X³-4X.","EVERY X THAT MAKES IT 0","IS AN ANSWER.","  "
 Input "F(X)=",Str1
+{0,0}→ʟCK
 If inString(Str1,"="):Goto @e_eq
 Str1→Str2
 #call tmpl
@@ -1479,6 +1718,7 @@ Lbl @m_roots
 ClrHome
 Disp "POLYNOMIAL ROOTS","  ","TYPE A POLYNOMIAL, LIKE","X^4-1 OR X³-2X+5, TO","GET ALL ITS ROOTS, EVEN","COMPLEX ONES.","  "
 Input "P(X)=",Str1
+{0,0}→ʟCK
 If inString(Str1,"="):Goto @e_eq
 Str1→Str2
 #call tmpl
@@ -1692,7 +1932,7 @@ Goto @next
 Lbl @m_quad
 5→M
 ClrHome
-Disp "QUADRATIC STEPS","  ","TYPE A QUADRATIC, LIKE","2X²+3X-5 OR 2X²=5-3X.","  "
+Disp "QUADRATIC STEPS + FORMS","  ","TYPE A QUADRATIC IN ANY","FORM: 2X²+3X-5, 2X²=5-3X,","(X-1)(X+3) OR 3(X-2)²+1.","  "
 Input "EQ:",Str1
 #call eqn
 If E:Goto @e_side
@@ -1710,6 +1950,9 @@ sub(Str7,1,1)→Str4
 ClrHome
 1→R
 "QUADRATIC: "+Str1→Str0
+#call line
+#call print
+"STANDARD: "+Str0+"=0"→Str0
 #call line
 If L=1:Goto @qd_abc
 "TIMES "+toString(L)+" FOR WHOLE NUMBERS:"→Str0
@@ -1850,6 +2093,16 @@ If X:Str3+Str0→Str3
 "VERTEX FORM:"→Str0
 #call line
 " "+sub(Str3,2,length(Str3)-1)→Str0
+#call line
+"STEP 5: SUM AND PRODUCT"→Str0
+#call line
+⁻ʟQD(2)/ʟQD(1)→X
+#call numstr
+"ROOT SUM=⁻B/A="+Str0→Str0
+#call line
+ʟQD(3)/ʟQD(1)→X
+#call numstr
+"ROOT PRODUCT=C/A="+Str0→Str0
 #call line
 #call done
 Goto @next
@@ -2331,6 +2584,7 @@ DelVar ʟDP
 DelVar ʟDQ
 DelVar ʟDR
 DelVar ʟQD
+DelVar ʟCK
 DelVar ʟQX
 DelVar ʟOU
 DelVar ʟSL

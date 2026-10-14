@@ -70,7 +70,7 @@ def keyboard_to_tokens(text: str) -> list[Tok]:
     """
     text = text.strip().replace("**", "^").replace("−", "-")
     text = re.sub(r"(?<![A-Za-z])x(?![A-Za-z])", "X", text)
-    text = text.replace("π", "pi").replace("√(", "sqrt(")
+    text = text.replace("π", "pi").replace("³√(", r"\xBD").replace("√(", "sqrt(")
     text = re.sub(r"(?<![A-Za-z])e\^\(", "￿", text)
     out, prev = [], ""
     for ch in text:
@@ -84,8 +84,10 @@ def keyboard_to_tokens(text: str) -> list[Tok]:
     # and R² is R then ², never the finance variable PV or the statistic R²
     # that a longest-match tokenizer would pick.
     data = b""
-    for part in re.split(r"([A-Zθ])", text):
-        if part:
+    for part in re.split(r"(\\x[0-9A-Fa-f]{2}|[A-Zθ])", text):
+        if part.startswith("\\x"):
+            data += bytes.fromhex(part[2:])
+        elif part:
             data += encode(part, mode="max")[0]
     return tokens_from_bytes(data)
 
@@ -962,7 +964,7 @@ class Parser:
     def starts_atom(self, k):
         if k is None:
             return False
-        return (k[0].isdigit() or k in (".", "|E", "(", '"', "{", "|L", "Ans", "pi", "[e]",
+        return ((len(k) == 1 and k.isdigit()) or k in (".", "|E", "(", '"', "{", "|L", "Ans", "pi", "[e]",
                                          "[i]", "rand")
                 or k in LETTERS or k in STR_VARS or k in Y_VARS or k in MAT_VARS
                 or k in FUNCS1 or k in FUNCSN)
@@ -971,7 +973,7 @@ class Parser:
         k = self.peek()
         if k is None:
             raise TIError("SYNTAX (expression ends early)")
-        if k[0].isdigit() or k in (".", "|E"):
+        if (len(k) == 1 and k.isdigit()) or k in (".", "|E"):
             return ("num", self.number())
         if k == "(":
             self.next()
@@ -1049,7 +1051,7 @@ class Parser:
 
     def number(self):
         text = ""
-        while self.peek() is not None and (self.peek()[0].isdigit() or self.peek() == "."):
+        while self.peek() is not None and (self.peek() in "0123456789." and len(self.peek()) == 1):
             text += self.next().key
         if self.peek() == "|E":
             self.next()
@@ -1059,7 +1061,7 @@ class Parser:
                 self.next()
                 sign = -1
             exp = ""
-            while self.peek() is not None and self.peek()[0].isdigit():
+            while self.peek() is not None and self.peek() in "0123456789" and len(self.peek()) == 1:
                 exp += self.next().key
             if not exp:
                 raise TIError("SYNTAX")

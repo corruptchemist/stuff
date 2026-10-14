@@ -16,8 +16,9 @@ from brainiac.tibasic import (Machine, TIError, fmt, glyphs, keyboard_to_tokens,
                               tokens_from_text)
 from tivars.types import TIProgram
 
-SOLVE, ZEROS, POLY, SYSTEM, FORMULAS, HELP, QUIT = "1234567"
+SOLVE, POLY, SYSTEM, FORMULAS, GEOMETRY, HELP, QUIT = "1234567"
 ROOTS, QUAD, SIMPLIFY, FACTOR, DIVIDE = "12345"
+ZEROS = (POLY, "6")
 REARRANGE, INVERSE = (FORMULAS, "1"), (FORMULAS, "2")
 
 
@@ -149,7 +150,7 @@ def test_every_displayed_text_fits_the_screen():
     ("X^2+5X+20=0", ["X=(⁻5+𝑖√(55))/2", " =⁻2.5+3.708099244𝑖",
                      "X=(⁻5-𝑖√(55))/2", " =⁻2.5-3.708099244𝑖"]),
     ("X^2-2=0", ["X=√(2)", " =1.414213562", "X=⁻√(2)", " =⁻1.414213562"]),
-    ("1/X=4", ["X=1/4=.25"]),
+    ("1/X=4", ["TIMES (X)", "⁻4X+1=0", "X=1/4=.25"]),
     ("X^3=6X^2-11X+6", ["FACTORED: (X-1)(X-2)(X-3)", "X=1", "X=2", "X=3"]),
     ("2X+1=2X+1", ["EVERY X WORKS! BOTH SIDES", "ARE ALWAYS EQUAL."]),
     ("X+1=X+2", ["NO ANSWER: THE TWO SIDES", "ARE NEVER EQUAL."]),
@@ -160,16 +161,49 @@ def test_solve_polynomials_exactly(equation, expected):
 
 
 @pytest.mark.parametrize("equation, expected", [
-    ("√(X)=3", [9]),
     ("e^(X)=10", [math.log(10)]),
-    ("abs(X-3)=2", [1, 5]),
-    ("(2X+1)/(X-3)=5", [16 / 3]),
+    ("abs(X)+1=3", [-2, 2]),
+    ("√(X)+1=X", [(3 + math.sqrt(5)) / 2]),
     ("e^(X^2)=5", [-math.sqrt(math.log(5)), math.sqrt(math.log(5))]),   # no overflow
 ])
 def test_solve_everything_else_by_searching(equation, expected):
     lines = answers_for(SOLVE, equation)
     assert lines[0].startswith("(SEARCHED")
     assert values(lines) == pytest.approx(expected, abs=1e-8)
+
+
+@pytest.mark.parametrize("equation, expected", [
+    ("abs(2X-3)=7", ["CASE 1: 2X-3=7", "X=5", "CASE 2: 2X-3=⁻(7)", "X=⁻2"]),
+    ("7=abs(2X-3)", ["CASE 1: 2X-3=7", "X=5", "CASE 2: 2X-3=⁻(7)", "X=⁻2"]),
+    ("abs(X-1)=2X", ["CASE 1: X-1=2X", "X=⁻1 NO: FAILS CHECK",
+                     "CASE 2: X-1=⁻(2X)", "X=1/3=.3333333333"]),
+])
+def test_solve_absolute_value(equation, expected):
+    assert answers_for(SOLVE, equation) == expected
+
+
+@pytest.mark.parametrize("equation, expected", [
+    ("√(X+5)=X-1", ["SQUARE BOTH SIDES:", "X+5=(X-1)²", "FACTORED: ⁻(X+1)(X-4)",
+                    "X=⁻1 NO: FAILS CHECK", "X=4"]),
+    ("√(2X+3)=X", ["SQUARE BOTH SIDES:", "2X+3=(X)²", "FACTORED: ⁻(X+1)(X-3)",
+                   "X=⁻1 NO: FAILS CHECK", "X=3"]),
+    ("√(X)=3", ["SQUARE BOTH SIDES:", "X=(3)²", "X=9"]),
+    ("³√(X+1)=2", ["CUBE BOTH SIDES:", "X+1=(2)³", "X=7"]),
+])
+def test_solve_radical(equation, expected):
+    assert answers_for(SOLVE, equation) == expected
+
+
+@pytest.mark.parametrize("equation, expected", [
+    ("3/(X-2)+1=X/(X-2)", ["TIMES (X-2)", "1=0", "NO ANSWER: THE TWO SIDES", "ARE NEVER EQUAL."]),
+    ("(X^2-4)/(X-2)=4", ["TIMES (X-2)", "X²-4X+4=0", "FACTORED: (X-2)²",
+                         "X=2 (DOUBLE) NO: BOTTOM=0"]),
+    ("1/(X-1)+1/(X+1)=1", ["TIMES (X-1)(X+1)", "⁻X²+2X+1=0", "X=1+√(2)", " =2.414213562",
+                           "X=1-√(2)", " =⁻.4142135624"]),
+    ("(2X+1)/(X-3)=5", ["TIMES (X-3)", "⁻3X+16=0", "X=16/3=5.333333333"]),
+])
+def test_solve_rational(equation, expected):
+    assert answers_for(SOLVE, equation) == expected
 
 
 def test_solve_with_other_letters_rearranges_for_x():
@@ -249,10 +283,21 @@ def test_polynomial_roots(p, expected):
 
 def test_quadratic_steps():
     lines = answers_for(POLY, QUAD, "2X^2+3X-5")
-    for step in ["A=2, B=3, C=⁻5", " =(3)²-4(2)(⁻5)", " =9+40", " =49",
+    for step in ["STANDARD: 2X²+3X-5=0", "A=2, B=3, C=⁻5", " =(3)²-4(2)(⁻5)", " =9+40", " =49",
                  "D>0: TWO REAL ROOTS.", "X=1", "X=⁻5/2", "(2X+5)(X-1)",
-                 "VERTEX: (⁻3/4,⁻49/8)", " 2(X+3/4)²-49/8"]:
+                 "VERTEX: (⁻3/4,⁻49/8)", " 2(X+3/4)²-49/8",
+                 "ROOT SUM=⁻B/A=⁻3/2", "ROOT PRODUCT=C/A=⁻5/2"]:
         assert step in lines, step
+
+
+@pytest.mark.parametrize("form, standard, factored, vertex", [
+    ("(X-1)(X+3)", "STANDARD: X²+2X-3=0", "(X+3)(X-1)", " (X+1)²-4"),
+    ("3(X-2)^2+1", "STANDARD: 3X²-12X+13=0", "NONE WITH REAL NUMBERS", " 3(X-2)²+1"),
+    ("X^2-6X+9", "STANDARD: X²-6X+9=0", "(X-3)²", " (X-3)²"),
+])
+def test_quadratic_forms_convert_from_any_form(form, standard, factored, vertex):
+    lines = answers_for(POLY, QUAD, form)
+    assert standard in lines and factored in lines and vertex in lines
 
 
 def test_quadratic_steps_clear_fractions_and_handle_complex_roots():
@@ -404,7 +449,7 @@ def test_many_rounds_do_not_leak():
     m.answer(HELP)
     m.answer("")
     m.answer("")
-    assert m.wait.title == "BRAINIAC 0.2"
+    assert m.wait.title == "BRAINIAC 0.3"
     assert_clean(m)
 
 
