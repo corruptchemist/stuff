@@ -43,8 +43,8 @@ a+bi
 // DG(1) = 1 if the calculator was in Degree mode, so quitting can put it
 // back. Brainiac's own math runs in Radian: in Degree, the TI-84 Plus CE
 // refuses 𝑒^( of an imaginary number (ERR:DOMAIN), and the polynomial
-// engine is built on exactly that. Only sin( cos( tan( that the user typed
-// are worked out in Degree (see ang).
+// engine is built on exactly that. sin( cos( tan( that the user typed
+// still take degrees then: tmpl turns them into radians.
 {abs(sin(90)-1)<ᴇ⁻9,0,0,0,0}→ʟDG
 Radian
 0→dim(ʟBS)
@@ -193,13 +193,17 @@ End
 // every X, also ones where a √( or log( inside is imaginary. So each one,
 // from the last back, gets real( of its inside (for sin⁻¹( cos⁻¹( kept
 // to ±1), plus 𝑖 where that changed it: then it isn't a real number, and
-// that X isn't allowed, the same as for √(⁻1). DG(4) counts brackets,
-// DG(5)=1 for sin⁻¹( cos⁻¹(.
+// that X isn't allowed, the same as for √(⁻1). DG(4) counts brackets.
+// In Degree, the angles are turned into radians right here (×π/180, and
+// ×180/π out of sin⁻¹( cos⁻¹( tan⁻¹(), so that everything is worked out
+// in Radian: in Degree the calculator refuses 𝑒^( and logs that come out
+// imaginary, like ln(X) for X<0 in sin(X)>ln(X). DG(5) = 1 for sin⁻¹(
+// cos⁻¹(, 2 for sin( cos( tan(, 3 for tan⁻¹(.
 For(I,length(Str9),1,⁻1)
 sub(Str9,I,1)→Str3
 inString("\xC3\xC5\xC2\xC4\xC6\xC7\xB1\xB9\xBA\xC8\xCA\xCC\xC9",Str3)→J
 If J:Then
-J<3→ʟDG(5)
+(J<3)+2(J>2 and J<6)+3(J=6)→ʟDG(5)
 1→ʟDG(4)
 I→J
 While ʟDG(4) and J<length(Str9)
@@ -213,8 +217,11 @@ Str9+")"→Str9
 J+1→J
 End
 sub(Str9,I+1,J-I-1)→Str8
-If ʟDG(5):"("+Str3+"\x19⁻1,\x1A1,\xBB\x26"+Str8+"))))+\x2C(\xB2\xBB\x26"+Str8+"))>1\x3C\xBB\x27"+Str8+")≠0))"→Str8
-If not(ʟDG(5)):"("+Str3+"\xBB\x26"+Str8+"))+\x2C(\xBB\x27"+Str8+")≠0))"→Str8
+If ʟDG(5)=1 and not(ʟDG(1)):"("+Str3+"\x19⁻1,\x1A1,\xBB\x26"+Str8+"))))+\x2C(\xB2\xBB\x26"+Str8+"))>1\x3C\xBB\x27"+Str8+")≠0))"→Str8
+If ʟDG(5)=1 and ʟDG(1):"(180"+Str3+"\x19⁻1,\x1A1,\xBB\x26"+Str8+"))))/\xAC+\x2C(\xB2\xBB\x26"+Str8+"))>1\x3C\xBB\x27"+Str8+")≠0))"→Str8
+If ʟDG(5)=2 and ʟDG(1):"("+Str3+"\xBB\x26"+Str8+")\xAC/180)+\x2C(\xBB\x27"+Str8+")≠0))"→Str8
+If ʟDG(5)=3 and ʟDG(1):"(180"+Str3+"\xBB\x26"+Str8+"))/\xAC+\x2C(\xBB\x27"+Str8+")≠0))"→Str8
+If ʟDG(5)≠1 and not(ʟDG(1) and ʟDG(5)≥2):"("+Str3+"\xBB\x26"+Str8+"))+\x2C(\xBB\x27"+Str8+")≠0))"→Str8
 If I>1:sub(Str9,1,I-1)+Str8→Str8
 If J<length(Str9):Str8+sub(Str9,J+1,length(Str9)-J)→Str8
 Str8→Str9
@@ -398,7 +405,6 @@ Goto @vd_end
 Lbl @vd_real
 If not(ʟCK(1)):Goto @vd_col
 {real(X)}→ʟBV1
-If ʟDG(1)max({inString(Str4,"\xC2"),inString(Str4,"\xC3"),inString(Str4,"\xC4"),inString(Str4,"\xC5"),inString(Str4,"\xC6"),inString(Str4,"\xC7")}):Degree
 // a √( or log( that isn't real there fails, and log(0) isn't worked out
 Str4→Str3
 #call dom
@@ -453,10 +459,10 @@ Str6+"≥0"→Str0
 Lbl @ic_end
 #return
 
-// The angle mode for working out Str9: Degree if the calculator was in
-// Degree and Str9 has sin( cos( tan( or their inverses in it (so the user
-// gets the units they typed in), else Radian. DG(2) = 1 for Degree. Every
-// caller puts Radian back afterwards. Changes nothing else.
+// The angle mode for working out Str9: always Radian, since tmpl already
+// turned Degree angles into radians. DG(2) = 1 if the user's angles are in
+// Degree (the calculator was in Degree and Str9 has sin( cos( tan( or an
+// inverse). Changes nothing else.
 // DG(3) = 1 if Str9 has sin( cos( tan( with the letter inside it, in
 // Degree: that is searched over one turn, 0 to 360. Trig of a number, like
 // sin(30)X²=2, is just a number, and the letter in sin⁻¹(X) is not an
@@ -480,7 +486,6 @@ End
 #sub ang
 ʟDG(1)max({inString(Str9,"\xC2"),inString(Str9,"\xC3"),inString(Str9,"\xC4"),inString(Str9,"\xC5"),inString(Str9,"\xC6"),inString(Str9,"\xC7")})>0→ʟDG(2)
 Radian
-If ʟDG(2):Degree
 #return
 
 // What was typed into Str1, made safe for expr( where that is cheap. The
@@ -583,6 +588,77 @@ Str2+"-("+Str4+")"→Str2
 If Str7≠"1":Str2+Str7→Str2
 #return
 
+// The bottoms in Str3 with a letter of Str7 in them, like the (X+2) of
+// 1/(X+2)+3, multiplied together -> Str8 ("1" if none). Times those, both
+// sides of a formula have no fractions left. Changes E I J K N P Q Str0
+// Str8 Str9.
+#sub bots
+#call opens
+"1"→Str8
+length(Str3)→N
+Str3+" "→Str3
+1→I
+Lbl @bt_loop
+If I≥N:Goto @bt_end
+I+1→I
+If sub(Str3,I-1,1)≠"/":Goto @bt_loop
+I→J
+#call grab
+sub(Str3,J,K-J+1)→Str0
+0→Q
+For(P,1,length(Str0))
+If inString(Str7,sub(Str0,P,1)):1→Q
+End
+If Q:Str8+Str0→Str8
+Goto @bt_loop
+Lbl @bt_end
+#return
+
+// A √( or ³√( with a letter of Str7 in it, standing in Str3 outside any
+// bracket, not under a / and not to a power like ⁻¹: Str8 = Str3 with it
+// made (0), so Str3-Str8 is that root alone (times what is in front of
+// it), and Str0 = "²" or "³" undoes it. Z=1 if there is one. For
+// √(X)+1=Y: (Y-(0+1))²=X. Changes D E I J K N Z Str0 Str8 Str9.
+#sub sqiso
+#call opens
+0→Z
+length(Str3)→N
+Str3+" "→Str3
+0→D
+0→I
+Lbl @sq_loop
+If I≥N:Goto @sq_end
+I+1→I
+sub(Str3,I,1)→Str0
+If not(D) and (Str0="√(" or Str0="\xBD"):Goto @sq_try
+D+(0<inString(Str9,Str0))-(Str0=")")→D
+Goto @sq_loop
+Lbl @sq_try
+// its ) at J; K=1 if it has a letter
+Str0→Str8
+I→J
+1→D
+0→K
+While D and J<N
+J+1→J
+sub(Str3,J,1)→Str0
+D+(0<inString(Str9,Str0))-(Str0=")")→D
+If inString(Str7,Str0):1→K
+End
+0→D
+If I>1:K and sub(Str3,I-1,1)≠"/"→K
+K and not(inString("^\x0C",sub(Str3,J+1,1)))→K
+If not(K):J→I
+If not(K):Goto @sq_loop
+"²"→Str0
+If Str8="\xBD":"³"→Str0
+"(0)"→Str8
+If I>1:sub(Str3,1,I-1)+"(0)"→Str8
+If J<N:Str8+sub(Str3,J+1,N-J)→Str8
+1→Z
+Lbl @sq_end
+#return
+
 // ======================================================== polynomials
 
 // Is Str9 a polynomial in its G letters? Z=1 if so, its terms in the P
@@ -679,6 +755,29 @@ max(ʟBE*(abs(ʟBC)>ᴇ⁻9H))→E
 ᴇ⁻9C+ᴇ⁻12(E+1)H5^E→F
 If abs(A-ʟBF(N+1))≤F and abs(B-ʟBF(N+2))≤F:1→D
 P+1→P
+End
+// A bottom like X+60, or √(X+150), looks just like a polynomial out to 5,
+// so look at 1000 too: after the check at 5 that is safe for a fraction or
+// a √( (it grows no faster than a polynomial), but not for 𝑒^(X) or 2^X.
+If D and 0<inString(Str9,"/")+inString(Str9,"\x0C")+inString(Str9,"√(") and not(inString(Str9,"^(")+inString(Str9,"\xBF")+inString(Str9,"\xC1")):Then
+1000𝑒^(2.2𝑖)→Y
+{1.24}→ʟBV1
+{1.65}→ʟBV2
+{2.06}→ʟBV3
+{2.47}→ʟBV4
+{2.88}→ʟBV5
+{3.29}→ʟBV6
+If J=1:{Y}→ʟBV1
+If J=2:{Y}→ʟBV2
+If J=3:{Y}→ʟBV3
+If J=4:{Y}→ʟBV4
+If J=5:{Y}→ʟBV5
+If J=6:{Y}→ʟBV6
+expr(Str9)→ʟBW
+ʟBW(1)Y^(P-1)→A
+sum(ʟBC*Y^ʟBE)→B
+sum(abs(ʟBC)*ᴇ3^ʟBE)→C
+If abs(A-B)>ᴇ⁻9C+ᴇ⁻12(E+1)max(H,θ)ᴇ3^E:0→D
 End
 If D:Then
 P-1→ʟBM(J)
@@ -823,14 +922,17 @@ If I≤N:Goto @sn_loop
 #sub print
 dim(ʟPK)→N
 0ʟPK→ʟBY
+// (E = how many of the letters are really there)
+0→E
 For(J,1,G)
 ʟBY+iPart(10fPart(ʟPK/10^J))→ʟBY
+E+(max(iPart(10fPart(ʟPK/10^J)))>0)→E
 End
 // (one letter: its power is the whole number, which may be 10 to 14)
 If G=1:ʟPK→ʟBY
 // biggest powers first, then ABC order; with several letters, plus terms
 // before minus ones, so that it reads P-2W rather than ⁻2W+P
-ᴇ7ʟBY-ʟPK+ᴇ9(G>1)(ʟPC>0)→ʟBY
+ᴇ7ʟBY-ʟPK+ᴇ9(E>1)(ʟPC>0)→ʟBY
 SortD(ʟBY,ʟPC,ʟPP,ʟPQ,ʟPE,ʟPK)
 "?"→Str0
 For(I,1,N)
@@ -3005,8 +3107,20 @@ inString(Str7,sub("ABCDEFGHIJKLMNOPQRSTUVWXYZθ",O,1))→T
 If not(T):Goto @e_letter
 #call extract
 If Z:Goto @re_ok
+// a bottom with a letter in it, like R=1/(1/A+1/B): times it, both sides
+"("+Str5+")+("+Str6+")"→Str3
+#call bots
+If Str8="1":Goto @re_sq
+"("+Str5+")"+Str8→Str5
+"("+Str6+")"+Str8→Str6
+#call frac
+#call tmpl
+#call extract
+If Z:Goto @re_ok
+#call eqn
+Lbl @re_sq
 // formulas with √ in them: square both sides and try again
-If not(inString(Str1,"√(")):Goto @e_rearr
+If not(inString(Str1,"√(")+inString(Str1,"\xBD")):Goto @e_rearr
 // Squaring turns T=2π√(L/G) into T²=4π²L/G, which has a ⁻ root that the
 // formula doesn't. IQ(5)=1 when that ⁻ root is extraneous for sure: the
 // letter is under no √( and there is no minus sign anywhere.
@@ -3024,11 +3138,30 @@ Else
 If Str0="√(":1→D
 End
 End
+If not(inString(Str1,"√(")):Goto @re_iso
 "("+Str5+")²"→Str5
 "("+Str6+")²"→Str6
 #call frac
 #call tmpl
-inString(Str7,sub("ABCDEFGHIJKLMNOPQRSTUVWXYZθ",O,1))→T
+#call extract
+If Z:Goto @re_ok
+#call eqn
+// the root alone first, like Y=√(X)+1 -> (Y-1)²=X, and then undone
+Lbl @re_iso
+Str6→Str3
+#call sqiso
+If Z:Goto @re_iso2
+Str5→Str3
+#call sqiso
+If not(Z):Goto @e_rearr
+Str5→Str3
+Str6→Str5
+Str3→Str6
+Lbl @re_iso2
+"(("+Str5+")-("+Str8+"))"+Str0→Str5
+"(("+Str6+")-("+Str8+"))"+Str0→Str6
+#call frac
+#call tmpl
 #call extract
 If not(Z):Goto @e_rearr
 Lbl @re_ok
@@ -3078,9 +3211,31 @@ Str1→Str6
 #call tmpl
 #call extract
 If Z:Goto @in_ok
-If not(inString(Str1,"√(")):Goto @e_inv
+// a bottom with X in it, like 1/(X+2)+3: times it, both sides
+Str1→Str3
+#call bots
+If Str8="1":Goto @in_sq
+"(Y)"+Str8→Str5
+"("+Str1+")"+Str8→Str6
+#call frac
+#call tmpl
+#call extract
+If Z:Goto @in_ok
+Lbl @in_sq
+If not(inString(Str1,"√(")):Goto @in_iso
 "(Y)²"→Str5
 "("+Str1+")²"→Str6
+#call frac
+#call tmpl
+#call extract
+If Z:Goto @in_ok
+// the root alone first, like √(X)+1 -> (Y-1)²=X, and then undone
+Lbl @in_iso
+Str1→Str3
+#call sqiso
+If not(Z):Goto @e_inv
+"(Y-("+Str8+"))"+Str0→Str5
+"(("+Str1+")-("+Str8+"))"+Str0→Str6
 #call frac
 #call tmpl
 #call extract

@@ -1367,7 +1367,7 @@ def run_comb(ops, degree, cplx, end):
         r.ans("6")
         # the result screen comes straight up (there is no figure)
         log = [e["text"] for e in m.screen.olog[start:] if not e["text"].startswith("ENTER:")]
-        want = [["COMBINED SHAPE: ", N(parts), " PARTS"], ["TOTAL AREA=", N(total)]]
+        want = [["COMBINED SHAPE: ", N(parts), " PART" if parts == 1 else " PARTS"], ["TOTAL AREA=", N(total)]]
         if total < 0:
             want += [["THAT'S LESS THAN 0: MORE"], ["WAS TAKEN AWAY THAN ADDED."]]
         if len(log) < len(want) or any(match(w, g) for w, g in zip(want, log[-len(want):])):

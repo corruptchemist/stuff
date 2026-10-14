@@ -1091,3 +1091,64 @@ def test_inverse_trig_in_degree_searches_the_usual_range(equation, shows):
 def test_a_number_too_big_to_type_is_refused():
     m, lines = run(SOLVE, "1ᴇ100")
     assert "THAT POWER IS TOO BIG." in lines
+
+
+# -- inverses and formulas with a bottom or a root in them (final stress run) ----------
+
+@pytest.mark.parametrize("f, inverse", [
+    ("1/(X+2)+3", "F⁻¹(X)=(⁻2X+7)/(X-3)"),                  # was "CAN'T FIND THIS INVERSE"
+    ("3/(X-1)", "F⁻¹(X)=(X+3)/X"),
+    ("√(X)+1", "F⁻¹(X)=X²-2X+1"),
+    ("2√(X+3)-5", "F⁻¹(X)=(X²+10X+13)/4"),
+    ("³√(X)", "F⁻¹(X)=X³"),
+    ("³√(X-1)+2", "F⁻¹(X)=X³-6X²+12X-7"),
+    ("(X+1)/(X-2)", "F⁻¹(X)=(2X+1)/(X-1)"),                 # still as before
+    ("√(X-1)", "F⁻¹(X)=X²+1"),
+])
+def test_inverse_with_a_bottom_or_a_root(f, inverse):
+    m, lines = run(INVERSE, f)
+    assert lines[:3] == ["F(X)=" + f, "SO", inverse]
+
+
+@pytest.mark.parametrize("formula, letter, answer", [
+    ("Y=1/(X+2)+3", "X", "X=(⁻2Y+7)/(Y-3)"),
+    ("R=1/(1/A+1/B)", "A", "A=⁻BR/(R-B)"),
+    ("Y=√(X)+1", "X", "X=Y²-2Y+1"),
+    ("V=³√(A)+B", "A", "A=3B²V+V³-B³-3BV²"),
+    ("T=2π√(L/G)", "L", "L=GT²/(4π²)"),                      # still as before
+])
+def test_rearrange_with_a_bottom_or_a_root(formula, letter, answer):
+    m, lines = run(REARRANGE, formula, letter)
+    assert lines[:3] == [formula, "SO", answer]
+
+
+@pytest.mark.parametrize("expr", ["1/(X+60)", "√(X+150)", "X/(X-60)"])
+def test_far_away_bottoms_are_not_polynomials(expr):
+    """Out to X=5 these look just like polynomials (1/(X+60) showed a long
+    series of tiny decimals); X=1000 tells."""
+    m, lines = run(POLY, SIMPLIFY, expr)
+    assert lines[0] == "BRAINIAC CAN SIMPLIFY"
+
+
+@pytest.mark.parametrize("expr, simplified", [
+    ("(X^2-1)/(X-1)", "=X+1"), ("(X^3-8)/(X-2)", "=X²+2X+4"), ("1/X+X", "=(X²+1)/X"),
+    ("√(9)X+X/2", "=7X/2"), ("(2A+4B)/2", "=A+2B"),
+])
+def test_fractions_that_cancel_still_simplify(expr, simplified):
+    m, lines = run(POLY, SIMPLIFY, expr)
+    assert lines[1] == simplified
+
+
+@pytest.mark.parametrize("equation, shows", [
+    ("sin(X)+log(X)=1", "X=7.42599295"),                     # was ERR:DOMAIN (log of X<0 in Degree)
+    ("sin(X)=.5", "X=30"),
+    ("tan(X)=1", "X=45"),
+])
+def test_degree_trig_with_logs_works_in_radians_inside(equation, shows):
+    m, lines = degree_run(SOLVE, equation)
+    assert shows in lines
+
+
+def test_degree_inequality_with_a_log_does_not_stop():
+    m, picture, lines = inequality("sin(X)>ln(X)", True)       # was ERR:DOMAIN
+    assert lines[-1] == "( ) EXCLUDED, [ ] INCLUDED"

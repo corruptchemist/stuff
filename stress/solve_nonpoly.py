@@ -1112,9 +1112,18 @@ def close(a, b, rel=1e-6):
 
 
 def window(c):
-    """Where the numeric search is documented to look."""
-    if c["deg"] and re.search(r"sin\(|cos\(|tan\(", c["typed"]):
-        return (0.0, 360.0)
+    """Where the numeric search is documented to look: one turn in Degree
+    when the letter is inside a sin( cos( tan( (sin(30)X=4 and sin⁻¹(X)=30
+    are searched over ⁻99..99, like everything else)."""
+    if c["deg"]:
+        t = c["typed"]
+        for m in re.finditer(r"(?<!⁻¹)(sin|cos|tan)\(", t):
+            depth, j = 1, m.end()
+            while depth and j < len(t):
+                depth += (t[j] == "(") - (t[j] == ")")
+                j += 1
+            if re.search(r"[A-Zθ]", t[m.end():j]):
+                return (0.0, 360.0)
     return (-99.0, 99.0)
 
 

@@ -11,7 +11,7 @@ A math solver for the **TI-84 Plus CE**, in three programs. Version 0.5 (test bu
 | **Help me choose** | Not sure which tool? It asks what you have (an equation, an inequality, an expression, a formula, several equations, a shape) and what you need, and takes you there. |
 | **Polynomials** | Roots of any degree (complex too), **quadratic steps + forms** (any form in: standard, factored and vertex forms out, with the discriminant, the formula, the vertex and the sum and product of the roots), **simplify/expand**, **factor**, **divide**, **zeros of F(X)**. |
 | **System of equations** | Up to 6 linear equations, typed the way you'd write them. It says when there's no solution or infinitely many. |
-| **Formulas** | **Rearrange**: `A=BH/2` for H gives `H=2A/B`, `T=2π√(L/G)` for L gives `L=GT²/(4π²)`. **Inverse**: `(X+1)/(X-2)` gives `F⁻¹(X)=(2X+1)/(X-1)`. |
+| **Formulas** | **Rearrange**: `A=BH/2` for H gives `H=2A/B`, `T=2π√(L/G)` for L gives `L=GT²/(4π²)`, `R=1/(1/A+1/B)` for A gives `A=⁻BR/(R-B)`. **Inverse**: `(X+1)/(X-2)` gives `F⁻¹(X)=(2X+1)/(X-1)`, `1/(X+2)+3` gives `(⁻2X+7)/(X-3)`, `√(X)+1` gives `X²-2X+1`, `³√(X-1)+2` gives `X³-6X²+12X-7`. |
 
 **GEOMETRY** (every solver first draws the figure with letters on it, so you
 can see which side or angle each prompt means; then asks for the values;
@@ -114,9 +114,10 @@ choose **Replace**.
 - **Degree or Radian, your choice.** Brainiac does its own math in Radian
   (the TI-84 Plus CE refuses some complex-number math in Degree mode, which
   is what made Simplify fail with ERR:DOMAIN in 0.3). Only `sin(`, `cos(` and
-  `tan(` that you type are worked out in your mode: in Degree,
-  `sin(X)=.5` gives 30 and 150. Quitting through the menu puts your mode
-  back.
+  `tan(` that you type take your mode: in Degree, `sin(X)=.5` gives 30 and
+  150. Brainiac turns those degrees into radians itself, so trig mixed with
+  logs or roots, like `sin(X)+log(X)=1`, works in Degree too. Quitting
+  through the menu puts your mode back.
 
 ### What it can't do yet
 
@@ -138,6 +139,10 @@ choose **Replace**.
   letters. Powers of 100 or more are refused before they overflow.
 - Numbers more than about a billion times apart in one problem (like
   `X²=10000000000`) lose the small one: the calculator keeps 14 digits.
+- Polynomials of degree 5 or more with decimals and roots close together,
+  like `(X-1.1)(X-2.2)…(X-7.7)=0`, get their roots right to about 6 digits
+  (`X=5.500005604`), and a repeated root among them can show a tiny 𝑖 part
+  (`X=⁻3.1+9.95ᴇ⁻6𝑖`).
 - Inequalities find boundaries between ⁻99 and 99 (holes from a bottom
   between ⁻9999 and 9999). A point where the expression has no value but
   is fine on both sides, like X=0 in `ln(X²)<1`, isn't left out.
@@ -233,7 +238,7 @@ and solves that line: `2^X=8`. Then logs finish the job.
 | `tibasic.py` | The simulator: a TI-BASIC interpreter covering what the programs use, graph screen included |
 | `play.py` / `screen.py` | Play in the terminal; draw screens as PNGs |
 | `shots.py` | `python -m brainiac.shots` regenerates `screenshots/` |
-| `../tests/test_brainiac.py`, `test_geometry.py`, `test_units.py` | `python -m pytest tests/test_brainiac.py tests/test_geometry.py tests/test_units.py` (400+ tests) |
+| `../tests/test_brainiac.py`, `test_geometry.py`, `test_units.py` | `python -m pytest tests/test_brainiac.py tests/test_geometry.py tests/test_units.py` (470+ tests) |
 
 The build refuses two kinds of mistake that would only show up on the
 calculator:

@@ -72,6 +72,9 @@ TOURS = [
     ("58-units-rate", "60 MI/HR to FT/SEC", ["5", "2", "6", "1", "8", "6", "1", "3", "1", "60"]),
     ("59-units-mass", "70 KG to LB", ["5", "2", "2", "3", "5", "70"]),
     ("60-units-temperature", "98.6 °F to °C and K", ["5", "2", "7", "1", "1", "3", "98.6"]),
+    ("61-trig-of-a-root", "sin(√(X))=.5 (was ERR:DATA TYPE)", ["1", "sin(√(X))=.5"]),
+    ("62-inverse-trig-inequality", "sin⁻¹(X)≥0: X stops at 1", ["1", "sin⁻¹(X)≥0"]),
+    ("63-geometry-refuses-i", "Geometry: 3+4i typed for a length", ["5", "1", "3", "2", "", "3+4𝑖", "4"]),
 ]
 
 
