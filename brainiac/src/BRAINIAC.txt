@@ -356,7 +356,8 @@ P+1→P
 End
 If D:Then
 P-1→ʟBM(J)
-max(ʟBE*(ʟBC≠0))→ʟBD(J)
+// (= and ≠ on complex numbers are ERR:DATA TYPE; compare sizes instead)
+max(ʟBE*(abs(ʟBC)>0))→ʟBD(J)
 If ʟBD(J)>N-2:0→Z
 Else
 0→Z
@@ -573,7 +574,7 @@ real(Y)→ʟCR(I)
 imag(Y)→ʟCI(I)
 End
 ʟCR+𝑖ʟCI→ʟDP
-ʟDW/(ʟDP+(ʟDP=0))→ʟDW
+ʟDW/(ʟDP+(abs(ʟDP)=0))→ʟDW
 ʟFZ-ʟDW→ʟFZ
 max(abs(ʟDW)/(1+abs(ʟFZ)))→E
 End

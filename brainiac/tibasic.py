@@ -1281,10 +1281,12 @@ class Evaluator:
                     raise TIError("INVALID DIM (the calculator has no empty strings)")
                 return float((a.tokens == b.tokens) == (op == "="))
             raise TIError("DATA TYPE")
+        a, b = self.m.number(a), self.m.number(b)
+        if isinstance(a, complex) or isinstance(b, complex):
+            # ERR:DATA TYPE on the calculator, even for = and ≠
+            raise TIError("DATA TYPE (comparing complex numbers)")
         if op in ("=", "!="):
-            eq = self.m.number(a) == self.m.number(b)
-            return float(eq == (op == "="))
-        a, b = self.m.real(a), self.m.real(b)
+            return float((a == b) == (op == "="))
         return float({"<": a < b, ">": a > b, "<=": a <= b, ">=": a >= b}[op])
 
     # -- functions -------------------------------------------------------------
