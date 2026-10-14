@@ -1,6 +1,6 @@
 # Brainiac
 
-A math solver for the **TI-84 Plus CE**, in three programs. Version 0.4:
+A math solver for the **TI-84 Plus CE**, in three programs. Version 0.5 (test builds), on top of 0.4:
 
 **BRAINIAC** (algebra)
 
@@ -31,9 +31,9 @@ times fractions that each equal 1, so the old units cancel)
 
 | | |
 |---|---|
-| **Length, mass, volume, area, time** | Metric and US units, numbered on one screen. `5 MI ×63360 IN/1 MI ×2.54 CM/1 IN ×1 KM/100000 CM =8.04672 KM`: within a system it's one step, across systems it goes through the exact link (1 IN = 2.54 CM, 1 LB = 453.59237 G, 1 GAL = 3.785411784 L). |
-| **Rates** | A unit over a unit: `60 MI/HR ×5280 FT/1 MI ×1 HR/3600 SEC =88 FT/SEC`, density in G/ML, fuel use in MI/GAL. |
-| **Temperature** | °F, °C and K, with the formulas worked through. |
+| **Length, mass, volume, area, time** | Metric and US units, numbered on one screen. Every fraction is one a student knows: `5 MI ×5280 FT/1 MI ×12 IN/1 FT ×2.54 CM/1 IN ×1 M/100 CM ×1 KM/1000 M =8.04672 KM`. Each unit hangs off a bigger or smaller one (MI→FT→IN, GAL→QT→PT→CUP→FL OZ→TBSP→TSP, YEAR→DAY→HR→MIN→SEC); US and metric meet at one exact link (1 IN = 2.54 CM, 1 LB = 453.59237 G, 1 GAL = 3.785411784 L, 1 IN² = 6.4516 CM²). |
+| **Rates** | A unit over a unit: `60 MI/HR ×5280 FT/1 MI ×1 HR/60 MIN ×1 MIN/60 SEC =88 FT/SEC`, density in G/ML, fuel use in MI/GAL. |
+| **Temperature** | °F, °C and K, with the formulas worked through, and a warning below absolute zero. |
 
 | | | |
 |---|---|---|
@@ -48,13 +48,21 @@ All 60 screenshots are in [`screenshots/`](screenshots/).
 
 ## Get it on your calculator
 
-You need **three files**, sent the same way:
-[`dist/BRAINIAC.8xp`](dist/BRAINIAC.8xp), [`dist/GEOMETRY.8xp`](dist/GEOMETRY.8xp)
-and [`dist/UNITS.8xp`](dist/UNITS.8xp)
-(direct downloads:
-[BRAINIAC](https://github.com/corruptchemist/stuff/raw/claude/brainiac-math-solver-mdgiwt/brainiac/dist/BRAINIAC.8xp),
-[GEOMETRY](https://github.com/corruptchemist/stuff/raw/claude/brainiac-math-solver-mdgiwt/brainiac/dist/GEOMETRY.8xp),
-[UNITS](https://github.com/corruptchemist/stuff/raw/claude/brainiac-math-solver-mdgiwt/brainiac/dist/UNITS.8xp)).
+There are two sets of three files. Send whichever you want; both sets can
+be on the calculator at once.
+
+| | Stable (last version tried on a real calculator) | Test (newest, not yet tried on a calculator) |
+|---|---|---|
+| Algebra | [`BRAINIAC`](dist/BRAINIAC.8xp) | [`BRAINUNS`](dist/BRAINUNS.8xp) |
+| Geometry | [`GEOMETRY`](dist/GEOMETRY.8xp) | [`GEOMUNS`](dist/GEOMUNS.8xp) |
+| Units | [`UNITS`](dist/UNITS.8xp) | [`UNITSUNS`](dist/UNITSUNS.8xp) |
+
+The test set runs only the test set: BRAINUNS's menu opens GEOMUNS and
+UNITSUNS, and its title says `BRAINIAC 0.5 TEST`. So if a test build
+misbehaves, the stable one is still there. (TI program names are at most 8
+letters, hence the short names.) Once a test build has been tried,
+`python -m brainiac.build --stable` turns it into the stable one.
+
 Brainiac's GEOMETRY & UNITS menu item runs the other two; they also run on
 their own from **[prgm]**. They are separate because a TI-BASIC `Goto` scans
 the program from the top, so one big program would make all of them slower.
@@ -65,11 +73,11 @@ for free.
 
 1. Install **TI Connect CE** from [education.ti.com](https://education.ti.com/en/products/computer-software/ti-connect-ce-sw).
 2. Plug the calculator in with its USB cable and turn it on.
-3. In TI Connect CE, open **Calculator Explorer**. Drag all three `.8xp` files
+3. In TI Connect CE, open **Calculator Explorer**. Drag the three `.8xp` files
    onto your calculator, or use the **Send to Calculators** button, and click
    **Send**.
-4. On the calculator press **[prgm]**, pick **BRAINIAC**, then press
-   **[enter]** twice.
+4. On the calculator press **[prgm]**, pick **BRAINIAC** (or **BRAINUNS**),
+   then press **[enter]** twice.
 
 To update to a newer version, send the new file the same way. When it asks,
 choose **Replace**.
@@ -88,8 +96,14 @@ choose **Replace**.
 - There's no way to leave a prompt blank. If you change your mind, type
   anything (like `1`) and pick MAIN MENU afterwards.
 - Geometry works in degrees and draws on the graph screen. It puts your
-  window, axes and angle mode back the way they were when you leave it
-  through its menu (not if you stop it with **[on]**).
+  window, axes, grid, Y= functions and angle mode back the way they were
+  when you leave it through its menu (not if you stop it with **[on]**).
+  To do that it borrows graph database **GDB9** (and deletes it after).
+- All three programs switch the calculator to **Normal**, **Float** and
+  **Full** screen mode, because Fix, Sci or a split screen would garble
+  their answers.
+- A typing slip that would stop the program, like a `)` with nothing to
+  close or dividing by 0, gets a message and you type it again.
 - Answers that run past one screen show **ENTER: MORE**.
 - **Degree or Radian, your choice.** Brainiac does its own math in Radian
   (the TI-84 Plus CE refuses some complex-number math in Degree mode, which
