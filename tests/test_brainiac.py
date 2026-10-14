@@ -1048,3 +1048,46 @@ def test_trig_of_a_number_is_just_a_number_in_degree():
 ])
 def test_identities_with_conditions(equation, shows):
     assert shows in answers_for(SOLVE, equation)
+
+
+# -- trig of something that can be imaginary (final stress run) ---------------------
+
+@pytest.mark.parametrize("equation, expected", [
+    ("sin(√(X))=.5", [(math.pi / 6) ** 2, (5 * math.pi / 6) ** 2, (13 * math.pi / 6) ** 2,
+                      (17 * math.pi / 6) ** 2]),             # was ERR:DATA TYPE
+    ("tan(√(X-1))=1", [1 + (math.pi / 4) ** 2, 1 + (5 * math.pi / 4) ** 2, 1 + (9 * math.pi / 4) ** 2]),
+    ("sin⁻¹(X)=.5", [math.sin(.5)]),                         # was ERR:DOMAIN (X past ±1)
+    ("sin⁻¹(X/2)+X=1", [0.662416295]),
+    ("sin⁻¹(X)=2", []),                                      # π/2 is as far as it goes
+])
+def test_trig_of_something_that_can_be_imaginary(equation, expected):
+    got = values(answers_for(SOLVE, equation))
+    assert len(got) == len(expected)
+    for g, e in zip(got, expected):
+        assert abs(g - e) < 1e-6 * max(1, abs(e))
+
+
+def test_zeros_of_trig_of_a_root():
+    got = values(answers_for(ZEROS, "sin(√(X))"))
+    assert [round(g, 6) for g in got] == [round((k * math.pi) ** 2, 6) for k in (1, 2, 3)]
+
+
+@pytest.mark.parametrize("text, answer, degree", [
+    ("sin⁻¹(X)≥0", "[0,1]", False),                          # X stops at 1: was {0}
+    ("cos⁻¹(X)>1", "[⁻1,.5403023059)", False),
+    ("cos⁻¹(X)<60", "(1/2,1]", True),                        # X is not an angle: was 0 to 360
+])
+def test_inverse_trig_inequalities(text, answer, degree):
+    m, picture, lines = inequality(text, degree)
+    assert picture[-2] == answer
+
+
+@pytest.mark.parametrize("equation, shows", [("sin⁻¹(X)=30", "X=1/2"), ("tan⁻¹(X)=45", "X=1")])
+def test_inverse_trig_in_degree_searches_the_usual_range(equation, shows):
+    m, lines = degree_run(SOLVE, equation)
+    assert lines[1:3] == ["(SEARCHED ⁻99 TO 99)", shows]
+
+
+def test_a_number_too_big_to_type_is_refused():
+    m, lines = run(SOLVE, "1ᴇ100")
+    assert "THAT POWER IS TOO BIG." in lines

@@ -45,7 +45,7 @@ a+bi
 // refuses 𝑒^( of an imaginary number (ERR:DOMAIN), and the polynomial
 // engine is built on exactly that. Only sin( cos( tan( that the user typed
 // are worked out in Degree (see ang).
-{abs(sin(90)-1)<ᴇ⁻9,0,0}→ʟDG
+{abs(sin(90)-1)<ᴇ⁻9,0,0,0,0}→ʟDG
 Radian
 0→dim(ʟBS)
 // IQ: 1 = quiet (nothing printed), 2 = collect roots into IB, 3 = the
@@ -187,6 +187,38 @@ Str9+Str3→Str9
 End
 End
 sub(Str9,2,length(Str9)-1)→Str9
+End
+// sin( cos( tan( and the like can't take an imaginary number (ERR:DATA
+// TYPE), nor sin⁻¹( cos⁻¹( one past ±1 (ERR:DOMAIN), but a search tries
+// every X, also ones where a √( or log( inside is imaginary. So each one,
+// from the last back, gets real( of its inside (for sin⁻¹( cos⁻¹( kept
+// to ±1), plus 𝑖 where that changed it: then it isn't a real number, and
+// that X isn't allowed, the same as for √(⁻1). DG(4) counts brackets,
+// DG(5)=1 for sin⁻¹( cos⁻¹(.
+For(I,length(Str9),1,⁻1)
+sub(Str9,I,1)→Str3
+inString("\xC3\xC5\xC2\xC4\xC6\xC7\xB1\xB9\xBA\xC8\xCA\xCC\xC9",Str3)→J
+If J:Then
+J<3→ʟDG(5)
+1→ʟDG(4)
+I→J
+While ʟDG(4) and J<length(Str9)
+J+1→J
+sub(Str9,J,1)→Str8
+ʟDG(4)+(0<inString("(\xBC\xBD\xC2\xC4\xC6\xBE\xC0\xBF\xB2\xC3\xC5\xC7\xC1\xB1\xB9\xBA\x12\x19\x1A\xC8\xC9\xCA\xCB\xCC\xCD\xBB\x26\xBB\x27",Str8))-(Str8=")")→ʟDG(4)
+End
+// (a bracket left open at the end, like sin(X, is closed here)
+If ʟDG(4):Then
+Str9+")"→Str9
+J+1→J
+End
+sub(Str9,I+1,J-I-1)→Str8
+If ʟDG(5):"("+Str3+"\x19⁻1,\x1A1,\xBB\x26"+Str8+"))))+\x2C(\xB2\xBB\x26"+Str8+"))>1\x3C\xBB\x27"+Str8+")≠0))"→Str8
+If not(ʟDG(5)):"("+Str3+"\xBB\x26"+Str8+"))+\x2C(\xBB\x27"+Str8+")≠0))"→Str8
+If I>1:sub(Str9,1,I-1)+Str8→Str8
+If J<length(Str9):Str8+sub(Str9,J+1,length(Str9)-J)→Str8
+Str8→Str9
+End
 End
 #return
 
@@ -398,7 +430,7 @@ If O:Then
 P→Q
 While D and Q<length(Str3)
 Q+1→Q
-D+(0<inString("(\xBC\xBD\xC2\xC4\xC6\xBE\xC0\xBF\xB2\xC3\xC5\xC7\xC1",sub(Str3,Q,1)))-(sub(Str3,Q,1)=")")→D
+D+(0<inString("(\xBC\xBD\xC2\xC4\xC6\xBE\xC0\xBF\xB2\xC3\xC5\xC7\xC1\xB1\xB9\xBA\x12\x19\x1A\xC8\xC9\xCA\xCB\xCC\xCD\xBB\x26\xBB\x27",sub(Str3,Q,1)))-(sub(Str3,Q,1)=")")→D
 End
 expr(sub(Str3,P+1,Q-P-1))+0ʟBV1→ʟDN
 (abs(imag(ʟDN))≤ᴇ⁻9(1+abs(ʟDN)))(real(ʟDN)≥(O>1)ᴇ⁻99)ʟDM→ʟDM
@@ -425,19 +457,20 @@ Lbl @ic_end
 // Degree and Str9 has sin( cos( tan( or their inverses in it (so the user
 // gets the units they typed in), else Radian. DG(2) = 1 for Degree. Every
 // caller puts Radian back afterwards. Changes nothing else.
-// DG(3) = 1 if Str9 has sin( cos( tan( (or an inverse) with the letter
-// inside it, in Degree: that is searched over one turn, 0 to 360. Trig of
-// a number, like sin(30)X²=2, is just a number: searched as usual.
+// DG(3) = 1 if Str9 has sin( cos( tan( with the letter inside it, in
+// Degree: that is searched over one turn, 0 to 360. Trig of a number, like
+// sin(30)X²=2, is just a number, and the letter in sin⁻¹(X) is not an
+// angle: those are searched as usual.
 // Changes D P Q.
 #sub trigx
 0→ʟDG(3)
 For(P,1,length(Str9))
-If inString("\xC2\xC3\xC4\xC5\xC6\xC7",sub(Str9,P,1)):Then
+If inString("\xC2\xC4\xC6",sub(Str9,P,1)):Then
 1→D
 P→Q
 While D and Q<length(Str9)
 Q+1→Q
-D+(0<inString("(\xBC\xBD\xC2\xC4\xC6\xBE\xC0\xBF\xB2\xC3\xC5\xC7\xC1",sub(Str9,Q,1)))-(sub(Str9,Q,1)=")")→D
+D+(0<inString("(\xBC\xBD\xC2\xC4\xC6\xBE\xC0\xBF\xB2\xC3\xC5\xC7\xC1\xB1\xB9\xBA\x12\x19\x1A\xC8\xC9\xCA\xCB\xCC\xCD\xBB\x26\xBB\x27",sub(Str9,Q,1)))-(sub(Str9,Q,1)=")")→D
 End
 If inString(sub(Str9,P,Q-P+1),"ʟ"):ʟDG(1)→ʟDG(3)
 End
@@ -522,6 +555,14 @@ If I+3≤length(Str1):Then
 If inString("0123456789",sub(Str1,I+1,1))inString("0123456789",sub(Str1,I+2,1))inString("0123456789",sub(Str1,I+3,1)):0→Z
 End
 inString(Str1,"^",I+1)→I
+End
+// (and ᴇ: 1ᴇ100 isn't a number at all)
+inString(Str1,"ᴇ")→I
+While I and Z
+If I+3≤length(Str1):Then
+If inString("0123456789",sub(Str1,I+1,1))inString("0123456789",sub(Str1,I+2,1))inString("0123456789",sub(Str1,I+3,1)):0→Z
+End
+inString(Str1,"ᴇ",I+1)→I
 End
 "THAT POWER IS TOO BIG."→Str0
 Lbl @va_end
@@ -1969,13 +2010,13 @@ Lbl @iq_nohole
 // F = left - right, ready to test
 #call eqn
 #call tmpl
-// Edges: where log( ln( or √( make F start or stop being a real number,
-// like X=0 for log(X)<2 -> IE, found by halving on "is it real?". IG = 4
+// Edges: where log( ln( √( sin⁻¹( or cos⁻¹( make F start or stop being a
+// real number, like X=0 for log(X)<2 -> IE, found by halving on "is it real?". IG = 4
 // if the edge itself counts: F settles on a value there (√ does, log
 // heads off to minus infinity) and that value passes.
 0→dim(ʟIE)
 0→dim(ʟIG)
-If not(inString(Str9,"\xC0")+inString(Str9,"\xBE")+inString(Str9,"\xBC")):Goto @iq_noedge
+If not(inString(Str9,"\xC0")+inString(Str9,"\xBE")+inString(Str9,"\xBC")+inString(Str9,"\xC3")+inString(Str9,"\xC5")):Goto @iq_noedge
 ⁻99→A
 99→B
 0→dim(ʟZR)
@@ -3928,11 +3969,11 @@ Disp "THAT LETTER APPEARS WITH","TWO DIFFERENT POWERS (LIKE","X AND X²), SO IT 
 Goto @e_wait
 Lbl @e_rearr
 ClrHome
-Disp "CAN'T REARRANGE THIS ONE","YET. IT TAKES +-*/, √( AND","WHOLE POWERS UP TO 6 (14","WITH ONE LETTER): NO TRIG,","LOGS OR LETTERS IN POWERS."
+Disp "CAN'T REARRANGE THIS ONE","YET. IT CAN UNDO + - * /,","SQUARES AND SQUARE ROOTS","AND SIMPLE POWERS, BUT NOT","TRIG, LOGS OR A LETTER IN","A POWER."
 Goto @e_wait
 Lbl @e_inv
 ClrHome
-Disp "CAN'T FIND THIS INVERSE","YET. IT TAKES +-*/, √( AND","WHOLE POWERS: NO TRIG,","LOGS, ³√( OR X IN A POWER."
+Disp "CAN'T FIND THIS INVERSE","YET. IT CAN UNDO + - * /,","SQUARES, CUBES AND SQUARE","ROOTS, BUT NOT EVERY MIX","OF THEM, TRIG OR LOGS."
 Goto @e_wait
 Lbl @e_inv2
 ClrHome

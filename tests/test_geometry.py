@@ -274,3 +274,31 @@ def test_again_repeats_the_same_solver():
     assert m.wait.kind == "pause" and m.showing_graph
     m.answer("")
     assert m.wait.kind == "input" and m.wait.prompt == "R="
+
+
+# -- numbers that can't be lengths (final stress run) -----------------------------
+
+@pytest.mark.parametrize("answers", [
+    (AREA, "2", "", "3+4𝑖", "4"),             # rectangle: was ERR:DATA TYPE
+    (TRI, "2", "", "1ᴇ33", "4", "0"),          # Pythagoras: was ERR:DIVIDE BY 0
+    (SOLID, "4", "", "1ᴇ50"),                  # sphere: was ERR:OVERFLOW
+    (CIRC, "3", "", "2", "2", "𝑖", "⁻4"),      # circle from its equation
+    (SCALE, "", "√(⁻1)"),
+])
+def test_imaginary_or_huge_numbers_are_refused(answers):
+    m = load_program("GEOMETRY")
+    m.complex_mode = True                  # as when Brainiac runs it: a+bi is on
+    m.run()
+    for a in answers:
+        assert m.wait.kind in ("menu", "input", "pause"), (answers, m.wait, m.statement_text())
+        m.answer(a)
+    assert m.wait.kind == "pause", (m.wait, m.statement_text())
+    assert [ln.rstrip() for ln in view(m)[:2]] == ["USE A REAL NUMBER (NO 𝑖)", "SMALLER THAN 10^12."]
+    m.answer("")
+    assert m.wait.kind in ("menu", "input", "pause")       # and back to the same solver
+    assert m.leaks == 0
+
+
+def test_combined_shape_skips_a_bad_part():
+    m, lines, _ = run(AREA, "5", "", "3", "1ᴇ99", "", "1", "2", "3", "", "6")
+    assert lines == ["COMBINED SHAPE: 1 PART", "TOTAL AREA=6"]

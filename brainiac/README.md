@@ -104,6 +104,12 @@ choose **Replace**.
   their answers.
 - A typing slip that would stop the program, like a `)` with nothing to
   close or dividing by 0, gets a message and you type it again.
+- Trig of something that can turn imaginary, like `sin(√(X))=.5`, and
+  `sin⁻¹(`/`cos⁻¹(` of something that can pass ±1 are worked out only where
+  they are real numbers (they used to stop with ERR:DATA TYPE or DOMAIN).
+  `sin⁻¹(X)≥0` gives [0,1].
+- Geometry refuses an imaginary number (when Brainiac runs it, `a+bi` is on)
+  or one of 10^12 or more, and asks again.
 - Answers that run past one screen show **ENTER: MORE**.
 - **Degree or Radian, your choice.** Brainiac does its own math in Radian
   (the TI-84 Plus CE refuses some complex-number math in Degree mode, which
@@ -137,8 +143,9 @@ choose **Replace**.
   is fine on both sides, like X=0 in `ln(X²)<1`, isn't left out.
 - Something that only gives an error by itself, like `0^0`, `ln(0)` or a
   number past 1ᴇ99, still stops the program: TI-BASIC can't catch errors.
-- Geometry expects real numbers: a complex number typed at a geometry
-  prompt stops it.
+- **SEARCH A RANGE** far from 0 with something that grows fast, like
+  `2^X=X+3` from 0 to 1000000, can still pass 1ᴇ99 between two of its points
+  and stop with ERR:OVERFLOW. Keep the range where the values stay sensible.
 - The numeric search looks at 201 points across the range. It can miss
   answers of something that wiggles fast (like `tan(3X)=.2` across ⁻99..99)
   and some places where the graph only touches 0 (like `cos(X)=1` at the

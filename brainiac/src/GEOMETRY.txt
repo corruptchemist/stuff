@@ -143,18 +143,20 @@ Q+.16(Q-G)→Q
 #return
 
 // A small square in corner I, marking a right angle. Changes G J N P Q.
+// (A side squashed to no length at all, like 4 next to 10^11, just gets no
+// mark.)
 #sub rmark
 dim(ʟPX)→N
 I+1-N(I=N)→J
 ʟPX(J)-ʟPX(I)→P
 ʟPY(J)-ʟPY(I)→Q
-7/√(P²+Q²)→G
+7/max(ᴇ⁻9,√(P²+Q²))→G
 PG→P
 QG→Q
 I-1+N(I=1)→J
 ʟPX(J)-ʟPX(I)→G
 ʟPY(J)-ʟPY(I)→N
-7/√(G²+N²)→J
+7/max(ᴇ⁻9,√(G²+N²))→J
 GJ→G
 NJ→N
 Line(ʟPX(I)+P,ʟPY(I)+Q,ʟPX(I)+P+G,ʟPY(I)+Q+N)
@@ -273,6 +275,7 @@ Text(2,2,"A, B, C: THE THREE ANGLES")
 Disp "TRIANGLE ANGLES","  ","TYPE TWO OF THE ANGLES","(IN DEGREES).","  "
 Input "ANGLE A=",U
 Input "ANGLE B=",V
+If max(abs(imag({U,V})))+(max(abs({U,V}))≥ᴇ12):Goto @e_num
 If U≤0 or V≤0 or U+V≥180:Goto @e_tri
 180-U-V→W
 sin(U)→A
@@ -334,6 +337,7 @@ Disp "PYTHAGOREAN THEOREM","  ","TYPE 0 FOR THE SIDE YOU","DON'T KNOW.","  "
 Input "A=",A
 Input "B=",B
 Input "C=",C
+If max(abs(imag({A,B,C})))+(max(abs({A,B,C}))≥ᴇ12):Goto @e_num
 If (A=0)+(B=0)+(C=0)≠1:Goto @e_one0
 If A<0 or B<0 or C<0:Goto @e_pos
 If C and C≤max(A,B):Goto @e_hyp
@@ -413,6 +417,7 @@ Text(2,2,"45-45-90: LEG, LEG, LEG×√(2)")
 Disp "45-45-90 TRIANGLE","  ","THE TWO LEGS ARE EQUAL.","TYPE 0 FOR THE ONE YOU","DON'T KNOW.","  "
 Input "LEG=",A
 Input "HYP=",C
+If max(abs(imag({A,C})))+(max(abs({A,C}))≥ᴇ12):Goto @e_num
 If (A=0)+(C=0)≠1:Goto @e_one0
 If A<0 or C<0:Goto @e_pos
 If not(C):A√(2)→C
@@ -454,6 +459,7 @@ Disp "30-60-90 TRIANGLE","  ","SHORT LEG S (OPPOSITE 30),","LONG LEG L=S×√(3)
 Input "SHORT=",S
 Input "LONG=",L
 Input "HYP=",H
+If max(abs(imag({S,L,H})))+(max(abs({S,L,H}))≥ᴇ12):Goto @e_num
 If (S=0)+(L=0)+(H=0)≠2:Goto @e_two0
 If S<0 or L<0 or H<0:Goto @e_pos
 If L:L/√(3)→S
@@ -520,6 +526,7 @@ Input "ANGLE A=",A
 Input "OPP=",O
 Input "ADJ=",D
 Input "HYP=",H
+If max(abs(imag({A,O,D,H})))+(max(abs({A,O,D,H}))≥ᴇ12):Goto @e_num
 If (A=0)+(O=0)+(D=0)+(H=0)≠2:Goto @e_two0
 If A≥90 or A<0 or O<0 or D<0 or H<0:Goto @e_ang
 If H and max(O,D)≥H:Goto @e_hyp
@@ -648,8 +655,10 @@ Disp "SIMILAR TRIANGLES","  ","TRIANGLE 1 HAS SIDES","A, B, C. TYPE THE SIDE OF"
 Input "A=",A
 Input "B=",B
 Input "C=",C
+If max(abs(imag({A,B,C})))+(max(abs({A,B,C}))≥ᴇ12):Goto @e_num
 If A≤0 or B≤0 or C≤0 or A+B≤C or A+C≤B or B+C≤A:Goto @e_tri
 Input "A'=",D
+If max(abs(imag({D})))+(max(abs({D}))≥ᴇ12):Goto @e_num
 If D≤0:Goto @e_pos
 D/A→K
 KB→E
@@ -730,6 +739,7 @@ Text(2,2,"TYPE ANY ONE OF THE FOUR")
 #call ref
 Disp "INTERSECTING LINES","  "
 Input "ANGLE=",T
+If max(abs(imag({T})))+(max(abs({T}))≥ᴇ12):Goto @e_num
 If T≤0 or T≥180:Goto @e_ang
 180-T→U
 T→X
@@ -811,6 +821,7 @@ Text(2,2,"THE 8 ANGLES: TYPE ANGLE 1")
 #call ref
 Disp "PARALLEL LINES","  "
 Input "ANGLE 1=",T
+If max(abs(imag({T})))+(max(abs({T}))≥ᴇ12):Goto @e_num
 If T≤0 or T≥180:Goto @e_ang
 180-T→U
 T→X
@@ -874,6 +885,7 @@ Disp "TRIANGLE: 3 SIDES","  "
 Input "A=",A
 Input "B=",B
 Input "C=",C
+If max(abs(imag({A,B,C})))+(max(abs({A,B,C}))≥ᴇ12):Goto @e_num
 If A≤0 or B≤0 or C≤0 or A+B≤C or A+C≤B or B+C≤A:Goto @e_tri
 (A+B+C)/2→S
 // Heron's formula, in the order that keeps its digits for thin triangles
@@ -941,6 +953,7 @@ Text(2,2,"BASE B, HEIGHT H (AT 90)")
 Disp "TRIANGLE: BASE & HEIGHT","  "
 Input "B=",U
 Input "H=",H
+If max(abs(imag({U,H})))+(max(abs({U,H}))≥ᴇ12):Goto @e_num
 If U≤0 or H≤0:Goto @e_pos
 U→X
 #call fm
@@ -994,6 +1007,7 @@ Text(2,2,"LENGTH L, WIDTH W, DIAGONAL D")
 Disp "RECTANGLE","  "
 Input "L=",L
 Input "W=",W
+If max(abs(imag({L,W})))+(max(abs({L,W}))≥ᴇ12):Goto @e_num
 If L≤0 or W≤0:Goto @e_pos
 L→X
 #call fm
@@ -1066,9 +1080,11 @@ Disp "TRAPEZOID","  ","FOR THE PERIMETER, TYPE","S3 AND S4 TOO (0 TO SKIP).","  
 Input "B1=",U
 Input "B2=",V
 Input "H=",H
+If max(abs(imag({U,V,H})))+(max(abs({U,V,H}))≥ᴇ12):Goto @e_num
 If U≤0 or V≤0 or H≤0:Goto @e_pos
 Input "S3=",C
 Input "S4=",D
+If max(abs(imag({C,D})))+(max(abs({C,D}))≥ᴇ12):Goto @e_num
 // a slanted side reaches across the height, so it can't be shorter
 If C<0 or D<0:Goto @e_pos
 If (C>0 and C<H) or (D>0 and D<H):Goto @e_leg
@@ -1140,6 +1156,7 @@ Lbl @cb_r1
 ClrHome
 Input "LENGTH=",L
 Input "WIDTH=",W
+If max(abs(imag({L,W})))+(max(abs({L,W}))≥ᴇ12):Goto @cb_num
 LW→A
 "RECTANGLE"→Str9
 Goto @cb_add
@@ -1149,6 +1166,7 @@ Lbl @cb_t1
 ClrHome
 Input "BASE=",L
 Input "HEIGHT=",W
+If max(abs(imag({L,W})))+(max(abs({L,W}))≥ᴇ12):Goto @cb_num
 LW/2→A
 "TRIANGLE"→Str9
 Goto @cb_add
@@ -1157,6 +1175,7 @@ Lbl @cb_c
 Lbl @cb_c1
 ClrHome
 Input "RADIUS=",L
+If max(abs(imag({L})))+(max(abs({L}))≥ᴇ12):Goto @cb_num
 0→W
 πL²→A
 "CIRCLE"→Str9
@@ -1166,6 +1185,7 @@ Lbl @cb_h
 Lbl @cb_h1
 ClrHome
 Input "RADIUS=",L
+If max(abs(imag({L})))+(max(abs({L}))≥ᴇ12):Goto @cb_num
 0→W
 πL²/2→A
 "HALF CIRCLE"→Str9
@@ -1191,10 +1211,16 @@ ClrHome
 Disp "LENGTHS CAN'T BE NEGATIVE.","THAT PART WASN'T ADDED."
 Pause 
 Goto @cb_loop
+Lbl @cb_num
+ClrHome
+Disp "USE A REAL NUMBER (NO 𝑖)","SMALLER THAN 10^12.","THAT PART WASN'T ADDED."
+Pause 
+Goto @cb_loop
 Lbl @cb_done
 ClrHome
 1→R
 "COMBINED SHAPE: "+toString(N)+" PARTS"→Str0
+If N=1:"COMBINED SHAPE: 1 PART"→Str0
 #call line
 T→X
 #call fm
@@ -1253,6 +1279,7 @@ Disp "BOX","  "
 Input "L=",L
 Input "W=",W
 Input "H=",H
+If max(abs(imag({L,W,H})))+(max(abs({L,W,H}))≥ᴇ12):Goto @e_num
 If L≤0 or W≤0 or H≤0:Goto @e_pos
 L→X
 #call fm
@@ -1318,6 +1345,7 @@ Text(2,2,"RADIUS R, HEIGHT H")
 Disp "CYLINDER","  "
 Input "R=",C
 Input "H=",H
+If max(abs(imag({C,H})))+(max(abs({C,H}))≥ᴇ12):Goto @e_num
 If C≤0 or H≤0:Goto @e_pos
 C→X
 #call fm
@@ -1384,6 +1412,7 @@ Text(2,2,"RADIUS R, HEIGHT H")
 Disp "CONE","  "
 Input "R=",C
 Input "H=",H
+If max(abs(imag({C,H})))+(max(abs({C,H}))≥ᴇ12):Goto @e_num
 If C≤0 or H≤0:Goto @e_pos
 √(C²+H²)→L
 C→X
@@ -1436,6 +1465,7 @@ Text(2,2,"RADIUS R")
 #call ref
 Disp "SPHERE","  "
 Input "R=",C
+If max(abs(imag({C})))+(max(abs({C}))≥ᴇ12):Goto @e_num
 If C≤0:Goto @e_pos
 C→X
 #call fm
@@ -1487,6 +1517,7 @@ Text(2,2,"BASE SIDE S, HEIGHT H")
 Disp "SQUARE PYRAMID","  "
 Input "S=",C
 Input "H=",H
+If max(abs(imag({C,H})))+(max(abs({C,H}))≥ᴇ12):Goto @e_num
 If C≤0 or H≤0:Goto @e_pos
 √(H²+(C/2)²)→L
 C→X
@@ -1547,6 +1578,7 @@ Input "R=",V
 Input "D=",D
 Input "C=",C
 Input "AREA=",E
+If max(abs(imag({V,D,C,E})))+(max(abs({V,D,C,E}))≥ᴇ12):Goto @e_num
 If min({V,D,C,E})<0:Goto @e_pos
 If (V>0)+(D>0)+(C>0)+(E>0)≠1:Goto @e_one0
 If D>0:D/2→V
@@ -1621,6 +1653,7 @@ Text(2,2,"RADIUS R, CENTRAL ANGLE T")
 Disp "ARC & SECTOR","  "
 Input "R=",C
 Input "T=",T
+If max(abs(imag({C,T})))+(max(abs({C,T}))≥ᴇ12):Goto @e_num
 If C≤0 or T≤0 or T>360:Goto @e_ang
 T→X
 #call fa
@@ -1693,6 +1726,7 @@ Disp "CENTER (H,K), RADIUS R","  "
 Input "H=",H
 Input "K=",K
 Input "R=",C
+If max(abs(imag({H,K,C})))+(max(abs({H,K,C}))≥ᴇ12):Goto @e_num
 If C≤0:Goto @e_pos
 Goto @ce_show
 Lbl @ce_read
@@ -1701,6 +1735,7 @@ Disp "TYPE THE EQUATION AS","X²+Y²+DX+EY+F=0","(MOVE EVERYTHING TO THE","LEFT 
 Input "D=",D
 Input "E=",E
 Input "F=",F
+If max(abs(imag({D,E,F})))+(max(abs({D,E,F}))≥ᴇ12):Goto @e_num
 D²/4+E²/4-F→S
 If S≤0:Goto @e_circ
 ⁻D/2→H
@@ -1793,6 +1828,7 @@ Text(2,2,"EVERY LENGTH TIMES K")
 #call ref
 Disp "SCALE FACTORS","  ","A SHAPE IS ENLARGED OR","SHRUNK BY A FACTOR K.","  "
 Input "K=",K
+If max(abs(imag({K})))+(max(abs({K}))≥ᴇ12):Goto @e_num
 If K≤0:Goto @e_pos
 "1"→Str4
 K→X
@@ -1846,6 +1882,10 @@ Goto @e_wait
 Lbl @e_leg
 ClrHome
 Disp "A SLANTED SIDE CAN'T BE","SHORTER THAN THE HEIGHT."
+Goto @e_wait
+Lbl @e_num
+ClrHome
+Disp "USE A REAL NUMBER (NO 𝑖)","SMALLER THAN 10^12."
 Goto @e_wait
 Lbl @e_circ
 ClrHome
