@@ -497,7 +497,10 @@ max(abs(ʟBC))→H
 sum(ʟBC*ʟBA(N+1)^ʟBE)→A
 sum(ʟBC*ʟBA(N+2)^ʟBE)→B
 sum(abs(ʟBC)*5^ʟBE)→C
-If abs(A-ʟBF(N+1))≤ᴇ⁻7(1+C) and abs(B-ʟBF(N+2))≤ᴇ⁻7(1+C):1→D
+// what rounding alone can put there, for a true polynomial of degree E
+max(ʟBE*(abs(ʟBC)>0))→E
+ᴇ⁻9C+ᴇ⁻12(E+1)H5^E→F
+If abs(A-ʟBF(N+1))≤F and abs(B-ʟBF(N+2))≤F:1→D
 P+1→P
 End
 If D:Then
@@ -521,7 +524,7 @@ For(J,1,G)
 iPart(ʟBG/W)-KiPart(ʟBG/(WK))→ʟBY
 If J=1:ʟBY→ʟBX
 If J>1:augment(ʟBX,ʟBY)→ʟBX
-𝑒^(𝑖(2πʟBY/K+.1))→ʟBA
+𝑒^(𝑖(2πʟBY/K+.1J))→ʟBA
 If J=1:ʟBA→ʟBV1
 If J=2:ʟBA→ʟBV2
 If J=3:ʟBA→ʟBV3
@@ -549,7 +552,7 @@ seq(ʟBX(I),I,(J-1)P+1,JP)→ʟBY
 For(I,1,P)
 0→Y
 For(S,0,K-1)
-Y+ʟBF(I+(S-ʟBY(I))W)*𝑒^(⁻𝑖ʟBY(I)*(2πS/K+.1))→Y
+Y+ʟBF(I+(S-ʟBY(I))W)*𝑒^(⁻𝑖ʟBY(I)*(2πS/K+.1J))→Y
 End
 real(Y)/K→ʟCR(I)
 imag(Y)/K→ʟCI(I)
@@ -616,6 +619,11 @@ abs(ʟPC(I))π→X
 ᴇ⁻10Hπ→T
 #call cf
 If Q and Q≤999:Goto @sn_ok
+⁻2→E
+abs(ʟPC(I))π²→X
+ᴇ⁻10Hπ²→T
+#call cf
+If Q and Q≤999:Goto @sn_ok
 0→E
 0→Q
 Lbl @sn_ok
@@ -634,6 +642,8 @@ dim(ʟPK)→N
 For(J,1,G)
 ʟBY+iPart(10fPart(ʟPK/10^J))→ʟBY
 End
+// (one letter: its power is the whole number, which may be 10 to 14)
+If G=1:ʟPK→ʟBY
 // biggest powers first, then ABC order; with several letters, plus terms
 // before minus ones, so that it reads P-2W rather than ⁻2W+P
 ᴇ7ʟBY-ʟPK+ᴇ9(G>1)(ʟPC>0)→ʟBY
@@ -650,6 +660,7 @@ If ʟPC(I)≥0 and I>1:Str6+"+"→Str6
 "?"→Str8
 For(J,1,G)
 iPart(10fPart(K/10^J))→D
+If G=1:K→D
 If D:Then
 Str8+sub(Str7,J,1)→Str8
 If D=2:Str8+"²"→Str8
@@ -668,9 +679,11 @@ If A≠1 or not(ʟPQ(I)) or (length(Str8)=1 and E≤0):Str6+toString(A)→Str6
 If E=1:Str6+"π"→Str6
 If E=2:Str6+"π²"→Str6
 If length(Str8)>1:Str6+sub(Str8,2,length(Str8)-1)→Str6
-If ʟPQ(I)>1 and E<0:Str6+"/("+toString(ʟPQ(I))+"π)"→Str6
+If ʟPQ(I)>1 and E=⁻1:Str6+"/("+toString(ʟPQ(I))+"π)"→Str6
+If ʟPQ(I)>1 and E=⁻2:Str6+"/("+toString(ʟPQ(I))+"π²)"→Str6
 If ʟPQ(I)>1 and E≥0:Str6+"/"+toString(ʟPQ(I))→Str6
-If ʟPQ(I)≤1 and E<0:Str6+"/π"→Str6
+If ʟPQ(I)≤1 and E=⁻1:Str6+"/π"→Str6
+If ʟPQ(I)≤1 and E=⁻2:Str6+"/π²"→Str6
 Str0+sub(Str6,2,length(Str6)-1)→Str0
 End
 If length(Str0)>1:Then
@@ -1000,6 +1013,12 @@ Else
 Str5+"/"+toString(Q)→Str5
 Str6+"/"+toString(Q)→Str6
 End
+End
+// (making the bottom positive swapped which root is which)
+If A<0:Then
+Str5→Str8
+Str6→Str5
+Str8→Str6
 End
 Goto @qx_end
 Lbl @qx_rat
@@ -1416,7 +1435,7 @@ Lbl @ss_end
 iPart(10fPart(ʟPK/10^T))→ʟBY
 max(ʟBY)→K
 min(ʟBY+(K+1)(ʟBY=0))→J
-If K and J≠K:⁻1→K
+If K and J≠K:⁻K→K
 K→S
 If K≤0:Goto @is_end
 // top = the terms without the letter (moved across, so sign flipped),
@@ -2640,6 +2659,7 @@ Input "SOLVE FOR:",Str4
 // Str4 = the letter; Str5 and Str6 the two sides
 Lbl @solvefor
 inString("ABCDEFGHIJKLMNOPQRSTUVWXYZθ",Str4)→O
+0→ʟIQ(5)
 If length(Str4)≠1 or not(O):Goto @e_letter
 ClrHome
 Output(1,1,"THINKING...")
@@ -2653,6 +2673,23 @@ If not(T):Goto @e_letter
 If Z:Goto @re_ok
 // formulas with √ in them: square both sides and try again
 If not(inString(Str1,"√(")):Goto @e_rearr
+// Squaring turns T=2π√(L/G) into T²=4π²L/G, which has a ⁻ root that the
+// formula doesn't. IQ(5)=1 when that ⁻ root is extraneous for sure: the
+// letter is under no √( and there is no minus sign anywhere.
+not(inString(Str1,"-") or inString(Str1,"⁻"))→ʟIQ(5)
+sub("ABCDEFGHIJKLMNOPQRSTUVWXYZθ",O,1)→Str3
+#call opens
+0→D
+For(I,1,length(Str1))
+sub(Str1,I,1)→Str0
+If D:Then
+If inString(Str9,Str0):D+1→D
+If Str0=")":D-1→D
+If Str0=Str3:0→ʟIQ(5)
+Else
+If Str0="√(":1→D
+End
+End
 "("+Str5+")²"→Str5
 "("+Str6+")²"→Str6
 #call frac
@@ -2668,6 +2705,8 @@ If not(S):Goto @e_gone
 If S<0:Goto @e_mixed
 sub("ABCDEFGHIJKLMNOPQRSTUVWXYZθ",O,1)→Str4
 #call answer
+// (the letter was squared from an odd power: its sign is fixed)
+If ʟIQ(5) and fPart(S/4)=.5:" "→Str6
 Lbl @re_show
 Str0→Str5
 ClrHome
@@ -2717,6 +2756,9 @@ Lbl @in_ok
 1→T
 "YX"→Str7
 #call isolate
+// two powers of X: an even highest power means F isn't one-to-one;
+// an odd one, like X³+X or (X-1)³+2, may well be, so don't say it isn't
+If S<0 and fPart(S/2):Goto @e_inv2
 If S≤0:Goto @e_inv1
 "F\x0C(X)"→Str4
 #call answer
@@ -2837,6 +2879,7 @@ If D<0:Goto @qd_fneg
 "?"→Str3
 If Str0="⁻1":"?⁻"→Str3
 If Str0≠"1" and Str0≠"⁻1":"?"+Str0→Str3
+If inString(Str3,"/"):"?("+sub(Str3,2,length(Str3)-1)+")"→Str3
 Str3+"("+Str4+"-("+Str5+"))("+Str4+"-("+Str6+"))"→Str0
 sub(Str0,2,length(Str0)-1)→Str0
 #call line
@@ -2953,7 +2996,7 @@ End
 If N:Then
 sub(Str6,2,length(Str6)-1)→Str6
 If dim(ʟPK)>1:"("+Str5+")"→Str5
-If N>2:"("+Str6+")"→Str6
+If N>2 or (N=2 and not(inString(Str6,"²")+inString(Str6,"³"))):"("+Str6+")"→Str6
 Str5+"/"+Str6→Str5
 End
 ClrHome
@@ -2995,7 +3038,7 @@ Str1→Str0
 #call line
 "="+Str5→Str0
 #call line
-If dim(ʟFD)>1 or sum(ʟFM)>1 or abs(C)≠1 or L≠1:Goto @fc_d
+If dim(ʟFD)>1 or sum(ʟFM)>1 or abs(C)≠1 or L≠1 or ʟFD(1)>5:Goto @fc_d
 "(IT DOES NOT FACTOR WITH"→Str0
 #call line
 "WHOLE NUMBERS. FOR ITS"→Str0
@@ -3042,6 +3085,7 @@ min(ʟPE)→W
 For(J,1,G)
 O+10^(J-1)min(iPart(10fPart(ʟPK/10^J)))→O
 End
+If G=1:min(ʟPK)→O
 ʟPK-O→ʟPK
 #call print
 Str0→Str5
@@ -3055,6 +3099,7 @@ If W=1:Str6+"π"→Str6
 If W=2:Str6+"π²"→Str6
 For(J,1,G)
 iPart(10fPart(O/10^J))→D
+If G=1:O→D
 If D:Then
 Str6+sub(Str7,J,1)→Str6
 If D=2:Str6+"²"→Str6
@@ -3168,6 +3213,7 @@ ClrHome
 #call line
 If Str2="0":Goto @dv_d
 "SO IT IS "+Str5+"+("+Str2+")/("+Str4+")"→Str0
+If Str5="0":"SO IT IS ("+Str2+")/("+Str4+")"→Str0
 #call line
 Lbl @dv_d
 #call done
@@ -3253,18 +3299,21 @@ K→[J](N,I)
 C+K(.41+.29J)→C
 End
 C-F→[J](N,28)
-// check it really is linear, at another point
-{1.66}→ʟBV1
-{2.19}→ʟBV2
-{2.72}→ʟBV3
-{3.25}→ʟBV4
-{3.78}→ʟBV5
-{4.31}→ʟBV6
+// check it really is linear, at another point: far out and with negative
+// values, so abs(X) and sin(X) in Degree (nearly straight near 1°) show up
+{⁻3.31}→ʟBV1
+{4.73}→ʟBV2
+{⁻5.17}→ʟBV3
+{6.29}→ʟBV4
+{⁻2.83}→ʟBV5
+{7.61}→ʟBV6
 real(expr(Str9))→ʟBW
 Radian
+// (how far each letter moved from the first point)
+{⁻4.01,3.74,⁻6.45,4.72,⁻4.69,5.46}→ʟBY
 0→H
 For(J,1,G)
-H+[J](N,inString("ABCDEFGHIJKLMNOPQRSTUVWXYZθ",sub(Str7,J,1)))(.72+.24J)→H
+H+[J](N,inString("ABCDEFGHIJKLMNOPQRSTUVWXYZθ",sub(Str7,J,1)))ʟBY(J)→H
 End
 If abs(ʟBW(1)-F-H)>ᴇ⁻6(1+abs(F)+abs(H)):Goto @e_linear
 If N<O:Goto @sy_in
@@ -3281,6 +3330,8 @@ G+1→G
 I→ʟSL(G)
 End
 End
+// every letter cancelled out (like X=X+1): no letters left to solve for
+If not(G):Goto @sy_zero
 sub(Str7,2,G)→Str7
 {O,max(G+1,O)}→dim([I])
 Fill(0,[I])
@@ -3290,23 +3341,56 @@ For(J,1,G)
 End
 [J](I,28)→[I](I,G+1)
 End
-rref([I])→[I]
-// SP(letter) = the row where it leads (0 = it is free); Z=1 if a row says 0=1
-0→Z
-0→P
+// Eliminate by hand rather than with rref(: the coefficients carry rounding
+// crumbs (⁻1.333333333334 for ⁻4/3), and rref( takes a crumb like 1ᴇ⁻13
+// for a real number, so 0=0 turns into 0=1 or a free letter gets a value.
+// Each row is first scaled so its biggest coefficient is 1; then anything
+// under ᴇ⁻9 counts as 0.
+For(I,1,O)
+0→H
+For(J,1,G)
+max(H,abs([I](I,J)))→H
+End
+If H:Then
+For(J,1,G+1)
+[I](I,J)/H→[I](I,J)
+End
+End
+End
+// SP(letter) = the row where it leads (0 = it is free); P = how many lead
 G→dim(ʟSP)
 Fill(0,ʟSP)
-For(I,1,O)
-0→J
-For(K,G,1,⁻1)
-If abs([I](I,K))>ᴇ⁻9:K→J
+0→P
+For(K,1,G)
+If P<O:Then
+P+1→J
+For(I,P+1,O)
+If abs([I](I,K))>abs([I](J,K)):I→J
 End
-If J:Then
-I→ʟSP(J)
+If abs([I](J,K))>ᴇ⁻9:Then
 P+1→P
-Else
-If abs([I](I,G+1))>ᴇ⁻9:1→Z
+[I](J,K)→S
+For(I,1,G+1)
+[I](J,I)→H
+[I](P,I)→[I](J,I)
+H/S→[I](P,I)
 End
+For(I,1,O)
+If I≠P:Then
+[I](I,K)→H
+For(J,1,G+1)
+[I](I,J)-H[I](P,J)→[I](I,J)
+End
+End
+End
+P→ʟSP(K)
+End
+End
+End
+// Z=1 if a row that is left says 0=(not 0)
+0→Z
+For(I,P+1,O)
+If abs([I](I,G+1))>ᴇ⁻9:1→Z
 End
 ClrHome
 1→R
@@ -3364,6 +3448,20 @@ Lbl @sy_none
 Lbl @sy_end
 #call done
 Goto @next
+// every letter cancelled: true for any values, or for none
+Lbl @sy_zero
+0→Z
+For(I,1,O)
+If abs([J](I,28))>ᴇ⁻9:1→Z
+End
+ClrHome
+1→R
+If Z:Goto @sy_none
+"EVERY LETTER CANCELS OUT:"→Str0
+#call line
+"ANY VALUES WORK."→Str0
+#call line
+Goto @sy_end
 
 // ======================================================== help, quit
 
@@ -3537,6 +3635,10 @@ Goto @e_wait
 Lbl @e_inv
 ClrHome
 Disp "CAN'T FIND THIS INVERSE","YET. (NO TRIG, LOGS OR X","IN A POWER.)"
+Goto @e_wait
+Lbl @e_inv2
+ClrHome
+Disp "CAN'T FIND THIS INVERSE:","X APPEARS WITH TWO","DIFFERENT POWERS."
 Goto @e_wait
 Lbl @e_inv1
 ClrHome

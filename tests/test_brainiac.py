@@ -407,7 +407,7 @@ def test_systems_reject_nonlinear():
 
 @pytest.mark.parametrize("formula, letter, expected", [
     ("A=BH/2", "H", ["H=2A/B"]),
-    ("PV=NRT", "T", ["T=V/(NR)"]),
+    ("PV=NRT", "T", ["T=PV/(NR)"]),        # (0.4 showed V/(NR): the simulator lost the P)
     ("Y=MX+B", "X", ["X=(Y-B)/M"]),
     ("A=P+PRT", "P", ["P=A/(RT+1)"]),
     ("1/F=1/A+1/B", "F", ["F=AB/(A+B)"]),
@@ -418,7 +418,7 @@ def test_systems_reject_nonlinear():
     ("V=piR²H", "H", ["H=V/(πR²)"]),
     ("V=piR²H", "R", ["R=√(V/(πH))", "OR R=⁻√(V/(πH))"]),
     ("T=2pi√(L/G)", "L", ["L=GT²/(4π²)"]),
-    ("T=2pi√(L/G)", "T", ["T=2π√(L/G)", "OR T=⁻2π√(L/G)"]),
+    ("T=2pi√(L/G)", "T", ["T=2π√(L/G)"]),          # (no ⁻ root: squaring added it)
     ("C=√(A²+B²)", "A", ["A=√(C²-B²)", "OR A=⁻√(C²-B²)"]),
     ("V=4piR³/3", "R", ["R=³√(3V/(4π))"]),
     ("S=4piR²", "R", ["R=√(S/π)/2", "OR R=⁻√(S/π)/2"]),

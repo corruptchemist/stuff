@@ -37,7 +37,12 @@ import cmath
 import math
 import re
 from dataclasses import dataclass, field
-from decimal import ROUND_HALF_UP, Decimal
+from decimal import ROUND_HALF_UP, Decimal, localcontext
+
+
+def ti_decimal(x):
+    """x as the calculator holds it: 14 significant decimal digits."""
+    return Decimal(f"{x:.14g}")
 from pathlib import Path
 
 from tivars.tokenizer import encode
@@ -1538,6 +1543,19 @@ class Evaluator:
             bb = b if isinstance(b, list) else [b] * n
             return [self.arith(op, x, y) for x, y in zip(aa, bb)]
         a, b = m.number(a), m.number(b)
+        if op in "+-*/" and not isinstance(a, complex) and not isinstance(b, complex):
+            # the calculator adds, subtracts, multiplies and divides in 14
+            # decimal digits: 127.2-128.2 is exactly ⁻1 there, and
+            # fPart(1011/10) exactly .1 (binary floats leave crumbs)
+            if op == "/" and b == 0:
+                raise TIError("DIVIDE BY 0")
+            with localcontext() as ctx:
+                ctx.prec = 14
+                ctx.rounding = ROUND_HALF_UP
+                da, db = ti_decimal(a), ti_decimal(b)
+                r = (da + db if op == "+" else da - db if op == "-"
+                     else da * db if op == "*" else da / db)
+            return m.number(float(r))
         try:
             if op == "+":
                 r = a + b
@@ -1785,13 +1803,15 @@ class Evaluator:
                 return a if m.radians else a * 180 / math.pi
             if name == "not(":
                 return float(not m.truth(v))
+            # the calculator works in 14 decimal digits: 2112/10 is 211.2
+            # exactly there, so fPart( gives .2 (binary floats give .19999...)
             if name == "int(":
-                return float(math.floor(m.real(v)))
+                return float(math.floor(ti_decimal(m.real(v))))
             if name == "iPart(":
-                return float(math.trunc(m.real(v)))
+                return float(math.trunc(ti_decimal(m.real(v))))
             if name == "fPart(":
-                x = m.real(v)
-                return x - math.trunc(x)
+                d = ti_decimal(m.real(v))
+                return float(d - math.trunc(d))
             if name == "sqrt(":
                 if not z and v >= 0:
                     return math.sqrt(v)
