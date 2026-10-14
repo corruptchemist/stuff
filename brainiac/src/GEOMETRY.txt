@@ -5,8 +5,9 @@
 // Same source conventions as BRAINIAC.txt (see build.py): // notes,
 // @labels, #sub/#call/#return. Its #call stack lives in list GS.
 //
-// Every solver draws the figure on the graph screen, labelled, then shows
-// the working on the home screen. Drawing is done in pixels: the window is
+// Every solver first draws a reference figure with letters on it, so you
+// can see which side or angle each prompt means, then asks for the values,
+// then draws the figure again with the numbers and shows the working. Drawing is done in pixels: the window is
 // set to 0..264 by 0..164 (the CE graph area), so Line( and Text( can be
 // given pixel positions; Text( rows count from the top, so row=164-y.
 //
@@ -56,9 +57,16 @@ Output(R,1,Str0)
 R+J→R
 #return
 
+// A reference picture is up: wait, then clear for the prompts.
+#sub ref
+Text(150,2,"ENTER, THEN TYPE THE VALUES")
+Pause 
+ClrHome
+#return
+
 // The drawing is done: wait, then start the home-screen report.
 #sub shown
-Text(156,2,"ENTER FOR THE WORKING")
+Text(150,2,"ENTER FOR THE WORKING")
 Pause
 ClrHome
 1→R
@@ -79,9 +87,9 @@ min(ʟPY)→G
 max(ʟPY)→N
 If Q=P:P+1→Q
 If N=G:G+1→N
-min(196/(Q-P),108/(N-G))→J
+min(196/(Q-P),104/(N-G))→J
 34+J(ʟPX-P)+(196-J(Q-P))/2→ʟPX
-24+J(ʟPY-G)+(108-J(N-G))/2→ʟPY
+30+J(ʟPY-G)+(104-J(N-G))/2→ʟPY
 #return
 
 // Join the points in PX, PY in order, and back to the first. Changes I J N.
@@ -93,9 +101,10 @@ Line(ʟPX(I),ʟPY(I),ʟPX(J),ʟPY(J))
 End
 #return
 
-// Str0 centred at pixel (P,Q).
+// Str0 centred at pixel (P,Q). Text( wants whole numbers (ERR:DOMAIN
+// otherwise), and the text is kept on the screen, at 6 pixels a character.
 #sub tx
-Text(max(0,min(156,164-Q-4)),max(0,min(264-4length(Str0),P-2length(Str0))),Str0)
+Text(iPart(max(0,min(152,164-Q-4))),iPart(max(0,min(264-6length(Str0),P-3length(Str0)))),Str0)
 #return
 
 // Str0 just inside corner I of the figure (an angle label). Changes G J P Q.
@@ -230,20 +239,33 @@ Goto @sc
 
 // ======================================================== triangles
 
-// -- missing angle
+// -- missing angle. Angles at corners 1 2 3 are A B C (see tri3).
+#sub dr_ta
+#call tri3
+" "→Str4
+" "→Str5
+" "→Str6
+#call tridraw
+#return
 Lbl @ta
 1→M
-ClrHome
+sin(50)→A
+sin(60)→B
+sin(70)→C
+"A"→Str1
+"B"→Str2
+"C"→Str3
+#call dr_ta
+Text(2,2,"A, B, C: THE THREE ANGLES")
+#call ref
 Disp "TRIANGLE ANGLES","  ","TYPE TWO OF THE ANGLES","(IN DEGREES).","  "
 Input "ANGLE A=",U
 Input "ANGLE B=",V
 If U≤0 or V≤0 or U+V≥180:Goto @e_tri
 180-U-V→W
-// a triangle with those angles: the law of sines gives its shape
 sin(U)→A
 sin(V)→B
 sin(W)→C
-#call tri3
 U→X
 #call fa
 "A="+Str0→Str1
@@ -253,10 +275,7 @@ V→X
 W→X
 #call fa
 "C="+Str0→Str3
-" "→Str4
-" "→Str5
-" "→Str6
-#call tridraw
+#call dr_ta
 Text(2,2,"A+B+C=180")
 #call shown
 "ANGLES IN A TRIANGLE ADD"→Str0
@@ -277,11 +296,29 @@ W→X
 #call done
 Goto @next
 
-// -- pythagorean theorem
+// -- pythagorean theorem. Legs A (along the bottom) and B (up), hypotenuse C.
+#sub dr_py
+{0,A,0}→ʟPX
+{0,0,B}→ʟPY
+#call fit
+"90"→Str1
+" "→Str2
+" "→Str3
+#call tridraw
+1→I
+#call rmark
+#return
 Lbl @py
 2→M
-ClrHome
-Disp "PYTHAGOREAN THEOREM","  ","A AND B ARE THE LEGS,","C IS THE HYPOTENUSE.","TYPE 0 FOR THE ONE YOU","DON'T KNOW.","  "
+4→A
+3→B
+"A"→Str4
+"C"→Str5
+"B"→Str6
+#call dr_py
+Text(2,2,"A, B: LEGS.  C: HYPOTENUSE")
+#call ref
+Disp "PYTHAGOREAN THEOREM","  ","TYPE 0 FOR THE SIDE YOU","DON'T KNOW.","  "
 Input "A=",A
 Input "B=",B
 Input "C=",C
@@ -292,12 +329,6 @@ If C and C≤max(A,B):Goto @e_hyp
 If F=3:√(A²+B²)→C
 If F=1:√(C²-B²)→A
 If F=2:√(C²-A²)→B
-{0,A,0}→ʟPX
-{0,0,B}→ʟPY
-#call fit
-"90"→Str1
-" "→Str2
-" "→Str3
 A→X
 #call fm
 "A="+Str0→Str4
@@ -307,9 +338,7 @@ C→X
 B→X
 #call fm
 "B="+Str0→Str6
-#call tridraw
-1→I
-#call rmark
+#call dr_py
 Text(2,2,"A²+B²=C²")
 #call shown
 "A²+B²=C²"→Str0
@@ -344,26 +373,39 @@ C→X
 #call done
 Goto @next
 
-// -- special right triangles
+// -- special right triangles. Legs A (bottom) and B (up), hypotenuse C.
+#sub dr_sp
+{0,A,0}→ʟPX
+{0,0,B}→ʟPY
+#call fit
+#call tridraw
+1→I
+#call rmark
+#return
 Lbl @sp
 3→M
 ClrHome
 Menu("SPECIAL RIGHT TRIANGLE","45-45-90",@sp45,"30-60-90",@sp30,"BACK",@m_tri)
 Lbl @sp45
-ClrHome
-Disp "45-45-90 TRIANGLE","  ","THE TWO LEGS ARE EQUAL;","HYPOTENUSE = LEG×√(2).","TYPE 0 FOR THE ONE YOU","DON'T KNOW.","  "
+"90"→Str1
+"45"→Str2
+"45"→Str3
+1→A
+1→B
+"LEG"→Str4
+"HYP"→Str5
+"LEG"→Str6
+#call dr_sp
+Text(2,2,"45-45-90: LEG, LEG, LEG×√(2)")
+#call ref
+Disp "45-45-90 TRIANGLE","  ","THE TWO LEGS ARE EQUAL.","TYPE 0 FOR THE ONE YOU","DON'T KNOW.","  "
 Input "LEG=",A
-Input "HYPOTENUSE=",C
+Input "HYP=",C
 If (A=0)+(C=0)≠1:Goto @e_one0
 If A<0 or C<0:Goto @e_pos
 If not(C):A√(2)→C
 If not(A):C/√(2)→A
-{0,A,0}→ʟPX
-{0,0,A}→ʟPY
-#call fit
-"90"→Str1
-"45"→Str2
-"45"→Str3
+A→B
 A→X
 #call fm
 Str0→Str8
@@ -373,10 +415,8 @@ C→X
 #call fm
 Str0→Str9
 "HYP="+Str0→Str5
-#call tridraw
-1→I
-#call rmark
-Text(2,2,"45-45-90: LEG, LEG, LEG√(2)")
+#call dr_sp
+Text(2,2,"HYP=LEG×√(2)")
 #call shown
 "LEG="+Str8→Str0
 #call line
@@ -387,60 +427,83 @@ Text(2,2,"45-45-90: LEG, LEG, LEG√(2)")
 #call done
 Goto @next
 Lbl @sp30
-ClrHome
-Disp "30-60-90 TRIANGLE","  ","SHORT LEG S (OPPOSITE 30),","LONG LEG L=S√(3),","HYPOTENUSE H=2S.","TYPE 0 FOR THE TWO YOU","DON'T KNOW.","  "
-Input "SHORT LEG=",A
-Input "LONG LEG=",B
-Input "HYPOTENUSE=",C
-If (A=0)+(B=0)+(C=0)≠2:Goto @e_two0
-If A<0 or B<0 or C<0:Goto @e_pos
-If B:B/√(3)→A
-If C:C/2→A
-A√(3)→B
-2A→C
-{0,B,0}→ʟPX
-{0,0,A}→ʟPY
-#call fit
 "90"→Str1
 "30"→Str2
 "60"→Str3
-B→X
+√(3)→A
+1→B
+"LONG"→Str4
+"HYP"→Str5
+"SHORT"→Str6
+#call dr_sp
+Text(2,2,"30-60-90: SHORT, LONG, HYP")
+#call ref
+Disp "30-60-90 TRIANGLE","  ","SHORT LEG S (OPPOSITE 30),","LONG LEG L=S×√(3),","HYPOTENUSE H=2S.","TYPE 0 FOR THE TWO YOU","DON'T KNOW.","  "
+Input "SHORT=",S
+Input "LONG=",L
+Input "HYP=",H
+If (S=0)+(L=0)+(H=0)≠2:Goto @e_two0
+If S<0 or L<0 or H<0:Goto @e_pos
+If L:L/√(3)→S
+If H:H/2→S
+S√(3)→L
+2S→H
+L→A
+S→B
+L→X
 #call fm
-"L="+Str0→Str4
-C→X
+"LONG="+Str0→Str4
+H→X
 #call fm
-"H="+Str0→Str5
-A→X
+"HYP="+Str0→Str5
+S→X
 #call fm
-"S="+Str0→Str6
-#call tridraw
-1→I
-#call rmark
-Text(2,2,"30-60-90: S, S√(3), 2S")
+"SHORT="+Str0→Str6
+#call dr_sp
+Text(2,2,"SHORT S, LONG S√(3), HYP 2S")
 #call shown
-A→X
+S→X
 #call fm
 Str0→Str8
 "SHORT LEG S="+Str8→Str0
 #call line
-"LONG LEG=S√(3)="+Str8+"×√(3)"→Str0
+"LONG LEG=S×√(3)="+Str8+"×√(3)"→Str0
 #call line
-B→X
+L→X
 #call fm
 " ="+Str0→Str0
 #call line
-C→X
+H→X
 #call fm
 "HYPOTENUSE=2S="+Str0→Str0
 #call line
 #call done
 Goto @next
 
-// -- trig solver
+// -- trig solver. Angle A at corner 1 (bottom left), the right angle at
+// corner 2; ADJ along the bottom, OPP up the right, HYP across.
+#sub dr_tg
+{0,D,D}→ʟPX
+{0,0,O}→ʟPY
+#call fit
+"90"→Str2
+" "→Str3
+#call tridraw
+2→I
+#call rmark
+#return
 Lbl @tg
 4→M
-ClrHome
-Disp "TRIG: SOH CAH TOA","  ","A RIGHT TRIANGLE WITH","ANGLE A. OPP IS ACROSS","FROM A, ADJ IS NEXT TO IT,","HYP IS THE LONGEST SIDE.","TYPE 0 FOR WHAT YOU","DON'T KNOW (TWO OF FOUR)."
+4→D
+3→O
+"A"→Str1
+"ADJ"→Str4
+"OPP"→Str5
+"HYP"→Str6
+#call dr_tg
+Text(2,2,"SIN=OPP/HYP COS=ADJ/HYP TAN=OPP/ADJ")
+#call ref
+Disp "TRIG: SOH CAH TOA","  ","TYPE 0 FOR WHAT YOU DON'T","KNOW (TWO OF THE FOUR).","  "
 Input "ANGLE A=",A
 Input "OPP=",O
 Input "ADJ=",D
@@ -448,41 +511,33 @@ Input "HYP=",H
 If (A=0)+(O=0)+(D=0)+(H=0)≠2:Goto @e_two0
 If A≥90 or A<0 or O<0 or D<0 or H<0:Goto @e_ang
 If A:Goto @tg_side
-// the angle, from two sides
 If O and H:Then
-"SIN(A)=OPP/HYP"→Str1
+"SIN(A)=OPP/HYP"→Str9
 sin⁻¹(O/H)→A
 End
 If D and H:Then
-"COS(A)=ADJ/HYP"→Str1
+"COS(A)=ADJ/HYP"→Str9
 cos⁻¹(D/H)→A
 End
 If O and D:Then
-"TAN(A)=OPP/ADJ"→Str1
+"TAN(A)=OPP/ADJ"→Str9
 tan⁻¹(O/D)→A
 End
 Goto @tg_fill
 Lbl @tg_side
-If O:"OPP AND ANGLE KNOWN"→Str1
-If D:"ADJ AND ANGLE KNOWN"→Str1
-If H:"HYP AND ANGLE KNOWN"→Str1
+If O:"OPP AND ANGLE KNOWN"→Str9
+If D:"ADJ AND ANGLE KNOWN"→Str9
+If H:"HYP AND ANGLE KNOWN"→Str9
 Lbl @tg_fill
-// whatever is still missing, from the angle
 If not(H) and O:O/sin(A)→H
 If not(H) and D:D/cos(A)→H
 If not(O):Hsin(A)→O
 If not(D):Hcos(A)→D
 If O>H or D>H:Goto @e_hyp
-Str1→Str9
-{0,D,D}→ʟPX
-{0,0,O}→ʟPY
-#call fit
 A→X
 #call fa
 Str0→Str8
 "A="+Str0→Str1
-"90"→Str2
-" "→Str3
 D→X
 #call fm
 "ADJ="+Str0→Str4
@@ -492,10 +547,8 @@ O→X
 H→X
 #call fm
 "HYP="+Str0→Str6
-#call tridraw
-2→I
-#call rmark
-Text(2,2,"SIN=O/H COS=A/H TAN=O/A")
+#call dr_tg
+Text(2,2,Str9)
 #call shown
 Str9→Str0
 #call line
@@ -526,21 +579,9 @@ H→X
 #call done
 Goto @next
 
-// -- similar triangles
-Lbl @sm
-5→M
-ClrHome
-Disp "SIMILAR TRIANGLES","  ","TRIANGLE 1 HAS SIDES","A, B, C. TRIANGLE 2 IS","SIMILAR; TYPE ITS SIDE","THAT MATCHES A.","  "
-Input "A=",A
-Input "B=",B
-Input "C=",C
-If A≤0 or B≤0 or C≤0 or A+B≤C or A+C≤B or B+C≤A:Goto @e_tri
-Input "MATCHES A:",D
-If D≤0:Goto @e_pos
-D/A→K
-KB→E
-KC→F
-// both triangles in one picture, triangle 2 to the right of triangle 1
+// -- similar triangles. Triangle 1 has sides A B C (labels Str4 Str5 Str6
+// on sides C A B), triangle 2 is K times bigger (labels Str1 Str2 Str3).
+#sub dr_sm
 {0,C,(B²+C²-A²)/(2C)}→ʟPX
 {0,0,√(B²-ʟPX(3)²)}→ʟPY
 max(ʟPX)-min(ʟPX)+.3max(C,KC)-Kmin(ʟPX)→S
@@ -550,38 +591,75 @@ augment(ʟPY,KʟPY)→ʟPY
 ʟPX→ʟZ1
 ʟPY→ʟZ2
 ClrDraw
-// triangle 1
 seq(ʟZ1(I),I,1,3)→ʟPX
 seq(ʟZ2(I),I,1,3)→ʟPY
 #call poly
-C→X
-#call fm
+Str4→Str0
 1→I
 #call slab
-A→X
-#call fm
+Str5→Str0
 2→I
 #call slab
-B→X
-#call fm
+Str6→Str0
 3→I
 #call slab
-// triangle 2
 seq(ʟZ1(I),I,4,6)→ʟPX
 seq(ʟZ2(I),I,4,6)→ʟPY
 #call poly
-F→X
-#call fm
+Str1→Str0
 1→I
 #call slab
-D→X
-#call fm
+Str2→Str0
 2→I
 #call slab
-E→X
-#call fm
+Str3→Str0
 3→I
 #call slab
+#return
+Lbl @sm
+5→M
+3→A
+4→B
+5→C
+1.6→K
+"C"→Str4
+"A"→Str5
+"B"→Str6
+"C'"→Str1
+"A'"→Str2
+"B'"→Str3
+#call dr_sm
+Text(2,2,"TRIANGLE 2 MATCHES: A'=K×A")
+#call ref
+Disp "SIMILAR TRIANGLES","  ","TRIANGLE 1 HAS SIDES","A, B, C. TYPE THE SIDE OF","TRIANGLE 2 THAT MATCHES A.","  "
+Input "A=",A
+Input "B=",B
+Input "C=",C
+If A≤0 or B≤0 or C≤0 or A+B≤C or A+C≤B or B+C≤A:Goto @e_tri
+Input "A'=",D
+If D≤0:Goto @e_pos
+D/A→K
+KB→E
+KC→F
+C→X
+#call fm
+Str0→Str4
+A→X
+#call fm
+Str0→Str5
+B→X
+#call fm
+Str0→Str6
+F→X
+#call fm
+Str0→Str1
+D→X
+#call fm
+Str0→Str2
+E→X
+#call fm
+Str0→Str3
+#call dr_sm
 K→X
 #call fm
 Text(2,2,"SCALE FACTOR K=",Str0)
@@ -589,17 +667,17 @@ Text(2,2,"SCALE FACTOR K=",Str0)
 K→X
 #call fm
 Str0→Str8
-"K=NEW A/OLD A="+Str8→Str0
+"K=A'/A="+Str8→Str0
 #call line
 E→X
 #call fm
-"NEW B=B×K="+Str0→Str0
+"B'=B×K="+Str0→Str0
 #call line
 F→X
 #call fm
-"NEW C=C×K="+Str0→Str0
+"C'=C×K="+Str0→Str0
 #call line
-"NEW AREA=OLD AREA×K²"→Str0
+"AREA OF 2=AREA OF 1×K²"→Str0
 #call line
 K²→X
 #call fm
@@ -610,23 +688,12 @@ Goto @next
 
 // ======================================================== angles & lines
 
-// -- intersecting lines
-Lbl @il
-6→M
-ClrHome
-Disp "INTERSECTING LINES","  ","TWO LINES CROSS. TYPE ONE","OF THE FOUR ANGLES.","  "
-Input "ANGLE=",T
-If T≤0 or T≥180:Goto @e_ang
-180-T→U
+// -- intersecting lines: an X with angle T on the right and left; Str8
+// goes right and left, Str9 above and below.
+#sub dr_il
 ClrDraw
 Line(132-90cos(T/2),82-90sin(T/2),132+90cos(T/2),82+90sin(T/2))
 Line(132-90cos(T/2),82+90sin(T/2),132+90cos(T/2),82-90sin(T/2))
-T→X
-#call fa
-Str0→Str8
-U→X
-#call fa
-Str0→Str9
 Str8→Str0
 166→P
 82→Q
@@ -639,6 +706,26 @@ Str9→Str0
 #call tx
 52→Q
 #call tx
+#return
+Lbl @il
+6→M
+50→T
+"ANGLE"→Str8
+"?"→Str9
+#call dr_il
+Text(2,2,"TYPE ANY ONE OF THE FOUR")
+#call ref
+Disp "INTERSECTING LINES","  "
+Input "ANGLE=",T
+If T≤0 or T≥180:Goto @e_ang
+180-T→U
+T→X
+#call fa
+Str0→Str8
+U→X
+#call fa
+Str0→Str9
+#call dr_il
 Text(2,2,"VERTICAL ANGLES ARE EQUAL")
 #call shown
 "ACROSS FROM EACH OTHER:"→Str0
@@ -654,54 +741,85 @@ Text(2,2,"VERTICAL ANGLES ARE EQUAL")
 #call done
 Goto @next
 
-// -- parallel lines
-Lbl @pl
-7→M
-ClrHome
-Disp "PARALLEL LINES","  ","A LINE CROSSES TWO","PARALLEL LINES. TYPE THE","TOP-LEFT ANGLE (ANGLE 1).","  "
-Input "ANGLE 1=",T
-If T≤0 or T≥180:Goto @e_ang
-180-T→U
+// -- parallel lines. Str1..Str8 are the labels of angles 1-8: at each
+// crossing, top-left, top-right, bottom-left, bottom-right; 1-4 at the
+// top line, 5-8 at the bottom one. The crossing line leans by T.
+#sub dr_pl
 ClrDraw
 Line(20,120,244,120)
 Line(20,50,244,50)
-// the crossing line leans so that the top-left angle really is T
-// (drawn no flatter than 20 degrees, so it stays on the screen)
-max(20,min(160,T))→D
-35cos(D)/sin(D)→E
-Line(132+1.4E,85-49,132-1.4E,85+49)
+max(20,min(160,T))→G
+35cos(G)/sin(G)→E
+Line(132+1.4E,36,132-1.4E,134)
+132-E→G
+Str1→Str0
+G-22→P
+129→Q
+#call tx
+Str2→Str0
+G+22→P
+#call tx
+Str3→Str0
+G-22→P
+111→Q
+#call tx
+Str4→Str0
+G+22→P
+#call tx
+132+E→G
+Str5→Str0
+G-22→P
+59→Q
+#call tx
+Str6→Str0
+G+22→P
+#call tx
+Str7→Str0
+G-22→P
+41→Q
+#call tx
+Str8→Str0
+G+22→P
+#call tx
+#return
+Lbl @pl
+7→M
+60→T
+"1"→Str1
+"2"→Str2
+"3"→Str3
+"4"→Str4
+"5"→Str5
+"6"→Str6
+"7"→Str7
+"8"→Str8
+#call dr_pl
+Text(2,2,"THE 8 ANGLES: TYPE ANGLE 1")
+#call ref
+Disp "PARALLEL LINES","  "
+Input "ANGLE 1=",T
+If T≤0 or T≥180:Goto @e_ang
+180-T→U
 T→X
 #call fa
-Str0→Str8
+Str0→Str1
 U→X
 #call fa
-Str0→Str9
-// the four angles at each crossing: T top-left and bottom-right, 180-T
-// top-right and bottom-left
-0→J
-Lbl @pl_cross
-132-E+2EJ→G
-120-70J→Q
-Str8→Str0
-G-22→P
-Q+9→Q
-#call tx
-Str9→Str0
-G+22→P
-#call tx
-Q-18→Q
-G-22→P
-#call tx
-Str8→Str0
-G+22→P
-#call tx
-J+1→J
-If J<2:Goto @pl_cross
-Text(2,2,"PARALLEL LINES: 2 ANGLES")
+Str0→Str2
+Str2→Str3
+Str1→Str4
+Str1→Str5
+Str2→Str6
+Str2→Str7
+Str1→Str8
+#call dr_pl
+Text(2,2,"ONLY TWO SIZES APPEAR")
 #call shown
 "ONLY TWO SIZES APPEAR:"→Str0
 #call line
-Str8+" AND 180-"+Str8+"="+Str9+"."→Str0
+Str1+" (ANGLES 1,4,5,8) AND"→Str0
+#call line
+"180-"+Str1+"="+Str2+" (2,3,6,7)."→Str0
 #call line
 "CORRESPONDING, ALTERNATE"→Str0
 #call line
@@ -720,8 +838,25 @@ Lbl @a_tri
 8→M
 ClrHome
 Menu("TRIANGLE AREA","FROM 3 SIDES",@at3,"FROM BASE & HEIGHT",@atb,"BACK",@m_2d)
+
+// -- three sides (labels Str4 Str5 Str6 on sides C A B)
+#sub dr_at3
+#call tri3
+" "→Str1
+" "→Str2
+" "→Str3
+#call tridraw
+#return
 Lbl @at3
-ClrHome
+5→A
+6→B
+7→C
+"C"→Str4
+"A"→Str5
+"B"→Str6
+#call dr_at3
+Text(2,2,"THE THREE SIDES A, B, C")
+#call ref
 Disp "TRIANGLE: 3 SIDES","  "
 Input "A=",A
 Input "B=",B
@@ -729,23 +864,16 @@ Input "C=",C
 If A≤0 or B≤0 or C≤0 or A+B≤C or A+C≤B or B+C≤A:Goto @e_tri
 (A+B+C)/2→S
 √(S(S-A)(S-B)(S-C))→T
-A→U
-B→V
-C→W
-#call tri3
-" "→Str1
-" "→Str2
-" "→Str3
-W→X
+C→X
 #call fm
 Str0→Str4
-U→X
+A→X
 #call fm
 Str0→Str5
-V→X
+B→X
 #call fm
 Str0→Str6
-#call tridraw
+#call dr_at3
 T→X
 #call fm
 Text(2,2,"AREA=",Str0)
@@ -768,29 +896,42 @@ T→X
 #call line
 #call done
 Goto @next
-Lbl @atb
-ClrHome
-Disp "TRIANGLE: BASE & HEIGHT","  "
-Input "BASE=",U
-Input "HEIGHT=",H
-If U≤0 or H≤0:Goto @e_pos
+
+// -- base and height (U, H; labels Str4 for the base, Str5 the height)
+#sub dr_atb
 {0,U,U/3}→ʟPX
 {0,0,H}→ʟPY
 #call fit
 ClrDraw
 #call poly
 Line(ʟPX(3),ʟPY(3),ʟPX(3),ʟPY(1))
-U→X
-#call fm
-"B="+Str0→Str0
+Str4→Str0
 1→I
 #call slab
-H→X
-#call fm
-"H="+Str0→Str0
+Str5→Str0
 ʟPX(3)+14→P
 (ʟPY(1)+ʟPY(3))/2→Q
 #call tx
+#return
+Lbl @atb
+10→U
+4→H
+"B"→Str4
+"H"→Str5
+#call dr_atb
+Text(2,2,"BASE B, HEIGHT H (AT 90)")
+#call ref
+Disp "TRIANGLE: BASE & HEIGHT","  "
+Input "B=",U
+Input "H=",H
+If U≤0 or H≤0:Goto @e_pos
+U→X
+#call fm
+"B="+Str0→Str4
+H→X
+#call fm
+"H="+Str0→Str5
+#call dr_atb
 UH/2→X
 #call fm
 Text(2,2,"AREA=BH/2=",Str0)
@@ -804,35 +945,49 @@ UH/2→X
 #call done
 Goto @next
 
-Lbl @a_rec
-9→M
-ClrHome
-Disp "RECTANGLE","  "
-Input "LENGTH=",L
-Input "WIDTH=",W
-If L≤0 or W≤0:Goto @e_pos
+// -- rectangle (L, W; labels Str4 Str5 Str6 for L, W, the diagonal)
+#sub dr_rec
 {0,L,L,0}→ʟPX
 {0,0,W,W}→ʟPY
 #call fit
 ClrDraw
 #call poly
 Line(ʟPX(1),ʟPY(1),ʟPX(3),ʟPY(3))
-L→X
-#call fm
-"L="+Str0→Str0
+Str4→Str0
 1→I
 #call slab
-W→X
-#call fm
-"W="+Str0→Str0
+Str5→Str0
 2→I
 #call slab
-√(L²+W²)→X
-#call fm
-"D="+Str0→Str0
+Str6→Str0
 (ʟPX(1)+ʟPX(3))/2+14→P
 (ʟPY(1)+ʟPY(3))/2-8→Q
 #call tx
+#return
+Lbl @a_rec
+9→M
+8→L
+5→W
+"L"→Str4
+"W"→Str5
+"D"→Str6
+#call dr_rec
+Text(2,2,"LENGTH L, WIDTH W, DIAGONAL D")
+#call ref
+Disp "RECTANGLE","  "
+Input "L=",L
+Input "W=",W
+If L≤0 or W≤0:Goto @e_pos
+L→X
+#call fm
+"L="+Str0→Str4
+W→X
+#call fm
+"W="+Str0→Str5
+√(L²+W²)→X
+#call fm
+"D="+Str0→Str6
+#call dr_rec
 LW→X
 #call fm
 Text(2,2,"AREA=",Str0)
@@ -850,39 +1005,71 @@ Text(2,2,"AREA=",Str0)
 #call done
 Goto @next
 
-Lbl @a_trap
-11→M
-ClrHome
-Disp "TRAPEZOID","  ","B1 AND B2 ARE THE PARALLEL","SIDES, H THE HEIGHT. FOR","THE PERIMETER ALSO TYPE","THE SLANTED SIDES (OR 0).","  "
-Input "B1=",U
-Input "B2=",V
-Input "H=",H
-If U≤0 or V≤0 or H≤0:Goto @e_pos
-Input "SIDE 3=",C
-Input "SIDE 4=",D
+// -- trapezoid (bases U V, height H; labels Str4 Str5 Str6 Str7 Str8 for
+// B1, B2, H, side 3, side 4)
+#sub dr_trap
 {0,U,(U+V)/2,(U-V)/2}→ʟPX
 {0,0,H,H}→ʟPY
 #call fit
 ClrDraw
 #call poly
-U→X
-#call fm
-"B1="+Str0→Str0
+Str4→Str0
 1→I
 #call slab
-V→X
-#call fm
-"B2="+Str0→Str0
+Str5→Str0
 3→I
+#call slab
+Str7→Str0
+2→I
+#call slab
+Str8→Str0
+4→I
 #call slab
 (ʟPX(1)+ʟPX(2))/2→P
 Line(P,ʟPY(1),P,ʟPY(3))
-H→X
-#call fm
-"H="+Str0→Str0
+Str6→Str0
 P+14→P
 (ʟPY(1)+ʟPY(3))/2→Q
 #call tx
+#return
+Lbl @a_trap
+11→M
+10→U
+6→V
+4→H
+"B1"→Str4
+"B2"→Str5
+"H"→Str6
+"S3"→Str7
+"S4"→Str8
+#call dr_trap
+Text(2,2,"B1, B2 PARALLEL; H BETWEEN")
+#call ref
+Disp "TRAPEZOID","  ","FOR THE PERIMETER ALSO TYPE","S3 AND S4 (OR 0 TO SKIP).","  "
+Input "B1=",U
+Input "B2=",V
+Input "H=",H
+If U≤0 or V≤0 or H≤0:Goto @e_pos
+Input "S3=",C
+Input "S4=",D
+U→X
+#call fm
+"B1="+Str0→Str4
+V→X
+#call fm
+"B2="+Str0→Str5
+H→X
+#call fm
+"H="+Str0→Str6
+" "→Str7
+" "→Str8
+C→X
+#call fm
+If C>0:"S3="+Str0→Str7
+D→X
+#call fm
+If D>0:"S4="+Str0→Str8
+#call dr_trap
 (U+V)H/2→X
 #call fm
 Text(2,2,"AREA=",Str0)
@@ -908,7 +1095,7 @@ Lbl @a_comb
 12→M
 ClrHome
 Disp "COMBINED SHAPE","  ","ADD UP (OR TAKE AWAY)","RECTANGLES, TRIANGLES,","CIRCLES AND HALF CIRCLES.","  "
-Pause
+Pause 
 0→T
 0→N
 Lbl @cb_loop
@@ -972,7 +1159,7 @@ Disp Str9
 T→X
 #call fm
 Disp "TOTAL SO FAR: "+Str0
-Pause
+Pause 
 Goto @cb_loop
 Lbl @cb_done
 ClrHome
@@ -988,15 +1175,8 @@ Goto @next
 
 // ======================================================== 3D solids
 
-Lbl @v_box
-13→M
-ClrHome
-Disp "BOX","  "
-Input "LENGTH=",L
-Input "WIDTH=",W
-Input "HEIGHT=",H
-If L≤0 or W≤0 or H≤0:Goto @e_pos
-// front face, back face shifted up-right, and the joining edges
+// -- box (L W H; labels Str4 Str5 Str6)
+#sub dr_box
 {0,L,L,0}→ʟPX
 {0,0,H,H}→ʟPY
 augment(ʟPX,ʟPX+.5W)→ʟPX
@@ -1009,24 +1189,45 @@ Line(ʟPX(I),ʟPY(I),ʟPX(J),ʟPY(J))
 Line(ʟPX(I+4),ʟPY(I+4),ʟPX(J+4),ʟPY(J+4))
 Line(ʟPX(I),ʟPY(I),ʟPX(I+4),ʟPY(I+4))
 End
-L→X
-#call fm
-"L="+Str0→Str0
+Str4→Str0
 (ʟPX(1)+ʟPX(2))/2→P
 ʟPY(1)-8→Q
 #call tx
-H→X
-#call fm
-"H="+Str0→Str0
+Str6→Str0
 ʟPX(1)-14→P
 (ʟPY(1)+ʟPY(4))/2→Q
 #call tx
-W→X
-#call fm
-"W="+Str0→Str0
+Str5→Str0
 (ʟPX(2)+ʟPX(6))/2+14→P
 (ʟPY(2)+ʟPY(6))/2→Q
 #call tx
+#return
+Lbl @v_box
+13→M
+4→L
+3→W
+2→H
+"L"→Str4
+"W"→Str5
+"H"→Str6
+#call dr_box
+Text(2,2,"LENGTH L, WIDTH W, HEIGHT H")
+#call ref
+Disp "BOX","  "
+Input "L=",L
+Input "W=",W
+Input "H=",H
+If L≤0 or W≤0 or H≤0:Goto @e_pos
+L→X
+#call fm
+"L="+Str0→Str4
+W→X
+#call fm
+"W="+Str0→Str5
+H→X
+#call fm
+"H="+Str0→Str6
+#call dr_box
 LWH→X
 #call fm
 Text(2,2,"VOLUME=",Str0)
@@ -1046,15 +1247,9 @@ Text(2,2,"VOLUME=",Str0)
 #call done
 Goto @next
 
-Lbl @v_cyl
-14→M
-ClrHome
-Disp "CYLINDER","  "
-Input "RADIUS=",C
-Input "HEIGHT=",H
-If C≤0 or H≤0:Goto @e_pos
+// -- cylinder (radius C, height H; labels Str4 Str5)
+#sub dr_cyl
 ClrDraw
-// scale so that the picture fits: 2R wide, H tall plus the end ovals
 min(80/C,90/(H+.5C))→S
 CS→Z
 .3CS→Y
@@ -1065,18 +1260,36 @@ Q+HS→Q
 #call oval
 Line(132-Z,Q,132-Z,Q-HS)
 Line(132+Z,Q,132+Z,Q-HS)
-C→X
-#call fm
-"R="+Str0→Str0
+Line(132,Q,132+Z,Q)
+Str4→Str0
 132+Z/2→P
 Q+Y+8→Q
 #call tx
-H→X
-#call fm
-"H="+Str0→Str0
+Str5→Str0
 132+Z+16→P
 30+Y+HS/2→Q
 #call tx
+#return
+Lbl @v_cyl
+14→M
+3→C
+7→H
+"R"→Str4
+"H"→Str5
+#call dr_cyl
+Text(2,2,"RADIUS R, HEIGHT H")
+#call ref
+Disp "CYLINDER","  "
+Input "R=",C
+Input "H=",H
+If C≤0 or H≤0:Goto @e_pos
+C→X
+#call fm
+"R="+Str0→Str4
+H→X
+#call fm
+"H="+Str0→Str5
+#call dr_cyl
 πC²H→X
 #call fm
 Text(2,2,"VOLUME=",Str0)
@@ -1096,14 +1309,8 @@ Text(2,2,"VOLUME=",Str0)
 #call done
 Goto @next
 
-Lbl @v_cone
-15→M
-ClrHome
-Disp "CONE","  "
-Input "RADIUS=",C
-Input "HEIGHT=",H
-If C≤0 or H≤0:Goto @e_pos
-√(C²+H²)→L
+// -- cone (radius C, height H, slant L; labels Str4 Str5 Str6)
+#sub dr_cone
 ClrDraw
 min(80/C,100/(H+.3C))→S
 CS→Z
@@ -1114,24 +1321,45 @@ CS→Z
 Line(132-Z,Q,132,Q+HS)
 Line(132+Z,Q,132,Q+HS)
 Line(132,Q,132,Q+HS)
-C→X
-#call fm
-"R="+Str0→Str0
+Line(132,Q,132+Z,Q)
+Str4→Str0
 132+Z/2→P
 Q-10→Q
 #call tx
-H→X
-#call fm
-"H="+Str0→Str0
+Str5→Str0
 132-14→P
 30+Y+HS/2→Q
 #call tx
-L→X
-#call fm
-"SLANT="+Str0→Str0
-132+Z/2+20→P
+Str6→Str0
+132+Z/2+22→P
 30+Y+HS/2→Q
 #call tx
+#return
+Lbl @v_cone
+15→M
+3→C
+4→H
+"R"→Str4
+"H"→Str5
+"SLANT"→Str6
+#call dr_cone
+Text(2,2,"RADIUS R, HEIGHT H")
+#call ref
+Disp "CONE","  "
+Input "R=",C
+Input "H=",H
+If C≤0 or H≤0:Goto @e_pos
+√(C²+H²)→L
+C→X
+#call fm
+"R="+Str0→Str4
+H→X
+#call fm
+"H="+Str0→Str5
+L→X
+#call fm
+"SLANT="+Str0→Str6
+#call dr_cone
 πC²H/3→X
 #call fm
 Text(2,2,"VOLUME=",Str0)
@@ -1149,12 +1377,8 @@ L→X
 #call done
 Goto @next
 
-Lbl @v_sph
-16→M
-ClrHome
-Disp "SPHERE","  "
-Input "RADIUS=",C
-If C≤0:Goto @e_pos
+// -- sphere (radius C; label Str4)
+#sub dr_sph
 ClrDraw
 132→P
 82→Q
@@ -1163,12 +1387,24 @@ ClrDraw
 15→Y
 #call oval
 Line(132,82,182,82)
-C→X
-#call fm
-"R="+Str0→Str0
+Str4→Str0
 157→P
 92→Q
 #call tx
+#return
+Lbl @v_sph
+16→M
+"R"→Str4
+#call dr_sph
+Text(2,2,"RADIUS R")
+#call ref
+Disp "SPHERE","  "
+Input "R=",C
+If C≤0:Goto @e_pos
+C→X
+#call fm
+"R="+Str0→Str4
+#call dr_sph
 4πC³/3→X
 #call fm
 Text(2,2,"VOLUME=",Str0)
@@ -1182,15 +1418,8 @@ Text(2,2,"VOLUME=",Str0)
 #call done
 Goto @next
 
-Lbl @v_pyr
-17→M
-ClrHome
-Disp "SQUARE PYRAMID","  ","S IS A SIDE OF THE SQUARE","BASE, H THE HEIGHT TO THE","TOP.","  "
-Input "S=",C
-Input "H=",H
-If C≤0 or H≤0:Goto @e_pos
-√(H²+(C/2)²)→L
-// the base as a flat diamond, the top above its middle
+// -- square pyramid (base side C, height H; labels Str4 Str5)
+#sub dr_pyr
 {0,C,1.4C,.4C,.7C}→ʟPX
 {0,0,.24C,.24C,.12C+H}→ʟPY
 #call fit
@@ -1200,18 +1429,37 @@ I+1-4(I=4)→J
 Line(ʟPX(I),ʟPY(I),ʟPX(J),ʟPY(J))
 Line(ʟPX(I),ʟPY(I),ʟPX(5),ʟPY(5))
 End
-C→X
-#call fm
-"S="+Str0→Str0
+Line(ʟPX(5),ʟPY(5),ʟPX(5),ʟPY(1)+.12(ʟPY(3)-ʟPY(1))/.24)
+Str4→Str0
 (ʟPX(1)+ʟPX(2))/2→P
 ʟPY(1)-8→Q
 #call tx
-H→X
-#call fm
-"H="+Str0→Str0
-ʟPX(5)+16→P
+Str5→Str0
+ʟPX(5)+14→P
 (ʟPY(5)+ʟPY(3))/2→Q
 #call tx
+#return
+Lbl @v_pyr
+17→M
+6→C
+4→H
+"S"→Str4
+"H"→Str5
+#call dr_pyr
+Text(2,2,"BASE SIDE S, HEIGHT H")
+#call ref
+Disp "SQUARE PYRAMID","  "
+Input "S=",C
+Input "H=",H
+If C≤0 or H≤0:Goto @e_pos
+√(H²+(C/2)²)→L
+C→X
+#call fm
+"S="+Str0→Str4
+H→X
+#call fm
+"H="+Str0→Str5
+#call dr_pyr
 C²H/3→X
 #call fm
 Text(2,2,"VOLUME=",Str0)
@@ -1233,13 +1481,35 @@ Goto @next
 
 // ======================================================== circles
 
+// -- circle solver (labels Str4 radius, Str5 diameter)
+#sub dr_cs
+ClrDraw
+132→P
+82→Q
+50→Z
+#call ring
+Line(82,82,182,82)
+Pt-On(132,82)
+Str4→Str0
+157→P
+92→Q
+#call tx
+Str5→Str0
+132→P
+64→Q
+#call tx
+#return
 Lbl @c_solve
 10→M
-ClrHome
+"R"→Str4
+"D"→Str5
+#call dr_cs
+Text(2,2,"R RADIUS, D DIAMETER, C AROUND")
+#call ref
 Disp "CIRCLE SOLVER","  ","TYPE THE ONE YOU KNOW AND","0 FOR THE REST.","  "
-Input "RADIUS=",V
-Input "DIAMETER=",D
-Input "CIRCUMFERENCE=",C
+Input "R=",V
+Input "D=",D
+Input "C=",C
 Input "AREA=",E
 If (V>0)+(D>0)+(C>0)+(E>0)≠1:Goto @e_one0
 If D>0:D/2→V
@@ -1248,25 +1518,13 @@ If E>0:√(E/π)→V
 2V→D
 2πV→C
 πV²→E
-ClrDraw
-132→P
-82→Q
-50→Z
-#call ring
-Line(82,82,182,82)
-Pt-On(132,82)
 V→X
 #call fm
-"R="+Str0→Str0
-157→P
-92→Q
-#call tx
+"R="+Str0→Str4
 D→X
 #call fm
-"D="+Str0→Str0
-132→P
-64→Q
-#call tx
+"D="+Str0→Str5
+#call dr_cs
 E→X
 #call fm
 Text(2,2,"AREA=",Str0)
@@ -1293,13 +1551,8 @@ E→X
 #call done
 Goto @next
 
-Lbl @c_arc
-18→M
-ClrHome
-Disp "ARC & SECTOR","  ","A SLICE OF A CIRCLE WITH","RADIUS R AND CENTRAL","ANGLE T (DEGREES).","  "
-Input "R=",C
-Input "T=",T
-If C≤0 or T≤0 or T>360:Goto @e_ang
+// -- arc and sector (radius C, angle T; labels Str4 angle, Str5 radius)
+#sub dr_arc
 ClrDraw
 132→P
 82→Q
@@ -1307,22 +1560,37 @@ ClrDraw
 #call ring
 Line(132,82,182,82)
 Line(132,82,132+50cos(T),82+50sin(T))
-// the arc itself, drawn again just inside the circle
 For(I,0,iPart(T/5)-1)
 Line(132+44cos(5I),82+44sin(5I),132+44cos(5I+5),82+44sin(5I+5))
 End
-T→X
-#call fa
-"T="+Str0→Str0
+Str4→Str0
 132+24cos(T/2)→P
 82+24sin(T/2)→Q
 #call tx
-C→X
-#call fm
-"R="+Str0→Str0
+Str5→Str0
 157→P
 74→Q
 #call tx
+#return
+Lbl @c_arc
+18→M
+120→T
+"T"→Str4
+"R"→Str5
+#call dr_arc
+Text(2,2,"RADIUS R, CENTRAL ANGLE T")
+#call ref
+Disp "ARC & SECTOR","  "
+Input "R=",C
+Input "T=",T
+If C≤0 or T≤0 or T>360:Goto @e_ang
+T→X
+#call fa
+"T="+Str0→Str4
+C→X
+#call fm
+"R="+Str0→Str5
+#call dr_arc
 2πCT/360→X
 #call fm
 Text(2,2,"ARC=",Str0)
@@ -1349,9 +1617,37 @@ T/360→X
 #call done
 Goto @next
 
+// -- circle equation (centre H K, radius C; labels Str4 centre, Str5 radius)
+#sub dr_ce
+50/C→S
+ClrDraw
+132→P
+82→Q
+50→Z
+#call ring
+If abs(H)<2.6C:Line(132-HS,20,132-HS,144)
+If abs(K)<2.6C:Line(20,82-KS,244,82-KS)
+Pt-On(132,82)
+Line(132,82,182,82)
+Str4→Str0
+132→P
+72→Q
+#call tx
+Str5→Str0
+157→P
+88→Q
+#call tx
+#return
 Lbl @c_eq
 19→M
-ClrHome
+2→H
+1.5→K
+2.5→C
+"(H,K)"→Str4
+"R"→Str5
+#call dr_ce
+Text(2,2,"CENTER (H,K), RADIUS R")
+#call ref
 Menu("CIRCLE EQUATION","CENTER+RADIUS TO EQUATION",@ce_build,"EQUATION TO CENTER+RADIUS",@ce_read,"BACK",@m_cir)
 Lbl @ce_build
 ClrHome
@@ -1373,40 +1669,19 @@ If S≤0:Goto @e_circ
 ⁻E/2→K
 √(S)→C
 Lbl @ce_show
-// the circle, 50 pixels across, with the axes if they are in view
-50/C→S
-ClrDraw
-132→P
-82→Q
-50→Z
-#call ring
-If abs(H)<2.6C:Line(132-HS,20,132-HS,144)
-If abs(K)<2.6C:Line(20,82-KS,244,82-KS)
-Pt-On(132,82)
-Line(132,82,182,82)
-H→X
-#call fm
-Str0→Str8
-K→X
-#call fm
-"("+Str8+","+Str0+")"→Str0
-132→P
-72→Q
-#call tx
-C→X
-#call fm
-"R="+Str0→Str0
-157→P
-88→Q
-#call tx
-Text(2,2,"(X-H)²+(Y-K)²=R²")
-#call shown
 H→X
 #call fm
 Str0→Str8
 K→X
 #call fm
 Str0→Str9
+"("+Str8+","+Str9+")"→Str4
+C→X
+#call fm
+"R="+Str0→Str5
+#call dr_ce
+Text(2,2,"(X-H)²+(Y-K)²=R²")
+#call shown
 "CENTER ("+Str8+","+Str9+")"→Str0
 #call line
 C→X
@@ -1448,14 +1723,9 @@ Goto @next
 
 // ======================================================== scale factors
 
-Lbl @sc
-20→M
-ClrHome
-Disp "SCALE FACTORS","  ","A SHAPE IS ENLARGED OR","SHRUNK BY A FACTOR K.","LENGTHS ×K, AREA ×K²,","VOLUME ×K³.","  "
-Input "K=",K
-If K≤0:Goto @e_pos
+// -- two squares, sides 1 and K (labels Str4 Str5)
+#sub dr_sc
 ClrDraw
-// two squares: side 1 and side K, the bigger one 90 pixels
 min(90/max(1,K),90)→S
 Line(40,30,40+S,30)
 Line(40,30,40,30+S)
@@ -1466,16 +1736,32 @@ Line(150,30,150+T,30)
 Line(150,30,150,30+T)
 Line(150+T,30,150+T,30+T)
 Line(150,30+T,150+T,30+T)
-"1"→Str0
+Str4→Str0
 40+S/2→P
 30+S/2→Q
 #call tx
-K→X
-#call fm
-Str0→Str8
+Str5→Str0
 150+T/2→P
 30+T/2→Q
 #call tx
+#return
+Lbl @sc
+20→M
+1.6→K
+"1"→Str4
+"K"→Str5
+#call dr_sc
+Text(2,2,"EVERY LENGTH TIMES K")
+#call ref
+Disp "SCALE FACTORS","  ","A SHAPE IS ENLARGED OR","SHRUNK BY A FACTOR K.","  "
+Input "K=",K
+If K≤0:Goto @e_pos
+"1"→Str4
+K→X
+#call fm
+Str0→Str8
+Str0→Str5
+#call dr_sc
 Text(2,2,"LENGTHS ×",Str8)
 #call shown
 "SCALE FACTOR K="+Str8→Str0
@@ -1523,7 +1809,7 @@ Lbl @e_circ
 ClrHome
 Disp "THAT ISN'T A CIRCLE:","THE RADIUS WOULD BE 0 OR","IMAGINARY."
 Lbl @e_wait
-Pause
+Pause 
 Goto @again
 
 Lbl @quit
@@ -1533,7 +1819,7 @@ Lbl @quit
 ʟGW(5)→Ymax
 ʟGW(6)→Xscl
 ʟGW(7)→Yscl
-AxesOn
+AxesOn 
 If not(ʟGW(1)):Radian
 ClrDraw
 DelVar ʟGS

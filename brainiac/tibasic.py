@@ -644,6 +644,9 @@ class Machine:
             if len(args) < 3:
                 raise TIError("ARGUMENT")
             row, col = self.real(args[0]), self.real(args[1])
+            if row != int(row) or col != int(col):
+                # ERR:DOMAIN on the calculator (seen on a TI-84 Plus CE)
+                raise TIError("DOMAIN (Text( needs whole-number row and column)")
             g.text(row, col, "".join(fmt(a) for a in args[2:]), big)
         self.showing_graph = True
 

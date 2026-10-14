@@ -18,13 +18,21 @@ def run(*answers):
     m = load_program("GEOMETRY")
     m.run()
     labels = []
+    m.ref_labels = []
     for a in answers:
         assert m.wait.kind in ("menu", "input", "pause"), (answers, m.wait, m.statement_text())
         m.answer(a)
-        if m.showing_graph and m.wait.kind == "pause":
-            labels = [t for _, _, t, _ in sorted(m.graph.texts)]
+        while m.showing_graph and m.wait.kind == "pause":
             assert m.graph.pixels, "a figure should have been drawn"
             assert all(0 <= x < GW and 0 <= y < GH for x, y in m.graph.pixels)
+            texts = [t for _, _, t, _ in sorted(m.graph.texts)]
+            if "ENTER, THEN TYPE THE VALUES" in texts:
+                # the reference picture with the letters on it: note it, move on
+                m.ref_labels = texts
+                m.answer("")
+                continue
+            labels = texts
+            break
     assert m.wait.kind != "error", f"{m.wait.message} at: {m.statement_text()}"
     lines = []
     while True:
@@ -72,6 +80,7 @@ def test_pythagorean(a, b, c, expected):
     m, lines, labels = run(TRI, "2", a, b, c, "")
     assert lines[1:] == expected
     assert "90" in labels
+    assert {"A", "B", "C", "90"} <= set(m.ref_labels)      # the letters came first
 
 
 def test_pythagorean_rejects_a_short_hypotenuse():
@@ -87,8 +96,25 @@ def test_special_45():
 
 def test_special_30_from_hypotenuse():
     m, lines, labels = run(TRI, "3", "2", "0", "0", "10", "")
-    assert lines == ["SHORT LEG S=5", "LONG LEG=S√(3)=5×√(3)", " =8.66", "HYPOTENUSE=2S=10"]
+    assert lines == ["SHORT LEG S=5", "LONG LEG=S×√(3)=5×√(3)", " =8.66", "HYPOTENUSE=2S=10"]
     assert {"30", "60", "90"} <= set(labels)
+
+
+def test_every_solver_shows_its_letters_first():
+    for answers in [(TRI, "1"), (TRI, "2"), (TRI, "3", "1"), (TRI, "3", "2"), (TRI, "4"), (TRI, "5"),
+                    (ANG, "2"), (ANG, "3"), (AREA, "1", "1"), (AREA, "1", "2"), (AREA, "2"),
+                    (AREA, "4"), (SOLID, "1"), (SOLID, "2"), (SOLID, "3"), (SOLID, "4"),
+                    (SOLID, "5"), (CIRC, "1"), (CIRC, "2"), (CIRC, "3"), (SCALE,)]:
+        m = load_program("GEOMETRY")
+        m.run()
+        for a in answers:
+            m.answer(a)
+        assert m.wait.kind == "pause" and m.showing_graph, answers
+        texts = [t for _, _, t, _ in m.graph.texts]
+        assert "ENTER, THEN TYPE THE VALUES" in texts, answers
+        assert len(texts) >= 3, answers                     # a title and some letters
+        m.answer("")
+        assert m.wait.kind in ("input", "menu"), answers
 
 
 def test_trig_find_sides():
@@ -105,7 +131,7 @@ def test_trig_find_angle():
 
 def test_similar_triangles():
     m, lines, labels = run(TRI, "5", "3", "4", "5", "6", "")
-    assert lines[:3] == ["K=NEW A/OLD A=2", "NEW B=B×K=8", "NEW C=C×K=10"]
+    assert lines[:3] == ["K=A'/A=2", "B'=B×K=8", "C'=C×K=10"]
     assert {"3", "4", "5", "6", "8", "10"} <= set(labels)
 
 
@@ -124,7 +150,8 @@ def test_intersecting_lines():
 
 def test_parallel_lines_label_the_right_corners():
     m, lines, labels = run(ANG, "3", "60", "")
-    assert "60 AND 180-60=120." in lines
+    assert "180-60=120 (2,3,6,7)." in lines
+    assert [t for t in m.ref_labels if t.isdigit()] == list("12345678")
     # top-left and bottom-right of each crossing are 60, the other two 120
     labels = [t for t in labels if t.isdigit()]
     top, bottom = labels[0:4], labels[4:8]
@@ -210,6 +237,7 @@ def test_not_a_circle():
 def test_scale_factors():
     m, lines, _ = run(SCALE, "3", "")
     assert lines == ["SCALE FACTOR K=3", "LENGTHS ×K=×3", "AREA ×K²=×9", "VOLUME ×K³=×27"]
+    assert m.ref_labels[:2] == ["EVERY LENGTH TIMES K", "1"] or "K" in m.ref_labels
 
 
 # -- the program as a whole ----------------------------------------------------------
@@ -239,5 +267,7 @@ def test_brainiac_runs_geometry_and_comes_back():
 def test_again_repeats_the_same_solver():
     m, _, _ = run(SOLID, "4", "3", "")
     m.answer("")
-    m.answer("1")
-    assert m.wait.kind == "input" and m.wait.prompt == "RADIUS="
+    m.answer("1")                                  # AGAIN: the reference picture first
+    assert m.wait.kind == "pause" and m.showing_graph
+    m.answer("")
+    assert m.wait.kind == "input" and m.wait.prompt == "R="

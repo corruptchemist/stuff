@@ -11,7 +11,9 @@ A math solver for the **TI-84 Plus CE**, in two programs. Version 0.3:
 | **System of equations** | Up to 6 linear equations, typed the way you'd write them. It says when there's no solution or infinitely many. |
 | **Formulas** | **Rearrange**: `A=BH/2` for H gives `H=2A/B`, `T=2π√(L/G)` for L gives `L=GT²/(4π²)`. **Inverse**: `(X+1)/(X-2)` gives `F⁻¹(X)=(2X+1)/(X-1)`. |
 
-**GEOMETRY** (every solver draws the figure, labelled, then shows the working)
+**GEOMETRY** (every solver first draws the figure with letters on it, so you
+can see which side or angle each prompt means; then asks for the values;
+then draws it again with your numbers and shows the working)
 
 | | |
 |---|---|
@@ -25,10 +27,10 @@ A math solver for the **TI-84 Plus CE**, in two programs. Version 0.3:
 | | | |
 |---|---|---|
 | ![menu](screenshots/01-menu.png) | ![radical](screenshots/05-solve-radical.png) | ![quadratic](screenshots/08-quadratic-steps-1.png) |
-| ![trig](screenshots/20-geo-trig.png) | ![parallel](screenshots/22-geo-parallel.png) | ![pyramid](screenshots/27-geo-pyramid.png) |
-| ![similar](screenshots/21-geo-similar.png) | ![arc](screenshots/28-geo-arc.png) | ![circle equation](screenshots/29-geo-circle-equation.png) |
+| ![trig letters](screenshots/21-geo-trig-ref.png) | ![trig](screenshots/22-geo-trig.png) | ![parallel](screenshots/25-geo-parallel-ref.png) |
+| ![similar](screenshots/24-geo-similar.png) | ![pyramid](screenshots/33-geo-pyramid.png) | ![circle equation](screenshots/35-geo-circle-equation.png) |
 
-All 32 screenshots are in [`screenshots/`](screenshots/).
+All 38 screenshots are in [`screenshots/`](screenshots/).
 
 ## Get it on your calculator
 
