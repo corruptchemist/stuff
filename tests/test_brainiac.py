@@ -9,7 +9,7 @@ import re
 
 import pytest
 
-from brainiac.build import (OUTPUT, BuildError, check_list_brackets, check_structure,
+from brainiac.build import (OUTPUT, BuildError, split_args, check_list_brackets, check_structure,
                             min_os, program_bytes, source_lines)
 from brainiac.screen import view
 from brainiac.tibasic import (GH, GW, Machine, TIError, fmt, glyphs, keyboard_to_tokens,
@@ -113,7 +113,9 @@ def test_labels_are_plain_letters_on_the_calculator():
 def test_no_menu_has_more_than_seven_options():
     for line in source_lines():
         if line.startswith("Menu("):
-            assert line.count(",") <= 14, line
+            args = split_args(line[5:].rstrip(")"))        # commas in quotes don't count
+            assert len(args) <= 15, line                   # a title and 7 options
+            assert all(len(a.strip('"')) <= 24 for a in args[1::2]), line   # fits the screen
 
 
 def test_simulator_refuses_what_the_calculator_might_not_do():
