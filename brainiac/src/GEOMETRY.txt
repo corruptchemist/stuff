@@ -1567,7 +1567,7 @@ E→X
 Text(2,2,"AREA=",Str0)
 C→X
 #call fm
-Text(2,150,"C=",Str0)
+Text(16,2,"C=",Str0)
 #call shown
 V→X
 #call fm
@@ -1634,7 +1634,7 @@ C→X
 Text(2,2,"ARC=",Str0)
 πC²T/360→X
 #call fm
-Text(2,140,"SECTOR=",Str0)
+Text(16,2,"SECTOR=",Str0)
 #call shown
 T/360→X
 #call fm
