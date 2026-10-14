@@ -126,7 +126,19 @@ choose **Replace**.
 - Formulas with more than 6 different letters.
 - Units: a year is 365 days, a ton is 2000 LB, cups and gallons are US.
 - Factoring is over whole numbers and fractions. `X²-2` doesn't factor, but
-  Polynomials > Roots gives `X=±√(2)`.
+  Polynomials > Roots gives `X=±√(2)`. It finds factors of degree 1 and 2,
+  so a product of two cubics like `(X³+2)(X³+3)` is left as it is.
+- Polynomials up to degree 14 in one letter, or 6 per letter with several
+  letters. Powers of 100 or more are refused before they overflow.
+- Numbers more than about a billion times apart in one problem (like
+  `X²=10000000000`) lose the small one: the calculator keeps 14 digits.
+- Inequalities find boundaries between ⁻99 and 99 (holes from a bottom
+  between ⁻9999 and 9999). A point where the expression has no value but
+  is fine on both sides, like X=0 in `ln(X²)<1`, isn't left out.
+- Something that only gives an error by itself, like `0^0`, `ln(0)` or a
+  number past 1ᴇ99, still stops the program: TI-BASIC can't catch errors.
+- Geometry expects real numbers: a complex number typed at a geometry
+  prompt stops it.
 
 ### Good to know
 
@@ -134,6 +146,11 @@ choose **Replace**.
   stored in them gets overwritten.
 - If you stop a search with **[on]**, or an error stops the program, the
   calculator is left in `a+bi` and Radian mode. Set it back in **[mode]**.
+- The test builds were checked by nine automated testers on the simulator:
+  about 30,000 problems against an independent maths checker, every menu,
+  and 10,000 typos (see `stress/`). The simulator is now as strict as the
+  calculator in every way we know of, but it isn't the calculator, so try
+  the test builds before relying on them in class.
 - Tests that put the calculator in **Press-to-Test** mode turn off all
   programs, Brainiac included.
 
@@ -203,7 +220,7 @@ and solves that line: `2^X=8`. Then logs finish the job.
 | `tibasic.py` | The simulator: a TI-BASIC interpreter covering what the programs use, graph screen included |
 | `play.py` / `screen.py` | Play in the terminal; draw screens as PNGs |
 | `shots.py` | `python -m brainiac.shots` regenerates `screenshots/` |
-| `../tests/test_brainiac.py`, `test_geometry.py`, `test_units.py` | `python -m pytest tests/test_brainiac.py tests/test_geometry.py tests/test_units.py` (304 tests) |
+| `../tests/test_brainiac.py`, `test_geometry.py`, `test_units.py` | `python -m pytest tests/test_brainiac.py tests/test_geometry.py tests/test_units.py` (400+ tests) |
 
 The build refuses two kinds of mistake that would only show up on the
 calculator:
