@@ -632,7 +632,9 @@ sum(ʟBC*ʟBA(N+1)^ʟBE)→A
 sum(ʟBC*ʟBA(N+2)^ʟBE)→B
 sum(abs(ʟBC)*5^ʟBE)→C
 // what rounding alone can put there, for a true polynomial of degree E
-max(ʟBE*(abs(ʟBC)>0))→E
+// (E counts the terms that matter: tiny ones kept as possible crumbs
+// would let anything through, like 1/(X-100) as ᴇ⁻12X^8+...)
+max(ʟBE*(abs(ʟBC)>ᴇ⁻9H))→E
 ᴇ⁻9C+ᴇ⁻12(E+1)H5^E→F
 If abs(A-ʟBF(N+1))≤F and abs(B-ʟBF(N+2))≤F:1→D
 P+1→P
