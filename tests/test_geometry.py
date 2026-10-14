@@ -4,7 +4,7 @@ import math
 
 import pytest
 
-from brainiac.build import min_os, output_path, program_bytes, source_lines
+from brainiac.build import TEST_NAMES, min_os, output_path, program_bytes, source_lines
 from brainiac.screen import view
 from brainiac.tibasic import GH, GW, load_program
 from tivars.types import TIProgram
@@ -46,9 +46,11 @@ def run(*answers):
 
 
 def test_shipped_8xp_matches_source():
-    shipped = TIProgram.open(str(output_path("GEOMETRY")))
-    assert shipped.name == "GEOMETRY"
-    assert shipped.data == program_bytes("GEOMETRY"), "run: python -m brainiac.build"
+    """The test build is what gets sent next; the stable build stays as it was."""
+    shipped = TIProgram.open(str(output_path("GEOMETRY", test=True)))
+    assert shipped.name == TEST_NAMES["GEOMETRY"]
+    assert shipped.data == program_bytes("GEOMETRY", test=True), "run: python -m brainiac.build"
+    assert TIProgram.open(str(output_path("GEOMETRY"))).name == "GEOMETRY"
     assert min_os("GEOMETRY").version == "5.2.0"
 
 
@@ -259,7 +261,7 @@ def test_brainiac_runs_geometry_and_comes_back():
     b.answer("1")
     assert b.wait.title == "GEOMETRY" and not b.radians
     b.answer(BACK)
-    assert b.wait.title == "BRAINIAC 0.4" and b.radians and b.leaks == 0
+    assert b.wait.title == "BRAINIAC 0.5" and b.radians and b.leaks == 0
     b.answer("1")
     b.answer("5X=30")
     assert "X=6" in [ln.strip() for ln in b.screen.lines()]

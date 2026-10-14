@@ -1,4 +1,4 @@
-// UNITS 0.4 -- Brainiac's unit conversion program for the TI-84 Plus CE.
+// UNITS 0.5 -- Brainiac's unit conversion program for the TI-84 Plus CE.
 //
 // Built by  python -m brainiac.build  into UNITS.8xp. Brainiac's menu runs
 // it with prgmUNITS; it also runs on its own from [prgm]. Same source

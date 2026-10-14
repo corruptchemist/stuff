@@ -33,8 +33,10 @@ def main(argv=None):
     if args.source:
         m = load_program(args.program)
     else:
-        others = [output_path(n) for n in PROGRAMS if n != args.program and output_path(n).exists()]
-        m = Machine.from_file(output_path(args.program), *others)
+        # the test builds (BRAINUNS, GEOMUNS, UNITSUNS): what goes to the calculator next
+        others = [output_path(n, test=True) for n in PROGRAMS
+                  if n != args.program and output_path(n, test=True).exists()]
+        m = Machine.from_file(output_path(args.program, test=True), *others)
     wait = m.run()
     shot = 0
     while True:

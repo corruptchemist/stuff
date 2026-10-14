@@ -1,4 +1,4 @@
-// BRAINIAC 0.4 -- a math solver for the TI-84 Plus CE (TI-BASIC source).
+// BRAINIAC 0.5 -- a math solver for the TI-84 Plus CE (TI-BASIC source).
 //
 // Build it into BRAINIAC.8xp with:  python -m brainiac.build
 // Needs calculator OS 5.2 or newer (for toString().
@@ -1564,7 +1564,7 @@ End
 Lbl @menu
 0→dim(ʟBS)
 Radian
-Menu("BRAINIAC 0.4","SOLVE FOR X (OR < >)",@m_solve,"POLYNOMIALS",@m_poly,"SYSTEM OF EQUATIONS",@m_sys,"FORMULAS",@m_form,"GEOMETRY & UNITS",@m_geo,"HELP ME CHOOSE",@m_wiz,"QUIT",@m_quit)
+Menu("BRAINIAC 0.5","SOLVE FOR X (OR < >)",@m_solve,"POLYNOMIALS",@m_poly,"SYSTEM OF EQUATIONS",@m_sys,"FORMULAS",@m_form,"GEOMETRY & UNITS",@m_geo,"HELP ME CHOOSE",@m_wiz,"QUIT",@m_quit)
 
 // Questions that lead to the right tool.
 Lbl @m_wiz

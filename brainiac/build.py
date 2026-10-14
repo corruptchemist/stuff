@@ -40,6 +40,11 @@ NAME = "BRAINIAC"
 # since one program can run another)
 PROGRAMS = {"BRAINIAC": "BS", "GEOMETRY": "GS", "UNITS": "UQ"}
 
+# The test channel. New builds go out under these names, so the last version
+# the user has tried on the calculator (BRAINIAC, GEOMETRY, UNITS) stays there
+# untouched as a fallback. TI-84 program names are at most 8 characters.
+TEST_NAMES = {"BRAINIAC": "BRAINUNS", "GEOMETRY": "GEOMUNS", "UNITS": "UNITSUNS"}
+
 # tokens whose names end in a space, which editors strip
 SPACED = {"Pause", "AxesOn", "FnOff", "PlotsOff"}
 
@@ -213,20 +218,27 @@ def source_path(name: str = NAME) -> Path:
     return HERE / "src" / f"{name}.txt"
 
 
-def output_path(name: str = NAME) -> Path:
-    return HERE / "dist" / f"{name}.8xp"
+def output_path(name: str = NAME, test: bool = False) -> Path:
+    return HERE / "dist" / f"{TEST_NAMES[name] if test else name}.8xp"
 
 
-def source_lines(name: str = NAME) -> list[str]:
+def test_edits(line: str) -> str:
+    """A test build runs the other test builds, and says it's a test."""
+    for name, test_name in TEST_NAMES.items():
+        line = re.sub(rf"\bprgm{name}\b", f"prgm{test_name}", line)
+    return re.sub(r'^Menu\("BRAINIAC ([0-9.]+)"', r'Menu("BRAINIAC \1 TEST"', line)
+
+
+def source_lines(name: str = NAME, test: bool = False) -> list[str]:
     """The program's lines as the calculator will see them."""
     lines = expand(raw_lines(source_path(name)), PROGRAMS[name])
     check_structure(lines)
     check_list_brackets(lines)
-    return [line for _, line in lines]
+    return [test_edits(line) if test else line for _, line in lines]
 
 
-def program_bytes(name: str = NAME) -> bytes:
-    data, _ = encode("\n".join(source_lines(name)))
+def program_bytes(name: str = NAME, test: bool = False) -> bytes:
+    data, _ = encode("\n".join(source_lines(name, test)))
     check(data)
     return data
 
@@ -258,20 +270,24 @@ def check(data: bytes):
             raise BuildError(f"illegal token {token.escape}")
 
 
-def build(name: str = NAME) -> Path:
-    program = TIProgram(name=name)
-    program.data = program_bytes(name)
-    out = output_path(name)
+def build(name: str = NAME, test: bool = True) -> Path:
+    program = TIProgram(name=TEST_NAMES[name] if test else name)
+    program.data = program_bytes(name, test)
+    out = output_path(name, test)
     out.parent.mkdir(parents=True, exist_ok=True)
     program.save(str(out), model=TI_84PCE)
     return out
 
 
-def main():
+def main(argv=None):
+    """Writes the test builds (BRAINUNS...). With --stable, the real names
+    instead: do that only once a test build has been tried on the calculator."""
+    import sys
+    stable = "--stable" in (sys.argv[1:] if argv is None else argv)
     for name in PROGRAMS:
         if not source_path(name).exists():
             continue
-        out = build(name)
+        out = build(name, test=not stable)
         os = min_os(name)
         print(f"wrote {out.relative_to(HERE.parent)}  ({len(program_bytes(name))} bytes of "
               f"program, {len(source_lines(name))} lines, needs {os.model} OS {os.version}+)")

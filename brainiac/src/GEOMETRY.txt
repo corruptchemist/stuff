@@ -1,4 +1,4 @@
-// GEOMETRY 0.3 -- Brainiac's geometry program for the TI-84 Plus CE.
+// GEOMETRY 0.5 -- Brainiac's geometry program for the TI-84 Plus CE.
 //
 // Built by  python -m brainiac.build  into GEOMETRY.8xp. Brainiac's menu
 // runs it with prgmGEOMETRY; it also runs on its own from [prgm].

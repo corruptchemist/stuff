@@ -1782,12 +1782,14 @@ def round_tiny(part: float, z: complex) -> float:
     return 0.0 if abs(part) < 1e-13 * max(1.0, abs(z)) else part
 
 
-def load_program(name="BRAINIAC") -> Machine:
+def load_program(name="BRAINIAC", test=False) -> Machine:
     """A program freshly built from source (so tests never run a stale .8xp),
-    with the other programs available to prgm."""
-    from brainiac.build import PROGRAMS, program_bytes, source_path
-    m = Machine(tokens_from_bytes(program_bytes(name)))
+    with the other programs available to prgm. test=True builds the test
+    channel (BRAINUNS runs GEOMUNS and UNITSUNS)."""
+    from brainiac.build import PROGRAMS, TEST_NAMES, program_bytes, source_path
+    m = Machine(tokens_from_bytes(program_bytes(name, test)))
     for other in PROGRAMS:
         if other != name and source_path(other).exists():
-            m.programs[other] = tokens_from_bytes(program_bytes(other))
+            key = TEST_NAMES[other] if test else other
+            m.programs[key] = tokens_from_bytes(program_bytes(other, test))
     return m

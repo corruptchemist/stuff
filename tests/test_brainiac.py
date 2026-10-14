@@ -9,7 +9,7 @@ import re
 
 import pytest
 
-from brainiac.build import (OUTPUT, BuildError, split_args, check_list_brackets, check_structure,
+from brainiac.build import (OUTPUT, TEST_NAMES, BuildError, output_path, split_args, check_list_brackets, check_structure,
                             min_os, program_bytes, source_lines)
 from brainiac.screen import view
 from brainiac.tibasic import (GH, GW, Machine, TIError, fmt, glyphs, keyboard_to_tokens,
@@ -72,10 +72,38 @@ def assert_clean(m):
 # -- the build -----------------------------------------------------------------------
 
 def test_shipped_8xp_matches_source():
-    """dist/BRAINIAC.8xp must be rebuilt after every edit to src/."""
-    shipped = TIProgram.open(str(OUTPUT))
-    assert shipped.name == "BRAINIAC"
-    assert shipped.data == program_bytes(), "run: python -m brainiac.build"
+    """dist/BRAINUNS.8xp (the test build) must be rebuilt after every edit to
+    src/. dist/BRAINIAC.8xp is the stable build the user keeps as a fallback."""
+    shipped = TIProgram.open(str(output_path("BRAINIAC", test=True)))
+    assert shipped.name == "BRAINUNS"
+    assert shipped.data == program_bytes("BRAINIAC", test=True), "run: python -m brainiac.build"
+    assert TIProgram.open(str(OUTPUT)).name == "BRAINIAC"
+
+
+def test_test_build_only_renames():
+    """The test build is the same program, running the other test builds."""
+    plain, test = source_lines("BRAINIAC"), source_lines("BRAINIAC", test=True)
+    changed = [(a, b) for a, b in zip(plain, test) if a != b]
+    assert len(plain) == len(test)
+    assert sorted(b for _, b in changed if b.startswith("prgm")) == ["prgmGEOMUNS", "prgmUNITSUNS"]
+    assert [b[:24] for _, b in changed if b.startswith("Menu(")] == ['Menu("BRAINIAC 0.5 TEST"']
+    assert len(changed) == 3
+    for name in TEST_NAMES:
+        assert len(TEST_NAMES[name]) <= 8 and TEST_NAMES[name].isalpha()   # TI's name rules
+
+
+def test_test_builds_call_each_other():
+    b = load_program(test=True)
+    b.run()
+    assert b.wait.title == "BRAINIAC 0.5 TEST"
+    b.answer("5")
+    b.answer("1")
+    assert b.wait.title == "GEOMETRY"
+    b.answer("7")
+    b.answer("5")
+    b.answer("2")
+    assert b.wait.title == "UNIT CONVERSION"
+    assert set(b.programs) == {"GEOMUNS", "UNITSUNS"}
 
 
 def test_program_size_and_os():
@@ -730,7 +758,7 @@ def test_many_rounds_do_not_leak():
     for _ in range(3):
         assert m.wait.kind == "pause"
         m.answer("")
-    assert m.wait.title == "BRAINIAC 0.4"
+    assert m.wait.title == "BRAINIAC 0.5"
     assert_clean(m)
 
 
