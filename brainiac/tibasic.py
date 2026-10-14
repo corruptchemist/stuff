@@ -232,6 +232,57 @@ class Screen:
         self.row = row
 
 
+# -- the graph screen -----------------------------------------------------------
+
+GW, GH = 265, 165            # the CE's graph area, in pixels
+
+
+class Graph:
+    """The graph screen: a bitmap plus the text drawn on it with Text(."""
+
+    def __init__(self):
+        self.axes = True
+        self.clear()
+
+    def clear(self):
+        self.pixels = set()
+        self.texts = []          # (row, col, text, big)
+
+    def point(self, px, py):
+        if 0 <= px < GW and 0 <= py < GH:
+            self.pixels.add((int(px), int(py)))
+
+    def line(self, x1, y1, x2, y2):
+        n = int(max(abs(x2 - x1), abs(y2 - y1))) + 1
+        for i in range(n + 1):
+            t = i / n
+            self.point(round(x1 + (x2 - x1) * t), round(y1 + (y2 - y1) * t))
+
+    def circle(self, cx, cy, rx, ry):
+        n = int(8 * max(rx, ry, 1)) + 8
+        for i in range(n):
+            a = 2 * math.pi * i / n
+            self.point(round(cx + rx * math.cos(a)), round(cy + ry * math.sin(a)))
+
+    def text(self, row, col, text, big=False):
+        if not (0 <= row <= GH and 0 <= col <= GW):
+            raise TIError("DOMAIN")
+        self.texts.append((int(row), int(col), text, big))
+
+    def rows(self) -> list[str]:
+        """A coarse look for the terminal: 26x10 cells over the 265x165 pixels."""
+        cells = [[" "] * COLS for _ in range(ROWS)]
+        for x, y in self.pixels:
+            r, c = min(ROWS - 1, y * ROWS // GH), min(COLS - 1, x * COLS // GW)
+            cells[r][c] = "#"
+        for row, col, text, _ in self.texts:
+            r, c = min(ROWS - 1, row * ROWS // GH), min(COLS - 1, col * COLS // GW)
+            for i, ch in enumerate(text):
+                if c + i < COLS:
+                    cells[r][c + i] = ch
+        return ["".join(r) for r in cells]
+
+
 # -- waiting for the user -----------------------------------------------------
 
 @dataclass
@@ -253,6 +304,7 @@ class Wait:
 OPENERS = {"Then", "While ", "Repeat ", "For("}
 LETTERS = set("ABCDEFGHIJKLMNOPQRSTUVWXYZ") | {"theta"}
 LABEL_TOKENS = LETTERS | set("0123456789")
+WINDOW_VARS = {"Xmin", "Xmax", "Xscl", "Ymin", "Ymax", "Yscl"}
 STR_VARS = {f"Str{i}" for i in range(10)}
 Y_VARS = {f"{{Y{i}}}" for i in range(10)}
 MAT_VARS = {f"[{c}]" for c in "ABCDEFGHIJ"}
@@ -264,13 +316,7 @@ COMMANDS = {"ClrHome", "Disp ", "Output(", "Input ", "Prompt ", "Pause ", "Menu(
 class Machine:
     def __init__(self, tokens: list[Tok], *, max_steps=2_000_000):
         self.stmts = split_statements(tokens)
-        self.labels = {}
-        for i, st in enumerate(self.stmts):
-            if st and st[0].key == "Lbl ":
-                try:
-                    self.labels.setdefault(label_name(st[1:]), i)
-                except TIError:
-                    pass                # reported when the program reaches it
+        self.labels = self.scan_labels(self.stmts)
         self.reals = {}
         self.strings = {}
         self.yvars = {}
@@ -280,6 +326,12 @@ class Machine:
         self.complex_mode = False
         self.radians = True
         self.screen = Screen()
+        self.graph = Graph()
+        self.showing_graph = False   # drawing commands show the graph screen
+        self.window = {"Xmin": -10.0, "Xmax": 10.0, "Xscl": 1.0,
+                       "Ymin": -10.0, "Ymax": 10.0, "Yscl": 1.0}
+        self.programs = {}           # other programs this one may run with prgm
+        self.frames = []             # programs we are inside, innermost last
         self.pc = 0
         self.blocks = []
         self.leaks = 0           # Gotos taken from inside a block
@@ -292,8 +344,44 @@ class Machine:
         self._cache = {}
 
     @classmethod
-    def from_file(cls, path, **kw):
-        return cls(tokens_from_bytes(TIProgram.open(str(path)).data), **kw)
+    def from_file(cls, path, *others, **kw):
+        """A machine running the program in `path`; `others` can be run with prgm."""
+        m = cls(tokens_from_bytes(TIProgram.open(str(path)).data), **kw)
+        for other in others:
+            program = TIProgram.open(str(other))
+            m.programs[program.name] = tokens_from_bytes(program.data)
+        return m
+
+    # -- running another program ---------------------------------------------
+
+    def call_program(self, name):
+        if name not in self.programs:
+            raise TIError(f"UNDEFINED (no program {name})")
+        if len(self.frames) > 8:
+            raise TIError("MEMORY (programs calling programs too deep)")
+        self.frames.append((self.stmts, self.labels, self.pc, self.blocks, self._cache))
+        self.stmts = split_statements(self.programs[name])
+        self.labels = self.scan_labels(self.stmts)
+        self.pc = 0
+        self.blocks = []
+        self._cache = {}
+
+    def return_from_program(self):
+        if self.blocks:
+            self.leaks += 1          # blocks left open at a Return
+        self.stmts, self.labels, pc, self.blocks, self._cache = self.frames.pop()
+        self.pc = pc + 1
+
+    @staticmethod
+    def scan_labels(stmts):
+        labels = {}
+        for i, st in enumerate(stmts):
+            if st and st[0].key == "Lbl ":
+                try:
+                    labels.setdefault(label_name(st[1:]), i)
+                except TIError:
+                    pass                # reported when the program reaches it
+        return labels
 
     @classmethod
     def from_text(cls, text, **kw):
@@ -305,7 +393,12 @@ class Machine:
         if self.wait and self.wait.kind in ("done", "error"):
             return self.wait
         try:
-            while self.pc < len(self.stmts):
+            while True:
+                if self.pc >= len(self.stmts):
+                    if not self.frames:
+                        break
+                    self.return_from_program()
+                    continue
                 self.steps += 1
                 if self.steps > self.max_steps:
                     raise TIError("STEP LIMIT (infinite loop?)")
@@ -351,6 +444,8 @@ class Machine:
         head = st[0].key
         rest = st[1:]
 
+        if head in ("ClrHome", "Disp ", "Output(", "Input ", "Prompt ", "Menu("):
+            self.showing_graph = False
         if head == "ClrHome":
             self.screen.clear()
         elif head == "Disp ":
@@ -408,9 +503,26 @@ class Machine:
             self.push(("repeat", pc))
         elif head == "For(":
             return self.do_for(pc, rest)
-        elif head in ("Stop", "Return"):
+        elif head == "Return":
+            if self.frames:
+                self.return_from_program()
+            else:
+                self.pc = len(self.stmts)
+            return None
+        elif head == "Stop":
+            while self.frames:
+                self.return_from_program()
             self.pc = len(self.stmts)
             return None
+        elif head == "prgm":
+            self.call_program("".join(t.key for t in rest))
+            return None
+        elif head in ("Degree", "Radian"):
+            self.radians = head == "Radian"
+        elif head in ("ClrDraw", "AxesOff", "AxesOn ", "GridOff", "FnOff ", "PlotsOff ",
+                      "BackgroundOff", "DispGraph", "TextColor(", "Line(", "Circle(",
+                      "Pt-On(", "Text(", "Horizontal ", "Vertical "):
+            self.draw(head, pc, rest)
         elif head == "DelVar ":
             self.delvar(rest)
         elif head == "a+bi":
@@ -471,6 +583,69 @@ class Machine:
             self.store(target, val)
         if not isinstance(val, TIString) or target is None:
             self.ans = val
+
+    # -- drawing -----------------------------------------------------------------
+
+    def to_pixel(self, x, y):
+        w = self.window
+        if w["Xmax"] <= w["Xmin"] or w["Ymax"] <= w["Ymin"]:
+            raise TIError("WINDOW RANGE")
+        px = (self.real(x) - w["Xmin"]) / (w["Xmax"] - w["Xmin"]) * (GW - 1)
+        py = (w["Ymax"] - self.real(y)) / (w["Ymax"] - w["Ymin"]) * (GH - 1)
+        return px, py
+
+    def draw(self, head, pc, rest):
+        g = self.graph
+        if head == "ClrDraw":
+            g.clear()
+        elif head == "AxesOff":
+            g.axes = False
+        elif head == "AxesOn ":
+            g.axes = True
+        elif head in ("GridOff", "FnOff ", "PlotsOff ", "BackgroundOff", "TextColor("):
+            return
+        elif head == "DispGraph":
+            pass
+        elif head == "Line(":
+            args = [self.eval(a) for a in self.parse_args(pc, rest)]
+            if len(args) not in (4, 5, 6):
+                raise TIError("ARGUMENT")
+            x1, y1 = self.to_pixel(args[0], args[1])
+            x2, y2 = self.to_pixel(args[2], args[3])
+            g.line(x1, y1, x2, y2)
+        elif head == "Circle(":
+            args = [self.eval(a) for a in self.parse_args(pc, rest)]
+            if len(args) not in (3, 4):
+                raise TIError("ARGUMENT")
+            cx, cy = self.to_pixel(args[0], args[1])
+            w = self.window
+            r = self.real(args[2])
+            rx = r / (w["Xmax"] - w["Xmin"]) * (GW - 1)
+            ry = r / (w["Ymax"] - w["Ymin"]) * (GH - 1)
+            g.circle(cx, cy, rx, ry)
+        elif head == "Pt-On(":
+            args = [self.eval(a) for a in self.parse_args(pc, rest)]
+            px, py = self.to_pixel(args[0], args[1])
+            g.point(round(px), round(py))
+        elif head == "Horizontal ":
+            y = self.eval(self.parse_expr(pc, rest))
+            _, py = self.to_pixel(0, y)
+            g.line(0, py, GW - 1, py)
+        elif head == "Vertical ":
+            x = self.eval(self.parse_expr(pc, rest))
+            px, _ = self.to_pixel(x, 0)
+            g.line(px, 0, px, GH - 1)
+        elif head == "Text(":
+            args = [self.eval(a) for a in self.parse_args(pc, rest)]
+            big = False
+            if len(args) >= 1 and is_num(args[0]) and self.real(args[0]) == -1:
+                big = True
+                args = args[1:]
+            if len(args) < 3:
+                raise TIError("ARGUMENT")
+            row, col = self.real(args[0]), self.real(args[1])
+            g.text(row, col, "".join(fmt(a) for a in args[2:]), big)
+        self.showing_graph = True
 
     # -- blocks ----------------------------------------------------------------
 
@@ -631,6 +806,8 @@ class Machine:
             if isinstance(val, (TIString, list)):
                 raise TIError("DATA TYPE")
             self.reals[target[1]] = self.number(val)
+        elif kind == "winvar":
+            self.window[target[1]] = self.real(val)
         elif kind == "strvar":
             if not isinstance(val, TIString):
                 raise TIError("DATA TYPE")
@@ -967,6 +1144,7 @@ class Parser:
         return ((len(k) == 1 and k.isdigit()) or k in (".", "|E", "(", '"', "{", "|L", "Ans", "pi", "[e]",
                                          "[i]", "rand")
                 or k in LETTERS or k in STR_VARS or k in Y_VARS or k in MAT_VARS
+                or k in WINDOW_VARS
                 or k in FUNCS1 or k in FUNCSN)
 
     def atom(self):
@@ -1030,6 +1208,9 @@ class Parser:
         if k in LETTERS:
             self.next()
             return ("var", k)
+        if k in WINDOW_VARS:
+            self.next()
+            return ("winvar", k)
         if k == "Ans":
             self.next()
             return ("ans",)
@@ -1093,7 +1274,8 @@ class Parser:
             self.close()
             return ("dim", name)
         node = self.atom()
-        if node[0] not in ("var", "strvar", "yvar", "listvar", "listelem", "matvar", "matelem"):
+        if node[0] not in ("var", "strvar", "yvar", "listvar", "listelem", "matvar", "matelem",
+                           "winvar"):
             raise TIError("SYNTAX (can't store there)")
         self.end()
         return node
@@ -1110,6 +1292,8 @@ class Evaluator:
             return node[1]
         if kind == "var":
             return m.reals.get(node[1], 0.0)
+        if kind == "winvar":
+            return m.window[node[1]]
         if kind == "ans":
             return m.ans
         if kind == "str":
@@ -1577,9 +1761,12 @@ def round_tiny(part: float, z: complex) -> float:
     return 0.0 if abs(part) < 1e-13 * max(1.0, abs(z)) else part
 
 
-def load_program(path=None) -> Machine:
-    """Brainiac, freshly built from source (so tests never run a stale .8xp)."""
-    from brainiac.build import program_bytes
-    if path is None:
-        return Machine(tokens_from_bytes(program_bytes()))
-    return Machine.from_file(Path(path))
+def load_program(name="BRAINIAC") -> Machine:
+    """A program freshly built from source (so tests never run a stale .8xp),
+    with the other programs available to prgm."""
+    from brainiac.build import PROGRAMS, program_bytes, source_path
+    m = Machine(tokens_from_bytes(program_bytes(name)))
+    for other in PROGRAMS:
+        if other != name and source_path(other).exists():
+            m.programs[other] = tokens_from_bytes(program_bytes(other))
+    return m

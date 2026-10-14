@@ -36,6 +36,13 @@ SOURCE = HERE / "src" / "BRAINIAC.txt"
 OUTPUT = HERE / "dist" / "BRAINIAC.8xp"
 NAME = "BRAINIAC"
 
+# every program, with the list its #call stack lives in (each needs its own,
+# since one program can run another)
+PROGRAMS = {"BRAINIAC": "BS", "GEOMETRY": "GS"}
+
+# tokens whose names end in a space, which editors strip
+SPACED = {"Pause", "AxesOn", "FnOff", "PlotsOff"}
+
 LABEL_REF = re.compile(r"@([a-z][a-z0-9_]*)")
 LABEL_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
@@ -51,13 +58,13 @@ def raw_lines(path: Path = SOURCE) -> list[tuple[int, str]]:
             continue
         # The Pause token is "Pause " with a trailing space, which editors
         # love to strip; without it the line tokenizes as P,a,u,s,e.
-        if line.rstrip() == "Pause":
-            line = "Pause "
+        if line.rstrip() in SPACED:
+            line = line.rstrip() + " "
         out.append((n, line.replace("π", r"\xAC")))
     return out
 
 
-def expand(lines: list[tuple[int, str]]) -> list[tuple[int, str]]:
+def expand(lines: list[tuple[int, str]], stack: str = "BS") -> list[tuple[int, str]]:
     """Expand #sub/#call/#return and @labels into plain TI-BASIC."""
     calls: dict[str, list[int]] = {}
     for _, line in lines:
@@ -98,8 +105,8 @@ def expand(lines: list[tuple[int, str]]) -> list[tuple[int, str]]:
         elif line.strip() == "#return":
             if current_sub is None:
                 raise BuildError(f"line {n}: #return outside a #sub")
-            out.append((n, "ʟBS(dim(ʟBS))→θ"))
-            out.append((n, "dim(ʟBS)-1→dim(ʟBS)"))
+            out.append((n, f"ʟ{stack}(dim(ʟ{stack}))→θ"))
+            out.append((n, f"dim(ʟ{stack})-1→dim(ʟ{stack})"))
             for k in calls.get(current_sub, []):
                 out.append((n, f"If θ={k}"))
                 out.append((n, f"Goto {code(f'ret_{k}')}"))
@@ -107,7 +114,7 @@ def expand(lines: list[tuple[int, str]]) -> list[tuple[int, str]]:
         elif line.startswith("#call "):
             name = line.split()[1]
             site += 1
-            out.append((n, f"{site}→ʟBS(1+dim(ʟBS))"))
+            out.append((n, f"{site}→ʟ{stack}(1+dim(ʟ{stack}))"))
             out.append((n, f"Goto {code('sub_' + name)}"))
             out.append((n, f"Lbl {code(f'ret_{site}')}"))
         elif line.startswith("#"):
@@ -187,22 +194,30 @@ def check_structure(lines: list[tuple[int, str]]):
             raise BuildError(f"line {n}: jump to missing label {name}")
 
 
-def source_lines(path: Path = SOURCE) -> list[str]:
+def source_path(name: str = NAME) -> Path:
+    return HERE / "src" / f"{name}.txt"
+
+
+def output_path(name: str = NAME) -> Path:
+    return HERE / "dist" / f"{name}.8xp"
+
+
+def source_lines(name: str = NAME) -> list[str]:
     """The program's lines as the calculator will see them."""
-    lines = expand(raw_lines(path))
+    lines = expand(raw_lines(source_path(name)), PROGRAMS[name])
     check_structure(lines)
     check_list_brackets(lines)
     return [line for _, line in lines]
 
 
-def program_bytes(path: Path = SOURCE) -> bytes:
-    data, _ = encode("\n".join(source_lines(path)))
+def program_bytes(name: str = NAME) -> bytes:
+    data, _ = encode("\n".join(source_lines(name)))
     check(data)
     return data
 
 
-def min_os(path: Path = SOURCE):
-    _, since = encode("\n".join(source_lines(path)))
+def min_os(name: str = NAME):
+    _, since = encode("\n".join(source_lines(name)))
     return since
 
 
@@ -228,20 +243,23 @@ def check(data: bytes):
             raise BuildError(f"illegal token {token.escape}")
 
 
-def build(path: Path = SOURCE, out: Path = OUTPUT) -> Path:
-    program = TIProgram(name=NAME)
-    program.data = program_bytes(path)
+def build(name: str = NAME) -> Path:
+    program = TIProgram(name=name)
+    program.data = program_bytes(name)
+    out = output_path(name)
     out.parent.mkdir(parents=True, exist_ok=True)
     program.save(str(out), model=TI_84PCE)
     return out
 
 
 def main():
-    out = build()
-    size = len(program_bytes())
-    os = min_os()
-    print(f"wrote {out.relative_to(HERE.parent)}  ({size} bytes of program, "
-          f"{len(source_lines())} lines, needs {os.model} OS {os.version}+)")
+    for name in PROGRAMS:
+        if not source_path(name).exists():
+            continue
+        out = build(name)
+        os = min_os(name)
+        print(f"wrote {out.relative_to(HERE.parent)}  ({len(program_bytes(name))} bytes of "
+              f"program, {len(source_lines(name))} lines, needs {os.model} OS {os.version}+)")
 
 
 if __name__ == "__main__":

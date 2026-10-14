@@ -32,6 +32,8 @@ def view(m: Machine) -> list[str]:
     """What the calculator is showing right now, one string per row."""
     if m.wait and m.wait.kind == "menu":
         return menu_rows(m.wait)
+    if m.showing_graph:
+        return m.graph.rows()
     return m.screen.lines()
 
 
@@ -47,7 +49,8 @@ def to_text(m: Machine) -> str:
 
 def status_text(m: Machine) -> str:
     mode = "a+bi" if m.complex_mode else "REAL"
-    return f"NORMAL FLOAT AUTO {mode} RADIAN MP"
+    angle = "RADIAN" if m.radians else "DEGREE"
+    return f"NORMAL FLOAT AUTO {mode} {angle} MP"
 
 
 def to_png(m: Machine, path, *, caption: str | None = None, scale: int = 2) -> Path:
@@ -78,8 +81,12 @@ def to_png(m: Machine, path, *, caption: str | None = None, scale: int = 2) -> P
             bx = x0 + sw - (10 + 4 * i) * scale
             d.rectangle([bx, y0 + 7 * scale, bx + 2 * scale, y0 + 9 * scale], fill=TEXT)
 
-    rows = view(m)
     top = y0 + status_h + pad
+    if m.showing_graph and not (m.wait and m.wait.kind == "menu"):
+        draw_graph(m, d, x0 + pad, top, scale)
+        rows = []
+    else:
+        rows = view(m)
     for r, line in enumerate(rows):
         y = top + r * ch
         inverted = m.wait and m.wait.kind == "menu" and r == 0
@@ -112,6 +119,9 @@ def to_png(m: Machine, path, *, caption: str | None = None, scale: int = 2) -> P
                     width=2 * scale)
         d.text((bx + cw, by + ch // 2), msg, font=font, fill=(200, 30, 30))
 
+    if m.showing_graph and m.wait and m.wait.kind == "pause":
+        pass                        # the busy dots above already say so
+
     if caption:
         cf = ImageFont.truetype(FONT, int(11 * scale))
         d.text((bezel, sh + 2 * bezel - 4 * scale), caption, font=cf, fill=(220, 224, 232))
@@ -120,3 +130,18 @@ def to_png(m: Machine, path, *, caption: str | None = None, scale: int = 2) -> P
     path.parent.mkdir(parents=True, exist_ok=True)
     img.save(path)
     return path
+
+
+def draw_graph(m: Machine, d, left, top, scale):
+    """The graph screen: GW x GH calculator pixels, each `k` image pixels."""
+    from PIL import ImageFont
+    from brainiac.tibasic import GH, GW
+    k = max(1, int(1.1 * scale))
+    g = m.graph
+    for x, y in g.pixels:
+        d.rectangle([left + x * k, top + y * k, left + (x + 1) * k - 1, top + (y + 1) * k - 1],
+                    fill=TEXT)
+    small = ImageFont.truetype(FONT, int(6.5 * k))
+    big = ImageFont.truetype(FONT, int(10 * k))
+    for row, col, text, is_big in g.texts:
+        d.text((left + col * k, top + row * k), text, font=big if is_big else small, fill=TEXT)

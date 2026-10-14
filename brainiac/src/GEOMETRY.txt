@@ -1,0 +1,1546 @@
+// GEOMETRY 0.3 -- Brainiac's geometry program for the TI-84 Plus CE.
+//
+// Built by  python -m brainiac.build  into GEOMETRY.8xp. Brainiac's menu
+// runs it with prgmGEOMETRY; it also runs on its own from [prgm].
+// Same source conventions as BRAINIAC.txt (see build.py): // notes,
+// @labels, #sub/#call/#return. Its #call stack lives in list GS.
+//
+// Every solver draws the figure on the graph screen, labelled, then shows
+// the working on the home screen. Drawing is done in pixels: the window is
+// set to 0..264 by 0..164 (the CE graph area), so Line( and Text( can be
+// given pixel positions; Text( rows count from the top, so row=164-y.
+//
+// Variables: M = mode (for AGAIN), R = next home-screen row, θ = return
+// address (#return). The helpers only ever touch G I J N P Q (and Z Y, the
+// sizes given to ring and oval), so a solver can keep its inputs in any
+// other letter. tx draws Str0 at pixel (P,Q).
+// Lists: PX, PY the figure's points (pixels, y up); Z1-Z4 spare points;
+// GW the window and angle mode to put back when leaving.
+
+ClrHome
+// remember the calculator's own settings, then use degrees and pixels
+{abs(sin(90)-1)<ᴇ⁻9,Xmin,Xmax,Ymin,Ymax,Xscl,Yscl}→ʟGW
+0→dim(ʟGS)
+Degree
+0→Xmin
+264→Xmax
+0→Ymin
+164→Ymax
+FnOff
+PlotsOff
+AxesOff
+GridOff
+Goto @menu
+
+// ======================================================== helpers
+
+// X -> Str0, rounded to 3 places (fa: angles, 2 places).
+#sub fm
+toString(round(X,3))→Str0
+#return
+#sub fa
+toString(round(X,2))→Str0
+#return
+
+// Show Str0 from home-screen row R down, turning the page when full.
+// Changes J.
+#sub line
+iPart((length(Str0)-1)/26)+1→J
+If R+J>10:Then
+Output(10,1,"ENTER: MORE")
+Pause
+ClrHome
+1→R
+End
+Output(R,1,Str0)
+R+J→R
+#return
+
+// The drawing is done: wait, then start the home-screen report.
+#sub shown
+Text(156,2,"ENTER FOR THE WORKING")
+Pause
+ClrHome
+1→R
+#return
+
+// The report is done: wait for ENTER.
+#sub done
+Output(10,1,"ENTER: DONE")
+Pause
+#return
+
+// Fit the points in PX, PY (any units, y up) into the picture box, keeping
+// their shape; they become pixel positions. Changes G J N P Q.
+#sub fit
+min(ʟPX)→P
+max(ʟPX)→Q
+min(ʟPY)→G
+max(ʟPY)→N
+If Q=P:P+1→Q
+If N=G:G+1→N
+min(196/(Q-P),108/(N-G))→J
+34+J(ʟPX-P)+(196-J(Q-P))/2→ʟPX
+24+J(ʟPY-G)+(108-J(N-G))/2→ʟPY
+#return
+
+// Join the points in PX, PY in order, and back to the first. Changes I J N.
+#sub poly
+dim(ʟPX)→N
+For(I,1,N)
+I+1-N(I=N)→J
+Line(ʟPX(I),ʟPY(I),ʟPX(J),ʟPY(J))
+End
+#return
+
+// Str0 centred at pixel (P,Q).
+#sub tx
+Text(max(0,min(156,164-Q-4)),max(0,min(264-4length(Str0),P-2length(Str0))),Str0)
+#return
+
+// Str0 just inside corner I of the figure (an angle label). Changes G J P Q.
+#sub vlab
+sum(ʟPX)/dim(ʟPX)→G
+sum(ʟPY)/dim(ʟPY)→J
+ʟPX(I)+.3(G-ʟPX(I))→P
+ʟPY(I)+.3(J-ʟPY(I))→Q
+#call tx
+#return
+
+// Str0 just outside the side from corner I to the next (a side label).
+// Changes G J N P Q.
+#sub slab
+dim(ʟPX)→N
+I+1-N(I=N)→J
+sum(ʟPX)/N→G
+(ʟPX(I)+ʟPX(J))/2→P
+P+.16(P-G)→P
+sum(ʟPY)/N→G
+(ʟPY(I)+ʟPY(J))/2→Q
+Q+.16(Q-G)→Q
+#call tx
+#return
+
+// A small square in corner I, marking a right angle. Changes G J N P Q.
+#sub rmark
+dim(ʟPX)→N
+I+1-N(I=N)→J
+ʟPX(J)-ʟPX(I)→P
+ʟPY(J)-ʟPY(I)→Q
+7/√(P²+Q²)→G
+PG→P
+QG→Q
+I-1+N(I=1)→J
+ʟPX(J)-ʟPX(I)→G
+ʟPY(J)-ʟPY(I)→N
+7/√(G²+N²)→J
+GJ→G
+NJ→N
+Line(ʟPX(I)+P,ʟPY(I)+Q,ʟPX(I)+P+G,ʟPY(I)+Q+N)
+Line(ʟPX(I)+G,ʟPY(I)+N,ʟPX(I)+P+G,ʟPY(I)+Q+N)
+#return
+
+// A triangle with sides A, B, C: corner 1 is where B and C meet (so it has
+// angle A), corner 2 where C and A meet, corner 3 where A and B meet. Side
+// C runs along the bottom. The corners go into PX, PY, fitted.
+#sub tri3
+{0,C,(B²+C²-A²)/(2C)}→ʟPX
+{0,0,√(B²-ʟPX(3)²)}→ʟPY
+#call fit
+#return
+
+// Draw the triangle in PX, PY with angle labels Str1 Str2 Str3 at corners
+// 1 2 3 and side labels Str4 Str5 Str6 on sides 1-2, 2-3, 3-1.
+#sub tridraw
+ClrDraw
+#call poly
+1→I
+Str1→Str0
+#call vlab
+2→I
+Str2→Str0
+#call vlab
+3→I
+Str3→Str0
+#call vlab
+1→I
+Str4→Str0
+#call slab
+2→I
+Str5→Str0
+#call slab
+3→I
+Str6→Str0
+#call slab
+#return
+
+// A circle of radius Z pixels at (P,Q), drawn with Line( so that it is
+// round whatever the window. Changes I.
+#sub ring
+For(I,0,35)
+Line(P+Zcos(10I),Q+Zsin(10I),P+Zcos(10I+10),Q+Zsin(10I+10))
+End
+#return
+
+// An ellipse at (P,Q), half-widths Z across and Y up. Changes I.
+#sub oval
+For(I,0,35)
+Line(P+Zcos(10I),Q+Ysin(10I),P+Zcos(10I+10),Q+Ysin(10I+10))
+End
+#return
+
+// ======================================================== menus
+
+Lbl @menu
+Menu("GEOMETRY","TRIANGLES",@m_tri,"ANGLES & LINES",@m_ang,"2D SHAPES: AREA",@m_2d,"3D SOLIDS: VOLUME",@m_3d,"CIRCLES",@m_cir,"SCALE FACTORS",@sc,"BACK TO BRAINIAC",@quit)
+Lbl @m_tri
+Menu("TRIANGLES","MISSING ANGLE",@ta,"PYTHAGOREAN THEOREM",@py,"SPECIAL RIGHT TRIANGLES",@sp,"TRIG: SOH CAH TOA",@tg,"SIMILAR TRIANGLES",@sm,"BACK",@menu)
+Lbl @m_ang
+Menu("ANGLES & LINES","TRIANGLE ANGLES",@ta,"INTERSECTING LINES",@il,"PARALLEL LINES",@pl,"BACK",@menu)
+Lbl @m_2d
+Menu("2D SHAPES: AREA","TRIANGLE",@a_tri,"RECTANGLE",@a_rec,"CIRCLE",@c_solve,"TRAPEZOID",@a_trap,"COMBINED SHAPE",@a_comb,"BACK",@menu)
+Lbl @m_3d
+Menu("3D SOLIDS","BOX",@v_box,"CYLINDER",@v_cyl,"CONE",@v_cone,"SPHERE",@v_sph,"SQUARE PYRAMID",@v_pyr,"BACK",@menu)
+Lbl @m_cir
+Menu("CIRCLES","CIRCLE SOLVER",@c_solve,"ARC & SECTOR",@c_arc,"CIRCLE EQUATION",@c_eq,"BACK",@menu)
+
+Lbl @next
+Menu("WHAT NEXT?","AGAIN",@again,"GEOMETRY MENU",@menu,"BACK TO BRAINIAC",@quit)
+Lbl @again
+If M=1:Goto @ta
+If M=2:Goto @py
+If M=3:Goto @sp
+If M=4:Goto @tg
+If M=5:Goto @sm
+If M=6:Goto @il
+If M=7:Goto @pl
+If M=8:Goto @a_tri
+If M=9:Goto @a_rec
+If M=10:Goto @c_solve
+If M=11:Goto @a_trap
+If M=12:Goto @a_comb
+If M=13:Goto @v_box
+If M=14:Goto @v_cyl
+If M=15:Goto @v_cone
+If M=16:Goto @v_sph
+If M=17:Goto @v_pyr
+If M=18:Goto @c_arc
+If M=19:Goto @c_eq
+Goto @sc
+
+// ======================================================== triangles
+
+// -- missing angle
+Lbl @ta
+1→M
+ClrHome
+Disp "TRIANGLE ANGLES","  ","TYPE TWO OF THE ANGLES","(IN DEGREES).","  "
+Input "ANGLE A=",U
+Input "ANGLE B=",V
+If U≤0 or V≤0 or U+V≥180:Goto @e_tri
+180-U-V→W
+// a triangle with those angles: the law of sines gives its shape
+sin(U)→A
+sin(V)→B
+sin(W)→C
+#call tri3
+U→X
+#call fa
+"A="+Str0→Str1
+V→X
+#call fa
+"B="+Str0→Str2
+W→X
+#call fa
+"C="+Str0→Str3
+" "→Str4
+" "→Str5
+" "→Str6
+#call tridraw
+Text(2,2,"A+B+C=180")
+#call shown
+"ANGLES IN A TRIANGLE ADD"→Str0
+#call line
+"UP TO 180, SO"→Str0
+#call line
+U→X
+#call fa
+Str0→Str8
+V→X
+#call fa
+"C=180-"+Str8+"-"+Str0→Str0
+#call line
+W→X
+#call fa
+" ="+Str0→Str0
+#call line
+#call done
+Goto @next
+
+// -- pythagorean theorem
+Lbl @py
+2→M
+ClrHome
+Disp "PYTHAGOREAN THEOREM","  ","A AND B ARE THE LEGS,","C IS THE HYPOTENUSE.","TYPE 0 FOR THE ONE YOU","DON'T KNOW.","  "
+Input "A=",A
+Input "B=",B
+Input "C=",C
+If (A=0)+(B=0)+(C=0)≠1:Goto @e_one0
+If A<0 or B<0 or C<0:Goto @e_pos
+If C and C≤max(A,B):Goto @e_hyp
+(A=0)+2(B=0)+3(C=0)→F
+If F=3:√(A²+B²)→C
+If F=1:√(C²-B²)→A
+If F=2:√(C²-A²)→B
+{0,A,0}→ʟPX
+{0,0,B}→ʟPY
+#call fit
+"90"→Str1
+" "→Str2
+" "→Str3
+A→X
+#call fm
+"A="+Str0→Str4
+C→X
+#call fm
+"C="+Str0→Str5
+B→X
+#call fm
+"B="+Str0→Str6
+#call tridraw
+1→I
+#call rmark
+Text(2,2,"A²+B²=C²")
+#call shown
+"A²+B²=C²"→Str0
+#call line
+A²→X
+#call fm
+Str0→Str1
+B²→X
+#call fm
+Str0→Str2
+C²→X
+#call fm
+Str0→Str3
+Str1+"+"+Str2+"="+Str3→Str0
+#call line
+If F=3:"C=√("+Str1+"+"+Str2+")"→Str0
+If F=1:"A=√("+Str3+"-"+Str2+")"→Str0
+If F=2:"B=√("+Str3+"-"+Str1+")"→Str0
+#call line
+A→X
+#call fm
+"A="+Str0→Str0
+#call line
+B→X
+#call fm
+"B="+Str0→Str0
+#call line
+C→X
+#call fm
+"C="+Str0→Str0
+#call line
+#call done
+Goto @next
+
+// -- special right triangles
+Lbl @sp
+3→M
+ClrHome
+Menu("SPECIAL RIGHT TRIANGLE","45-45-90",@sp45,"30-60-90",@sp30,"BACK",@m_tri)
+Lbl @sp45
+ClrHome
+Disp "45-45-90 TRIANGLE","  ","THE TWO LEGS ARE EQUAL;","HYPOTENUSE = LEG×√(2).","TYPE 0 FOR THE ONE YOU","DON'T KNOW.","  "
+Input "LEG=",A
+Input "HYPOTENUSE=",C
+If (A=0)+(C=0)≠1:Goto @e_one0
+If A<0 or C<0:Goto @e_pos
+If not(C):A√(2)→C
+If not(A):C/√(2)→A
+{0,A,0}→ʟPX
+{0,0,A}→ʟPY
+#call fit
+"90"→Str1
+"45"→Str2
+"45"→Str3
+A→X
+#call fm
+Str0→Str8
+"LEG="+Str0→Str4
+"LEG="+Str0→Str6
+C→X
+#call fm
+Str0→Str9
+"HYP="+Str0→Str5
+#call tridraw
+1→I
+#call rmark
+Text(2,2,"45-45-90: LEG, LEG, LEG√(2)")
+#call shown
+"LEG="+Str8→Str0
+#call line
+"HYP=LEG×√(2)="+Str8+"×√(2)"→Str0
+#call line
+" ="+Str9→Str0
+#call line
+#call done
+Goto @next
+Lbl @sp30
+ClrHome
+Disp "30-60-90 TRIANGLE","  ","SHORT LEG S (OPPOSITE 30),","LONG LEG L=S√(3),","HYPOTENUSE H=2S.","TYPE 0 FOR THE TWO YOU","DON'T KNOW.","  "
+Input "SHORT LEG=",A
+Input "LONG LEG=",B
+Input "HYPOTENUSE=",C
+If (A=0)+(B=0)+(C=0)≠2:Goto @e_two0
+If A<0 or B<0 or C<0:Goto @e_pos
+If B:B/√(3)→A
+If C:C/2→A
+A√(3)→B
+2A→C
+{0,B,0}→ʟPX
+{0,0,A}→ʟPY
+#call fit
+"90"→Str1
+"30"→Str2
+"60"→Str3
+B→X
+#call fm
+"L="+Str0→Str4
+C→X
+#call fm
+"H="+Str0→Str5
+A→X
+#call fm
+"S="+Str0→Str6
+#call tridraw
+1→I
+#call rmark
+Text(2,2,"30-60-90: S, S√(3), 2S")
+#call shown
+A→X
+#call fm
+Str0→Str8
+"SHORT LEG S="+Str8→Str0
+#call line
+"LONG LEG=S√(3)="+Str8+"×√(3)"→Str0
+#call line
+B→X
+#call fm
+" ="+Str0→Str0
+#call line
+C→X
+#call fm
+"HYPOTENUSE=2S="+Str0→Str0
+#call line
+#call done
+Goto @next
+
+// -- trig solver
+Lbl @tg
+4→M
+ClrHome
+Disp "TRIG: SOH CAH TOA","  ","A RIGHT TRIANGLE WITH","ANGLE A. OPP IS ACROSS","FROM A, ADJ IS NEXT TO IT,","HYP IS THE LONGEST SIDE.","TYPE 0 FOR WHAT YOU","DON'T KNOW (TWO OF FOUR)."
+Input "ANGLE A=",A
+Input "OPP=",O
+Input "ADJ=",D
+Input "HYP=",H
+If (A=0)+(O=0)+(D=0)+(H=0)≠2:Goto @e_two0
+If A≥90 or A<0 or O<0 or D<0 or H<0:Goto @e_ang
+If A:Goto @tg_side
+// the angle, from two sides
+If O and H:Then
+"SIN(A)=OPP/HYP"→Str1
+sin⁻¹(O/H)→A
+End
+If D and H:Then
+"COS(A)=ADJ/HYP"→Str1
+cos⁻¹(D/H)→A
+End
+If O and D:Then
+"TAN(A)=OPP/ADJ"→Str1
+tan⁻¹(O/D)→A
+End
+Goto @tg_fill
+Lbl @tg_side
+If O:"OPP AND ANGLE KNOWN"→Str1
+If D:"ADJ AND ANGLE KNOWN"→Str1
+If H:"HYP AND ANGLE KNOWN"→Str1
+Lbl @tg_fill
+// whatever is still missing, from the angle
+If not(H) and O:O/sin(A)→H
+If not(H) and D:D/cos(A)→H
+If not(O):Hsin(A)→O
+If not(D):Hcos(A)→D
+If O>H or D>H:Goto @e_hyp
+Str1→Str9
+{0,D,D}→ʟPX
+{0,0,O}→ʟPY
+#call fit
+A→X
+#call fa
+Str0→Str8
+"A="+Str0→Str1
+"90"→Str2
+" "→Str3
+D→X
+#call fm
+"ADJ="+Str0→Str4
+O→X
+#call fm
+"OPP="+Str0→Str5
+H→X
+#call fm
+"HYP="+Str0→Str6
+#call tridraw
+2→I
+#call rmark
+Text(2,2,"SIN=O/H COS=A/H TAN=O/A")
+#call shown
+Str9→Str0
+#call line
+"SIN("+Str8+")=OPP/HYP"→Str0
+#call line
+O→X
+#call fm
+" OPP="+Str0→Str0
+#call line
+"COS("+Str8+")=ADJ/HYP"→Str0
+#call line
+D→X
+#call fm
+" ADJ="+Str0→Str0
+#call line
+"TAN("+Str8+")=OPP/ADJ"→Str0
+#call line
+H→X
+#call fm
+" HYP="+Str0→Str0
+#call line
+"ANGLE A="+Str8→Str0
+#call line
+90-A→X
+#call fa
+"OTHER ANGLE=90-A="+Str0→Str0
+#call line
+#call done
+Goto @next
+
+// -- similar triangles
+Lbl @sm
+5→M
+ClrHome
+Disp "SIMILAR TRIANGLES","  ","TRIANGLE 1 HAS SIDES","A, B, C. TRIANGLE 2 IS","SIMILAR; TYPE ITS SIDE","THAT MATCHES A.","  "
+Input "A=",A
+Input "B=",B
+Input "C=",C
+If A≤0 or B≤0 or C≤0 or A+B≤C or A+C≤B or B+C≤A:Goto @e_tri
+Input "MATCHES A:",D
+If D≤0:Goto @e_pos
+D/A→K
+KB→E
+KC→F
+// both triangles in one picture, triangle 2 to the right of triangle 1
+{0,C,(B²+C²-A²)/(2C)}→ʟPX
+{0,0,√(B²-ʟPX(3)²)}→ʟPY
+max(ʟPX)-min(ʟPX)+.3max(C,KC)-Kmin(ʟPX)→S
+augment(ʟPX,KʟPX+S)→ʟPX
+augment(ʟPY,KʟPY)→ʟPY
+#call fit
+ʟPX→ʟZ1
+ʟPY→ʟZ2
+ClrDraw
+// triangle 1
+seq(ʟZ1(I),I,1,3)→ʟPX
+seq(ʟZ2(I),I,1,3)→ʟPY
+#call poly
+C→X
+#call fm
+1→I
+#call slab
+A→X
+#call fm
+2→I
+#call slab
+B→X
+#call fm
+3→I
+#call slab
+// triangle 2
+seq(ʟZ1(I),I,4,6)→ʟPX
+seq(ʟZ2(I),I,4,6)→ʟPY
+#call poly
+F→X
+#call fm
+1→I
+#call slab
+D→X
+#call fm
+2→I
+#call slab
+E→X
+#call fm
+3→I
+#call slab
+K→X
+#call fm
+Text(2,2,"SCALE FACTOR K=",Str0)
+#call shown
+K→X
+#call fm
+Str0→Str8
+"K=NEW A/OLD A="+Str8→Str0
+#call line
+E→X
+#call fm
+"NEW B=B×K="+Str0→Str0
+#call line
+F→X
+#call fm
+"NEW C=C×K="+Str0→Str0
+#call line
+"NEW AREA=OLD AREA×K²"→Str0
+#call line
+K²→X
+#call fm
+" (×"+Str0+")"→Str0
+#call line
+#call done
+Goto @next
+
+// ======================================================== angles & lines
+
+// -- intersecting lines
+Lbl @il
+6→M
+ClrHome
+Disp "INTERSECTING LINES","  ","TWO LINES CROSS. TYPE ONE","OF THE FOUR ANGLES.","  "
+Input "ANGLE=",T
+If T≤0 or T≥180:Goto @e_ang
+180-T→U
+ClrDraw
+Line(132-90cos(T/2),82-90sin(T/2),132+90cos(T/2),82+90sin(T/2))
+Line(132-90cos(T/2),82+90sin(T/2),132+90cos(T/2),82-90sin(T/2))
+T→X
+#call fa
+Str0→Str8
+U→X
+#call fa
+Str0→Str9
+Str8→Str0
+166→P
+82→Q
+#call tx
+98→P
+#call tx
+Str9→Str0
+132→P
+112→Q
+#call tx
+52→Q
+#call tx
+Text(2,2,"VERTICAL ANGLES ARE EQUAL")
+#call shown
+"ACROSS FROM EACH OTHER:"→Str0
+#call line
+"EQUAL, SO "+Str8+" AND "+Str8+"."→Str0
+#call line
+"NEXT TO EACH OTHER: ADD"→Str0
+#call line
+"TO 180, SO THE OTHER TWO"→Str0
+#call line
+"ARE 180-"+Str8+"="+Str9+"."→Str0
+#call line
+#call done
+Goto @next
+
+// -- parallel lines
+Lbl @pl
+7→M
+ClrHome
+Disp "PARALLEL LINES","  ","A LINE CROSSES TWO","PARALLEL LINES. TYPE THE","TOP-LEFT ANGLE (ANGLE 1).","  "
+Input "ANGLE 1=",T
+If T≤0 or T≥180:Goto @e_ang
+180-T→U
+ClrDraw
+Line(20,120,244,120)
+Line(20,50,244,50)
+// the crossing line leans so that the top-left angle really is T
+// (drawn no flatter than 20 degrees, so it stays on the screen)
+max(20,min(160,T))→D
+35cos(D)/sin(D)→E
+Line(132+1.4E,85-49,132-1.4E,85+49)
+T→X
+#call fa
+Str0→Str8
+U→X
+#call fa
+Str0→Str9
+// the four angles at each crossing: T top-left and bottom-right, 180-T
+// top-right and bottom-left
+0→J
+Lbl @pl_cross
+132-E+2EJ→G
+120-70J→Q
+Str8→Str0
+G-22→P
+Q+9→Q
+#call tx
+Str9→Str0
+G+22→P
+#call tx
+Q-18→Q
+G-22→P
+#call tx
+Str8→Str0
+G+22→P
+#call tx
+J+1→J
+If J<2:Goto @pl_cross
+Text(2,2,"PARALLEL LINES: 2 ANGLES")
+#call shown
+"ONLY TWO SIZES APPEAR:"→Str0
+#call line
+Str8+" AND 180-"+Str8+"="+Str9+"."→Str0
+#call line
+"CORRESPONDING, ALTERNATE"→Str0
+#call line
+"AND VERTICAL ANGLES ARE"→Str0
+#call line
+"EQUAL; ANGLES ON A LINE"→Str0
+#call line
+"ADD TO 180."→Str0
+#call line
+#call done
+Goto @next
+
+// ======================================================== 2D shapes
+
+Lbl @a_tri
+8→M
+ClrHome
+Menu("TRIANGLE AREA","FROM 3 SIDES",@at3,"FROM BASE & HEIGHT",@atb,"BACK",@m_2d)
+Lbl @at3
+ClrHome
+Disp "TRIANGLE: 3 SIDES","  "
+Input "A=",A
+Input "B=",B
+Input "C=",C
+If A≤0 or B≤0 or C≤0 or A+B≤C or A+C≤B or B+C≤A:Goto @e_tri
+(A+B+C)/2→S
+√(S(S-A)(S-B)(S-C))→T
+A→U
+B→V
+C→W
+#call tri3
+" "→Str1
+" "→Str2
+" "→Str3
+W→X
+#call fm
+Str0→Str4
+U→X
+#call fm
+Str0→Str5
+V→X
+#call fm
+Str0→Str6
+#call tridraw
+T→X
+#call fm
+Text(2,2,"AREA=",Str0)
+#call shown
+2S→X
+#call fm
+"PERIMETER=A+B+C="+Str0→Str0
+#call line
+"HERON: S=HALF PERIMETER"→Str0
+#call line
+S→X
+#call fm
+" S="+Str0→Str0
+#call line
+"AREA=√(S(S-A)(S-B)(S-C))"→Str0
+#call line
+T→X
+#call fm
+" ="+Str0→Str0
+#call line
+#call done
+Goto @next
+Lbl @atb
+ClrHome
+Disp "TRIANGLE: BASE & HEIGHT","  "
+Input "BASE=",U
+Input "HEIGHT=",H
+If U≤0 or H≤0:Goto @e_pos
+{0,U,U/3}→ʟPX
+{0,0,H}→ʟPY
+#call fit
+ClrDraw
+#call poly
+Line(ʟPX(3),ʟPY(3),ʟPX(3),ʟPY(1))
+U→X
+#call fm
+"B="+Str0→Str0
+1→I
+#call slab
+H→X
+#call fm
+"H="+Str0→Str0
+ʟPX(3)+14→P
+(ʟPY(1)+ʟPY(3))/2→Q
+#call tx
+UH/2→X
+#call fm
+Text(2,2,"AREA=BH/2=",Str0)
+#call shown
+"AREA=BASE×HEIGHT/2"→Str0
+#call line
+UH/2→X
+#call fm
+" ="+Str0→Str0
+#call line
+#call done
+Goto @next
+
+Lbl @a_rec
+9→M
+ClrHome
+Disp "RECTANGLE","  "
+Input "LENGTH=",L
+Input "WIDTH=",W
+If L≤0 or W≤0:Goto @e_pos
+{0,L,L,0}→ʟPX
+{0,0,W,W}→ʟPY
+#call fit
+ClrDraw
+#call poly
+Line(ʟPX(1),ʟPY(1),ʟPX(3),ʟPY(3))
+L→X
+#call fm
+"L="+Str0→Str0
+1→I
+#call slab
+W→X
+#call fm
+"W="+Str0→Str0
+2→I
+#call slab
+√(L²+W²)→X
+#call fm
+"D="+Str0→Str0
+(ʟPX(1)+ʟPX(3))/2+14→P
+(ʟPY(1)+ʟPY(3))/2-8→Q
+#call tx
+LW→X
+#call fm
+Text(2,2,"AREA=",Str0)
+#call shown
+"AREA=L×W="+Str0→Str0
+#call line
+2(L+W)→X
+#call fm
+"PERIMETER=2(L+W)="+Str0→Str0
+#call line
+√(L²+W²)→X
+#call fm
+"DIAGONAL=√(L²+W²)="+Str0→Str0
+#call line
+#call done
+Goto @next
+
+Lbl @a_trap
+11→M
+ClrHome
+Disp "TRAPEZOID","  ","B1 AND B2 ARE THE PARALLEL","SIDES, H THE HEIGHT. FOR","THE PERIMETER ALSO TYPE","THE SLANTED SIDES (OR 0).","  "
+Input "B1=",U
+Input "B2=",V
+Input "H=",H
+If U≤0 or V≤0 or H≤0:Goto @e_pos
+Input "SIDE 3=",C
+Input "SIDE 4=",D
+{0,U,(U+V)/2,(U-V)/2}→ʟPX
+{0,0,H,H}→ʟPY
+#call fit
+ClrDraw
+#call poly
+U→X
+#call fm
+"B1="+Str0→Str0
+1→I
+#call slab
+V→X
+#call fm
+"B2="+Str0→Str0
+3→I
+#call slab
+(ʟPX(1)+ʟPX(2))/2→P
+Line(P,ʟPY(1),P,ʟPY(3))
+H→X
+#call fm
+"H="+Str0→Str0
+P+14→P
+(ʟPY(1)+ʟPY(3))/2→Q
+#call tx
+(U+V)H/2→X
+#call fm
+Text(2,2,"AREA=",Str0)
+#call shown
+"AREA=(B1+B2)/2×H"→Str0
+#call line
+(U+V)H/2→X
+#call fm
+" ="+Str0→Str0
+#call line
+If C≤0 or D≤0:Goto @tr_done
+"PERIMETER=B1+B2+S3+S4"→Str0
+#call line
+U+V+C+D→X
+#call fm
+" ="+Str0→Str0
+#call line
+Lbl @tr_done
+#call done
+Goto @next
+
+Lbl @a_comb
+12→M
+ClrHome
+Disp "COMBINED SHAPE","  ","ADD UP (OR TAKE AWAY)","RECTANGLES, TRIANGLES,","CIRCLES AND HALF CIRCLES.","  "
+Pause
+0→T
+0→N
+Lbl @cb_loop
+Menu("COMBINED SHAPE","ADD A RECTANGLE",@cb_r,"ADD A TRIANGLE",@cb_t,"ADD A CIRCLE",@cb_c,"ADD A HALF CIRCLE",@cb_h,"TAKE AWAY A SHAPE",@cb_neg,"DONE",@cb_done)
+Lbl @cb_neg
+Menu("TAKE AWAY","A RECTANGLE",@cbn_r,"A TRIANGLE",@cbn_t,"A CIRCLE",@cbn_c,"A HALF CIRCLE",@cbn_h,"BACK",@cb_loop)
+Lbl @cbn_r
+⁻1→S
+Goto @cb_r1
+Lbl @cbn_t
+⁻1→S
+Goto @cb_t1
+Lbl @cbn_c
+⁻1→S
+Goto @cb_c1
+Lbl @cbn_h
+⁻1→S
+Goto @cb_h1
+Lbl @cb_r
+1→S
+Lbl @cb_r1
+ClrHome
+Input "LENGTH=",L
+Input "WIDTH=",W
+LW→A
+"RECTANGLE"→Str9
+Goto @cb_add
+Lbl @cb_t
+1→S
+Lbl @cb_t1
+ClrHome
+Input "BASE=",L
+Input "HEIGHT=",W
+LW/2→A
+"TRIANGLE"→Str9
+Goto @cb_add
+Lbl @cb_c
+1→S
+Lbl @cb_c1
+ClrHome
+Input "RADIUS=",L
+πL²→A
+"CIRCLE"→Str9
+Goto @cb_add
+Lbl @cb_h
+1→S
+Lbl @cb_h1
+ClrHome
+Input "RADIUS=",L
+πL²/2→A
+"HALF CIRCLE"→Str9
+Lbl @cb_add
+T+SA→T
+N+1→N
+A→X
+#call fm
+If S>0:Str9+": +"+Str0→Str9
+If S<0:Str9+": -"+Str0→Str9
+ClrHome
+Disp Str9
+T→X
+#call fm
+Disp "TOTAL SO FAR: "+Str0
+Pause
+Goto @cb_loop
+Lbl @cb_done
+ClrHome
+1→R
+"COMBINED SHAPE: "+toString(N)+" PARTS"→Str0
+#call line
+T→X
+#call fm
+"TOTAL AREA="+Str0→Str0
+#call line
+#call done
+Goto @next
+
+// ======================================================== 3D solids
+
+Lbl @v_box
+13→M
+ClrHome
+Disp "BOX","  "
+Input "LENGTH=",L
+Input "WIDTH=",W
+Input "HEIGHT=",H
+If L≤0 or W≤0 or H≤0:Goto @e_pos
+// front face, back face shifted up-right, and the joining edges
+{0,L,L,0}→ʟPX
+{0,0,H,H}→ʟPY
+augment(ʟPX,ʟPX+.5W)→ʟPX
+augment(ʟPY,ʟPY+.35W)→ʟPY
+#call fit
+ClrDraw
+For(I,1,4)
+I+1-4(I=4)→J
+Line(ʟPX(I),ʟPY(I),ʟPX(J),ʟPY(J))
+Line(ʟPX(I+4),ʟPY(I+4),ʟPX(J+4),ʟPY(J+4))
+Line(ʟPX(I),ʟPY(I),ʟPX(I+4),ʟPY(I+4))
+End
+L→X
+#call fm
+"L="+Str0→Str0
+(ʟPX(1)+ʟPX(2))/2→P
+ʟPY(1)-8→Q
+#call tx
+H→X
+#call fm
+"H="+Str0→Str0
+ʟPX(1)-14→P
+(ʟPY(1)+ʟPY(4))/2→Q
+#call tx
+W→X
+#call fm
+"W="+Str0→Str0
+(ʟPX(2)+ʟPX(6))/2+14→P
+(ʟPY(2)+ʟPY(6))/2→Q
+#call tx
+LWH→X
+#call fm
+Text(2,2,"VOLUME=",Str0)
+#call shown
+"VOLUME=L×W×H="+Str0→Str0
+#call line
+"SURFACE=2(LW+LH+WH)"→Str0
+#call line
+2(LW+LH+WH)→X
+#call fm
+" ="+Str0→Str0
+#call line
+√(L²+W²+H²)→X
+#call fm
+"SPACE DIAGONAL="+Str0→Str0
+#call line
+#call done
+Goto @next
+
+Lbl @v_cyl
+14→M
+ClrHome
+Disp "CYLINDER","  "
+Input "RADIUS=",C
+Input "HEIGHT=",H
+If C≤0 or H≤0:Goto @e_pos
+ClrDraw
+// scale so that the picture fits: 2R wide, H tall plus the end ovals
+min(80/C,90/(H+.5C))→S
+CS→Z
+.3CS→Y
+132→P
+30+Y→Q
+#call oval
+Q+HS→Q
+#call oval
+Line(132-Z,Q,132-Z,Q-HS)
+Line(132+Z,Q,132+Z,Q-HS)
+C→X
+#call fm
+"R="+Str0→Str0
+132+Z/2→P
+Q+Y+8→Q
+#call tx
+H→X
+#call fm
+"H="+Str0→Str0
+132+Z+16→P
+30+Y+HS/2→Q
+#call tx
+πC²H→X
+#call fm
+Text(2,2,"VOLUME=",Str0)
+#call shown
+"VOLUME=πR²H="+Str0→Str0
+#call line
+"SURFACE=2πR²+2πRH"→Str0
+#call line
+2πC²+2πCH→X
+#call fm
+" ="+Str0→Str0
+#call line
+2πCH→X
+#call fm
+"CURVED PART ONLY="+Str0→Str0
+#call line
+#call done
+Goto @next
+
+Lbl @v_cone
+15→M
+ClrHome
+Disp "CONE","  "
+Input "RADIUS=",C
+Input "HEIGHT=",H
+If C≤0 or H≤0:Goto @e_pos
+√(C²+H²)→L
+ClrDraw
+min(80/C,100/(H+.3C))→S
+CS→Z
+.3CS→Y
+132→P
+30+Y→Q
+#call oval
+Line(132-Z,Q,132,Q+HS)
+Line(132+Z,Q,132,Q+HS)
+Line(132,Q,132,Q+HS)
+C→X
+#call fm
+"R="+Str0→Str0
+132+Z/2→P
+Q-10→Q
+#call tx
+H→X
+#call fm
+"H="+Str0→Str0
+132-14→P
+30+Y+HS/2→Q
+#call tx
+L→X
+#call fm
+"SLANT="+Str0→Str0
+132+Z/2+20→P
+30+Y+HS/2→Q
+#call tx
+πC²H/3→X
+#call fm
+Text(2,2,"VOLUME=",Str0)
+#call shown
+"VOLUME=πR²H/3="+Str0→Str0
+#call line
+L→X
+#call fm
+"SLANT L=√(R²+H²)="+Str0→Str0
+#call line
+πC²+πCL→X
+#call fm
+"SURFACE=πR²+πRL="+Str0→Str0
+#call line
+#call done
+Goto @next
+
+Lbl @v_sph
+16→M
+ClrHome
+Disp "SPHERE","  "
+Input "RADIUS=",C
+If C≤0:Goto @e_pos
+ClrDraw
+132→P
+82→Q
+50→Z
+#call ring
+15→Y
+#call oval
+Line(132,82,182,82)
+C→X
+#call fm
+"R="+Str0→Str0
+157→P
+92→Q
+#call tx
+4πC³/3→X
+#call fm
+Text(2,2,"VOLUME=",Str0)
+#call shown
+"VOLUME=4πR³/3="+Str0→Str0
+#call line
+4πC²→X
+#call fm
+"SURFACE=4πR²="+Str0→Str0
+#call line
+#call done
+Goto @next
+
+Lbl @v_pyr
+17→M
+ClrHome
+Disp "SQUARE PYRAMID","  ","S IS A SIDE OF THE SQUARE","BASE, H THE HEIGHT TO THE","TOP.","  "
+Input "S=",C
+Input "H=",H
+If C≤0 or H≤0:Goto @e_pos
+√(H²+(C/2)²)→L
+// the base as a flat diamond, the top above its middle
+{0,C,1.4C,.4C,.7C}→ʟPX
+{0,0,.24C,.24C,.12C+H}→ʟPY
+#call fit
+ClrDraw
+For(I,1,4)
+I+1-4(I=4)→J
+Line(ʟPX(I),ʟPY(I),ʟPX(J),ʟPY(J))
+Line(ʟPX(I),ʟPY(I),ʟPX(5),ʟPY(5))
+End
+C→X
+#call fm
+"S="+Str0→Str0
+(ʟPX(1)+ʟPX(2))/2→P
+ʟPY(1)-8→Q
+#call tx
+H→X
+#call fm
+"H="+Str0→Str0
+ʟPX(5)+16→P
+(ʟPY(5)+ʟPY(3))/2→Q
+#call tx
+C²H/3→X
+#call fm
+Text(2,2,"VOLUME=",Str0)
+#call shown
+"VOLUME=S²H/3="+Str0→Str0
+#call line
+L→X
+#call fm
+"SLANT=√(H²+(S/2)²)="+Str0→Str0
+#call line
+"SURFACE=S²+2S×SLANT"→Str0
+#call line
+C²+2CL→X
+#call fm
+" ="+Str0→Str0
+#call line
+#call done
+Goto @next
+
+// ======================================================== circles
+
+Lbl @c_solve
+10→M
+ClrHome
+Disp "CIRCLE SOLVER","  ","TYPE THE ONE YOU KNOW AND","0 FOR THE REST.","  "
+Input "RADIUS=",V
+Input "DIAMETER=",D
+Input "CIRCUMFERENCE=",C
+Input "AREA=",E
+If (V>0)+(D>0)+(C>0)+(E>0)≠1:Goto @e_one0
+If D>0:D/2→V
+If C>0:C/(2π)→V
+If E>0:√(E/π)→V
+2V→D
+2πV→C
+πV²→E
+ClrDraw
+132→P
+82→Q
+50→Z
+#call ring
+Line(82,82,182,82)
+Pt-On(132,82)
+V→X
+#call fm
+"R="+Str0→Str0
+157→P
+92→Q
+#call tx
+D→X
+#call fm
+"D="+Str0→Str0
+132→P
+64→Q
+#call tx
+E→X
+#call fm
+Text(2,2,"AREA=",Str0)
+C→X
+#call fm
+Text(2,150,"C=",Str0)
+#call shown
+V→X
+#call fm
+"RADIUS R="+Str0→Str0
+#call line
+D→X
+#call fm
+"DIAMETER=2R="+Str0→Str0
+#call line
+C→X
+#call fm
+"CIRCUMFERENCE=2πR="+Str0→Str0
+#call line
+E→X
+#call fm
+"AREA=πR²="+Str0→Str0
+#call line
+#call done
+Goto @next
+
+Lbl @c_arc
+18→M
+ClrHome
+Disp "ARC & SECTOR","  ","A SLICE OF A CIRCLE WITH","RADIUS R AND CENTRAL","ANGLE T (DEGREES).","  "
+Input "R=",C
+Input "T=",T
+If C≤0 or T≤0 or T>360:Goto @e_ang
+ClrDraw
+132→P
+82→Q
+50→Z
+#call ring
+Line(132,82,182,82)
+Line(132,82,132+50cos(T),82+50sin(T))
+// the arc itself, drawn again just inside the circle
+For(I,0,iPart(T/5)-1)
+Line(132+44cos(5I),82+44sin(5I),132+44cos(5I+5),82+44sin(5I+5))
+End
+T→X
+#call fa
+"T="+Str0→Str0
+132+24cos(T/2)→P
+82+24sin(T/2)→Q
+#call tx
+C→X
+#call fm
+"R="+Str0→Str0
+157→P
+74→Q
+#call tx
+2πCT/360→X
+#call fm
+Text(2,2,"ARC=",Str0)
+πC²T/360→X
+#call fm
+Text(2,140,"SECTOR=",Str0)
+#call shown
+T/360→X
+#call fm
+"FRACTION=T/360="+Str0→Str0
+#call line
+2πCT/360→X
+#call fm
+"ARC=FRACTION×2πR="+Str0→Str0
+#call line
+πC²T/360→X
+#call fm
+"SECTOR=FRACTION×πR²="+Str0→Str0
+#call line
+2Csin(T/2)→X
+#call fm
+"CHORD=2R×SIN(T/2)="+Str0→Str0
+#call line
+#call done
+Goto @next
+
+Lbl @c_eq
+19→M
+ClrHome
+Menu("CIRCLE EQUATION","CENTER+RADIUS TO EQUATION",@ce_build,"EQUATION TO CENTER+RADIUS",@ce_read,"BACK",@m_cir)
+Lbl @ce_build
+ClrHome
+Disp "CENTER (H,K), RADIUS R","  "
+Input "H=",H
+Input "K=",K
+Input "R=",C
+If C≤0:Goto @e_pos
+Goto @ce_show
+Lbl @ce_read
+ClrHome
+Disp "TYPE THE EQUATION AS","X²+Y²+DX+EY+F=0","(MOVE EVERYTHING TO THE","LEFT FIRST).","  "
+Input "D=",D
+Input "E=",E
+Input "F=",F
+D²/4+E²/4-F→S
+If S≤0:Goto @e_circ
+⁻D/2→H
+⁻E/2→K
+√(S)→C
+Lbl @ce_show
+// the circle, 50 pixels across, with the axes if they are in view
+50/C→S
+ClrDraw
+132→P
+82→Q
+50→Z
+#call ring
+If abs(H)<2.6C:Line(132-HS,20,132-HS,144)
+If abs(K)<2.6C:Line(20,82-KS,244,82-KS)
+Pt-On(132,82)
+Line(132,82,182,82)
+H→X
+#call fm
+Str0→Str8
+K→X
+#call fm
+"("+Str8+","+Str0+")"→Str0
+132→P
+72→Q
+#call tx
+C→X
+#call fm
+"R="+Str0→Str0
+157→P
+88→Q
+#call tx
+Text(2,2,"(X-H)²+(Y-K)²=R²")
+#call shown
+H→X
+#call fm
+Str0→Str8
+K→X
+#call fm
+Str0→Str9
+"CENTER ("+Str8+","+Str9+")"→Str0
+#call line
+C→X
+#call fm
+"RADIUS "+Str0→Str0
+#call line
+"STANDARD FORM:"→Str0
+#call line
+"(X"→Str0
+If H>0:Str0+"-"+Str8→Str0
+If H<0:Str0+"+"+sub(Str8,2,length(Str8)-1)→Str0
+Str0+")²+(Y"→Str0
+If K>0:Str0+"-"+Str9→Str0
+If K<0:Str0+"+"+sub(Str9,2,length(Str9)-1)→Str0
+Str0→Str9
+C²→X
+#call fm
+Str9+")²="+Str0→Str0
+#call line
+"GENERAL FORM:"→Str0
+#call line
+"X²+Y²"→Str9
+⁻2H→X
+#call fm
+If X>0:Str9+"+"+Str0+"X"→Str9
+If X<0:Str9+"-"+sub(Str0,2,length(Str0)-1)+"X"→Str9
+⁻2K→X
+#call fm
+If X>0:Str9+"+"+Str0+"Y"→Str9
+If X<0:Str9+"-"+sub(Str0,2,length(Str0)-1)+"Y"→Str9
+H²+K²-C²→X
+#call fm
+If X>0:Str9+"+"+Str0→Str9
+If X<0:Str9+"-"+sub(Str0,2,length(Str0)-1)→Str9
+Str9+"=0"→Str0
+#call line
+#call done
+Goto @next
+
+// ======================================================== scale factors
+
+Lbl @sc
+20→M
+ClrHome
+Disp "SCALE FACTORS","  ","A SHAPE IS ENLARGED OR","SHRUNK BY A FACTOR K.","LENGTHS ×K, AREA ×K²,","VOLUME ×K³.","  "
+Input "K=",K
+If K≤0:Goto @e_pos
+ClrDraw
+// two squares: side 1 and side K, the bigger one 90 pixels
+min(90/max(1,K),90)→S
+Line(40,30,40+S,30)
+Line(40,30,40,30+S)
+Line(40+S,30,40+S,30+S)
+Line(40,30+S,40+S,30+S)
+KS→T
+Line(150,30,150+T,30)
+Line(150,30,150,30+T)
+Line(150+T,30,150+T,30+T)
+Line(150,30+T,150+T,30+T)
+"1"→Str0
+40+S/2→P
+30+S/2→Q
+#call tx
+K→X
+#call fm
+Str0→Str8
+150+T/2→P
+30+T/2→Q
+#call tx
+Text(2,2,"LENGTHS ×",Str8)
+#call shown
+"SCALE FACTOR K="+Str8→Str0
+#call line
+"LENGTHS ×K=×"+Str8→Str0
+#call line
+K²→X
+#call fm
+"AREA ×K²=×"+Str0→Str0
+#call line
+K³→X
+#call fm
+"VOLUME ×K³=×"+Str0→Str0
+#call line
+#call done
+Goto @next
+
+// ======================================================== messages, quit
+
+Lbl @e_tri
+ClrHome
+Disp "THOSE DON'T MAKE A","TRIANGLE."
+Goto @e_wait
+Lbl @e_one0
+ClrHome
+Disp "TYPE 0 FOR EXACTLY ONE OF","THEM."
+Goto @e_wait
+Lbl @e_two0
+ClrHome
+Disp "TYPE 0 FOR EXACTLY TWO OF","THEM."
+Goto @e_wait
+Lbl @e_hyp
+ClrHome
+Disp "THE HYPOTENUSE MUST BE","THE LONGEST SIDE."
+Goto @e_wait
+Lbl @e_ang
+ClrHome
+Disp "THAT IS OUT OF RANGE."
+Goto @e_wait
+Lbl @e_pos
+ClrHome
+Disp "LENGTHS MUST BE POSITIVE."
+Goto @e_wait
+Lbl @e_circ
+ClrHome
+Disp "THAT ISN'T A CIRCLE:","THE RADIUS WOULD BE 0 OR","IMAGINARY."
+Lbl @e_wait
+Pause
+Goto @again
+
+Lbl @quit
+ʟGW(2)→Xmin
+ʟGW(3)→Xmax
+ʟGW(4)→Ymin
+ʟGW(5)→Ymax
+ʟGW(6)→Xscl
+ʟGW(7)→Yscl
+AxesOn
+If not(ʟGW(1)):Radian
+ClrDraw
+DelVar ʟGS
+DelVar ʟGW
+DelVar ʟPX
+DelVar ʟPY
+DelVar ʟZ1
+DelVar ʟZ2
+ClrHome
+Return

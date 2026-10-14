@@ -1,27 +1,45 @@
 # Brainiac
 
-A math solver for the **TI-84 Plus CE**. Version 0.2:
+A math solver for the **TI-84 Plus CE**, in two programs. Version 0.3:
+
+**BRAINIAC** (algebra)
 
 | | |
 |---|---|
-| **Solve for X** | Any equation. Polynomials get exact answers, including fractions, square roots, complex roots and repeated roots, with no range to pick. Anything else (sin, √, ln…) is searched from -99 to 99. |
-| **Find zeros of F(X)** | The same engine, for a function instead of an equation. |
-| **Polynomials** | Roots of any degree (complex too), **quadratic step by step** (discriminant, formula, factored form, vertex form), **simplify/expand**, **factor**, **divide**. |
+| **Solve for X** | Any equation. Polynomials get exact answers (fractions, square roots, complex roots, repeated roots), with no range to pick. **Absolute value** equations are split into their two cases, **radical** equations are squared with the extraneous roots caught, **rational** equations are multiplied through with values that make a bottom 0 caught. Anything else (sin, ln…) is searched from -99 to 99. |
+| **Polynomials** | Roots of any degree (complex too), **quadratic steps + forms** (any form in: standard, factored and vertex forms out, with the discriminant, the formula, the vertex and the sum and product of the roots), **simplify/expand**, **factor**, **divide**, **zeros of F(X)**. |
 | **System of equations** | Up to 6 linear equations, typed the way you'd write them. It says when there's no solution or infinitely many. |
-| **Formulas › Rearrange** | `A=BH/2` for H gives `H=2A/B`. `T=2π√(L/G)` for L gives `L=GT²/(4π²)`. |
-| **Formulas › Inverse** | `(X+1)/(X-2)` gives `F⁻¹(X)=(2X+1)/(X-1)`. |
+| **Formulas** | **Rearrange**: `A=BH/2` for H gives `H=2A/B`, `T=2π√(L/G)` for L gives `L=GT²/(4π²)`. **Inverse**: `(X+1)/(X-2)` gives `F⁻¹(X)=(2X+1)/(X-1)`. |
+
+**GEOMETRY** (every solver draws the figure, labelled, then shows the working)
+
+| | |
+|---|---|
+| **Triangles** | Missing angle; Pythagorean theorem; 45-45-90 and 30-60-90 triangles; trig (SOH CAH TOA) for a side or an angle; similar triangles. |
+| **Angles & lines** | Triangle angles; intersecting lines; parallel lines cut by a transversal (all eight angles). |
+| **2D shapes** | Area and perimeter of triangles (3 sides, or base and height), rectangles, circles, trapezoids, and combined shapes built by adding and taking away parts. |
+| **3D solids** | Volume and surface area of boxes, cylinders, cones, spheres and square pyramids. |
+| **Circles** | Radius, diameter, circumference or area from any one of them; arc length, sector area and chord; circle equations both ways (center and radius ↔ standard and general form). |
+| **Scale factors** | How a factor K changes lengths, area and volume. |
 
 | | | |
 |---|---|---|
-| ![menu](screenshots/01-menu.png) | ![complex](screenshots/03-solve-complex.png) | ![quadratic](screenshots/07-quadratic-steps-1.png) |
-| ![rearrange](screenshots/14-rearrange-pendulum.png) | ![system](screenshots/13-system.png) | ![degree 5](screenshots/06-roots-degree5.png) |
+| ![menu](screenshots/01-menu.png) | ![radical](screenshots/05-solve-radical.png) | ![quadratic](screenshots/08-quadratic-steps-1.png) |
+| ![trig](screenshots/20-geo-trig.png) | ![parallel](screenshots/22-geo-parallel.png) | ![pyramid](screenshots/27-geo-pyramid.png) |
+| ![similar](screenshots/21-geo-similar.png) | ![arc](screenshots/28-geo-arc.png) | ![circle equation](screenshots/29-geo-circle-equation.png) |
 
-All the screenshots are in [`screenshots/`](screenshots/).
+All 32 screenshots are in [`screenshots/`](screenshots/).
 
 ## Get it on your calculator
 
-You need **one file**: [`dist/BRAINIAC.8xp`](dist/BRAINIAC.8xp)
-([direct download](https://github.com/corruptchemist/stuff/raw/claude/brainiac-math-solver-mdgiwt/brainiac/dist/BRAINIAC.8xp)).
+You need **two files**, sent the same way:
+[`dist/BRAINIAC.8xp`](dist/BRAINIAC.8xp) and [`dist/GEOMETRY.8xp`](dist/GEOMETRY.8xp)
+(direct downloads:
+[BRAINIAC](https://github.com/corruptchemist/stuff/raw/claude/brainiac-math-solver-mdgiwt/brainiac/dist/BRAINIAC.8xp),
+[GEOMETRY](https://github.com/corruptchemist/stuff/raw/claude/brainiac-math-solver-mdgiwt/brainiac/dist/GEOMETRY.8xp)).
+Brainiac's GEOMETRY menu item runs the second program; it also runs on its
+own from **[prgm]**. They are separate because a TI-BASIC `Goto` scans the
+program from the top, so one big program would make both slower.
 
 **It needs calculator OS 5.2 or newer.** To check, press **[2nd] [+]** (MEM)
 and choose **About**. If your OS is older, TI Connect CE can update it
@@ -29,8 +47,8 @@ for free.
 
 1. Install **TI Connect CE** from [education.ti.com](https://education.ti.com/en/products/computer-software/ti-connect-ce-sw).
 2. Plug the calculator in with its USB cable and turn it on.
-3. In TI Connect CE, open **Calculator Explorer**. Drag `BRAINIAC.8xp` onto
-   your calculator, or use the **Send to Calculators** button, and click
+3. In TI Connect CE, open **Calculator Explorer**. Drag both `.8xp` files
+   onto your calculator, or use the **Send to Calculators** button, and click
    **Send**.
 4. On the calculator press **[prgm]**, pick **BRAINIAC**, then press
    **[enter]** twice.
@@ -48,12 +66,18 @@ choose **Replace**.
   zero without crossing it.
 - There's no way to leave a prompt blank. If you change your mind, type
   anything (like `1`) and pick MAIN MENU afterwards.
+- Geometry works in degrees and draws on the graph screen. It puts your
+  window, axes and angle mode back the way they were when you leave it
+  through its menu (not if you stop it with **[on]**).
 - Answers that run past one screen show **ENTER: MORE**.
 
 ### What it can't do yet
 
 - Rearranging formulas with trig, logs, or a letter in an exponent, like
   `A=P(1+R)^T` for T. Brainiac says so rather than guessing.
+- Absolute-value and radical equations get the textbook treatment only when
+  the `abs(` or `√(` wraps a whole side, like `abs(2X-3)=7`. Something like
+  `abs(X)+1=3` still gets solved, by the numeric search.
 - Solving for a letter that appears with two different powers, like X and X²
   in `Y=AX²+BX+C`. Use Solve for X with numbers instead.
 - Formulas with more than 6 different letters.
@@ -120,12 +144,12 @@ before values get big enough to cause ERR:OVERFLOW.
 
 | File | What it is |
 |---|---|
-| `src/BRAINIAC.txt` | The program: TI-BASIC with `//` notes, `@labels` and `#sub`/`#call` macros |
-| `build.py` | `python -m brainiac.build` expands the macros, checks the code, and writes `dist/BRAINIAC.8xp` |
-| `tibasic.py` | The simulator: a TI-BASIC interpreter covering what Brainiac uses |
+| `src/BRAINIAC.txt`, `src/GEOMETRY.txt` | The programs: TI-BASIC with `//` notes, `@labels` and `#sub`/`#call` macros |
+| `build.py` | `python -m brainiac.build` expands the macros, checks the code, and writes both `dist/*.8xp` |
+| `tibasic.py` | The simulator: a TI-BASIC interpreter covering what the programs use, graph screen included |
 | `play.py` / `screen.py` | Play in the terminal; draw screens as PNGs |
 | `shots.py` | `python -m brainiac.shots` regenerates `screenshots/` |
-| `../tests/test_brainiac.py` | `python -m pytest tests/test_brainiac.py` (133 tests) |
+| `../tests/test_brainiac.py`, `test_geometry.py` | `python -m pytest tests/test_brainiac.py tests/test_geometry.py` (188 tests) |
 
 The build refuses two kinds of mistake that would only show up on the
 calculator:
@@ -151,8 +175,9 @@ programs:
 
 It also refuses things whose behaviour on the calculator isn't documented,
 so Brainiac can't depend on them by accident: `seq(` producing complex
-values, `augment(` of complex lists, and storing a complex number into one
-element of a real list. Brainiac builds its complex lists only by whole-list
+values, `augment(` of complex lists, storing a complex number into one
+element of a real list, and comparing complex numbers (which really is
+ERR:DATA TYPE). Brainiac builds its complex lists only by whole-list
 arithmetic, which is documented.
 
 Tests require the leak count to stay at zero.
