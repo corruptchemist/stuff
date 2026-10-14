@@ -335,6 +335,8 @@ If Z:sub(Str8,2,length(Str8)-1)→Str8
 length(Str3)→N
 If N<3:Goto @wr_end
 If sub(Str3,1,1)≠Str0:Goto @wr_end
+// a bracket with no letter in it is just a number, like abs(⁻4) or √(2)
+If not(inString(Str3,sub(Str7,1,1))):Goto @wr_end
 1→E
 2→I
 While E and I≤N
@@ -365,15 +367,58 @@ Lbl @vd_real
 If not(ʟCK(1)):Goto @vd_col
 {real(X)}→ʟBV1
 If ʟDG(1)max({inString(Str4,"\xC2"),inString(Str4,"\xC3"),inString(Str4,"\xC4"),inString(Str4,"\xC5"),inString(Str4,"\xC6"),inString(Str4,"\xC7")}):Degree
-expr(Str4)→ʟBW
+// a √( or log( that isn't real there fails, and log(0) isn't worked out
+Str4→Str3
+#call dom
+{1}→ʟBW
+If ʟDM(1):expr(Str4)→ʟBW
 Radian
 abs(ʟBW(1))→E
-(ʟCK(1)=1 and E>ᴇ⁻6(1+abs(X))) or (ʟCK(1)=2 and E<ᴇ⁻9)→E
-If E and ʟCK(1)=1:Str0+" NO: FAILS CHECK"→Str0
-If E and ʟCK(1)=2:Str0+" NO: BOTTOM=0"→Str0
+// (ᴇ⁻4: a tiny answer like 10^⁻10 for log(X)=⁻10 comes out a few digits
+// short, and is still right; a wrong one misses by far more)
+not(ʟDM(1)) or (ʟCK(1)=1 and E>ᴇ⁻4(1+abs(X))) or (ʟCK(1)=2 and E<ᴇ⁻9)→E
+If E and (ʟCK(1)=1 or not(ʟDM(1))):Str0+" NO: FAILS CHECK"→Str0
+If E and ʟCK(1)=2 and ʟDM(1):Str0+" NO: BOTTOM=0"→Str0
 Lbl @vd_col
 If ʟIQ(2) and not(E):real(X)→ʟIB(1+dim(ʟIB))
 Lbl @vd_end
+#return
+
+// ʟDM = 1 where every √( log( and ln( in Str3 has an argument that is a
+// real number, positive (or, for √(, not negative), at the values in ʟBV1;
+// 0 where one doesn't. The whole expression can still come out real (and
+// even 0) when two non-real parts cancel: log(X-4)-log(X-1) at X=⁻2, or
+// √(X-5)-√(2X-3) at X=⁻2. Changes D O P Q and list DN.
+#sub dom
+1+0real(ʟBV1)→ʟDM
+For(P,1,length(Str3))
+inString("\xBC\xC0\xBE",sub(Str3,P,1))→O
+If O:Then
+1→D
+P→Q
+While D and Q<length(Str3)
+Q+1→Q
+D+(0<inString("(\xBC\xBD\xC2\xC4\xC6\xBE\xC0\xBF\xB2\xC3\xC5\xC7\xC1",sub(Str3,Q,1)))-(sub(Str3,Q,1)=")")→D
+End
+expr(sub(Str3,P+1,Q-P-1))+0ʟBV1→ʟDN
+(abs(imag(ʟDN))≤ᴇ⁻9(1+abs(ʟDN)))(real(ʟDN)≥(O>1)ᴇ⁻99)ʟDM→ʟDM
+End
+End
+#return
+
+// After extract: if the case (or the squared equation) came out true for
+// every X, the equation itself only holds where the other side Str6 is 0 or
+// more (abs(X)=X: X≥0), except for a cube root. Z=1 if so (and it says so).
+// Changes Z Str0 and what line changes.
+#sub idcheck
+0→Z
+If max(ʟPK) or ʟPC(1) or sub(Str4,2,1)="\xBD":Goto @ic_end
+1→Z
+"TRUE FOR EVERY "+sub(Str7,1,1)+" WITH"→Str0
+#call line
+Str6+"≥0"→Str0
+#call line
+Lbl @ic_end
 #return
 
 // The angle mode for working out Str9: Degree if the calculator was in
@@ -508,6 +553,20 @@ Lbl @ex_vars
 // numbers stored into single elements: the calculator's complex support
 // for those isn't documented. Complex lists come from whole-list
 // arithmetic, real(, imag( and 𝑒^(, which is.)
+// Rounding leaves crumbs about ᴇ⁻14 times the size of the parts of the
+// expression, so (X+1)²-(X²+2X+1) is not quite 0. Str8 is the expression
+// with every - made a +: its size θ says where the crumbs are. (θ, the
+// #return address, is free until the next #call; callers keep O etc.)
+"?"→Str8
+For(I,1,length(Str9))
+If sub(Str9,I,1)="-":Then
+Str8+"+"→Str8
+Else
+Str8+sub(Str9,I,1)→Str8
+End
+End
+sub(Str8,2,length(Str8)-1)→Str8
+0→θ
 8+8(G=1)→N
 seq(I,I,0,N-1)→ʟBE
 seq(I,I,0,N+1)→ʟBJ
@@ -532,6 +591,7 @@ If J=4:ʟBA→ʟBV4
 If J=5:ʟBA→ʟBV5
 If J=6:ʟBA→ʟBV6
 expr(Str9)→ʟBW
+max(θ,max(ʟBK*abs(expr(Str8))))→θ
 // try the letter on the bottom, up to power 3 (for things like V/I), if
 // anything divides at all
 3(inString(Str9,"/")>0 or inString(Str9,"\x0C")>0)→S
@@ -546,7 +606,7 @@ imag(Y)→ʟCI(K+1)
 End
 ʟCR+𝑖ʟCI→ʟBC
 max(abs(ʟBC))→H
-ʟBC*(abs(ʟBC)>ᴇ⁻9H)→ʟBC
+ʟBC*(abs(ʟBC)>ᴇ⁻11θ)→ʟBC
 sum(ʟBC*ʟBA(N+1)^ʟBE)→A
 sum(ʟBC*ʟBA(N+2)^ʟBE)→B
 sum(abs(ʟBC)*5^ʟBE)→C
@@ -621,8 +681,8 @@ End
 real(ʟBF)→ʟPC
 // keep only the terms that are really there
 max(abs(ʟPC))→H
-If H:Then
-abs(ʟPC)>ᴇ⁻9H→ʟBY
+If H>ᴇ⁻11θ:Then
+abs(ʟPC)>ᴇ⁻11θ→ʟBY
 sum(ʟBY)→N
 SortD(ʟBY,ʟPC,ʟPK)
 N→dim(ʟPC)
@@ -649,12 +709,13 @@ max(abs(ʟPC))→H
 Lbl @sn_loop
 0→E
 abs(ʟPC(I))→X
-ᴇ⁻10H→T
-#call cf
-If Q and Q≤999:Goto @sn_ok
-// a big bottom only if it fits far better: almost any number is close
-// to something over 4 digits, like 𝑒^(6)≈1297427/3216
 ᴇ⁻12H→T
+#call cf
+// (a bottom like 1000 or 2500 is just a typed decimal)
+If Q and (Q≤999 or not(fPart(ᴇ4/max(1,Q)))):Goto @sn_ok
+// any other big bottom only if it fits far better: almost any number is
+// close to something over 4 digits, like 𝑒^(6)≈1297427/3216
+ᴇ⁻13H→T
 #call cf
 If Q:Goto @sn_ok
 1→E
@@ -680,6 +741,12 @@ If Q and Q≤999:Goto @sn_ok
 0→E
 0→Q
 Lbl @sn_ok
+// a coefficient that is there never snaps to 0 (and isn't a multiple of π
+// either, then)
+If not(P) and ʟPC(I):Then
+0→Q
+0→E
+End
 P(1-2(ʟPC(I)<0))→ʟPP(I)
 Q→ʟPQ(I)
 E→ʟPE(I)
@@ -754,8 +821,10 @@ max(ʟPK)→N
 N+1→dim(ʟFA)
 Fill(0,ʟFA)
 1→L
+// (lcm( and gcd( stop at ᴇ12, and whole numbers stop being exact at ᴇ14:
+// a bottom that big means the decimals are better)
 For(I,1,dim(ʟPQ))
-lcm(L,ʟPQ(I))→L
+If L<ᴇ11:lcm(L,ʟPQ(I))→L
 End
 For(I,1,dim(ʟPK))
 ʟPP(I)L/ʟPQ(I)→ʟFA(N+1-ʟPK(I))
@@ -832,7 +901,7 @@ If dim(ʟFA)=1:Goto @fa_done
 // root the decimals gave, check it exactly, and divide out (QX-P).
 For(K,1,dim(ʟFZ))
 ʟFZ(K)→W
-If abs(imag(W))<ᴇ⁻3(1+abs(W)):Then
+If abs(imag(W))<.1(1+abs(W)):Then
 real(W)→W
 For(Q,1,min(999,abs(ʟFA(1))))
 If dim(ʟFA)>1:Then
@@ -887,12 +956,12 @@ For(J,I+1,dim(ʟFZ))
 If not(F):Then
 ʟFZ(I)+ʟFZ(J)→U
 ʟFZ(I)ʟFZ(J)→V
-If abs(imag(U))+abs(imag(V))<ᴇ⁻6(1+abs(U)+abs(V)):Then
+If abs(imag(U))+abs(imag(V))<ᴇ⁻2(1+abs(U)+abs(V)):Then
 real(U)→U
 real(V)→V
 For(Q,1,min(99,abs(ʟFA(1))))
 If not(F) and not(fPart(ʟFA(1)/Q)):Then
-If abs(UQ-round(UQ,0))+abs(VQ-round(VQ,0))<ᴇ⁻4Q(1+abs(U)+abs(V)):Then
+If abs(UQ-round(UQ,0))+abs(VQ-round(VQ,0))<ᴇ⁻2Q(1+abs(U)+abs(V)):Then
 {Q,⁻round(UQ,0),round(VQ,0)}→ʟDB
 // divide FA by that quadratic
 dim(ʟFA)-2→N
@@ -931,11 +1000,24 @@ End
 If F:Goto @fa_quad
 Lbl @fa_rest
 If dim(ʟFA)=1:Goto @fa_done
+// the same as the factor just found (the last X²-2 of (X²-2)²)?
+0→S
+If dim(ʟFD):Then
+If ʟFD(dim(ʟFD))=dim(ʟFA)-1:Then
+1→S
+For(T,1,dim(ʟFA))
+If ʟFF(dim(ʟFF)-dim(ʟFA)+T)≠ʟFA(T):0→S
+End
+End
+End
+If S:ʟFM(dim(ʟFM))+1→ʟFM(dim(ʟFM))
+If not(S):Then
 For(T,1,dim(ʟFA))
 ʟFA(T)→ʟFF(1+dim(ʟFF))
 End
 dim(ʟFA)-1→ʟFD(1+dim(ʟFD))
 1→ʟFM(1+dim(ʟFM))
+End
 Lbl @fa_done
 #return
 
@@ -1024,6 +1106,17 @@ If L>1:Str5+"/"+toString(L)→Str5
 B²-4AC→D
 (⁻B+√(D))/(2A)→U
 (⁻B-√(D))/(2A)→V
+// no cancellation: the root away from 0 first, the other from UV=C/A
+If D>0 and B:Then
+⁻(B+(1-2(B<0))√(D))/2→H
+If B>0:Then
+H/A→V
+C/H→U
+Else
+H/A→U
+C/H→V
+End
+End
 // D = S²T with T as small as possible
 1→S
 abs(D)→T
@@ -1101,6 +1194,7 @@ If N=0:Goto @ro_none
 min(ʟPQ)(min(ʟPE)=0)(max(ʟPE)=0)→Z
 If not(Z):Goto @ro_dec
 #call whole
+If L≥ᴇ11 or max(abs(ʟFA))≥ᴇ12:Goto @ro_dec
 #call factor
 // show the factored form when there is something to show
 If max(ʟPK)<2 or sum(ʟFM)<2:Goto @ro_list
@@ -1201,7 +1295,11 @@ dim(ʟFA)-1→dim(ʟFA)
 O+1→O
 End
 If not(O):Goto @ro_d1
+// (as many times as X divides out: πX³=X² has X=0 twice)
+O→N
+#call times
 sub(Str7,1,1)+"=0"→Str0
+If O>1:Str0+Str8→Str0
 // (checked and collected like every other root: 2^X<5^X needs X=0)
 0→X
 #call verdict
@@ -1222,6 +1320,10 @@ Lbl @ro_all
 "EVERY "+sub(Str7,1,1)+" WORKS! BOTH SIDES"→Str0
 #call line
 "ARE ALWAYS EQUAL."→Str0
+#call line
+// (after multiplying by the bottoms: not where one of them is 0)
+If ʟCK(1)≠2:Goto @ro_end
+"EXCEPT WHERE A BOTTOM IS 0"→Str0
 #call line
 Goto @ro_end
 Lbl @ro_none
@@ -1276,6 +1378,10 @@ End
 seq(ʟZX(I),I,L,U)→ʟBV1
 expr(Str9)→ʟBW
 abs(imag(ʟBW))<ᴇ⁻9(1+abs(ʟBW))→ʟZV
+// (and no √( or log( of something that isn't allowed, even if it cancels)
+Str9→Str3
+#call dom
+ʟZV*ʟDM→ʟZV
 real(ʟBW)→ʟZF
 If L>1:Then
 augment(seq(0,I,1,L-1),ʟZV)→ʟZV
@@ -1285,7 +1391,8 @@ If U<K+1:Then
 augment(ʟZV,seq(0,I,1,K+1-U))→ʟZV
 augment(ʟZF,seq(0,I,1,K+1-U))→ʟZF
 End
-If min(ʟZV) and not(max(abs(ʟZF))):2→Z
+// both sides equal (to round-off) at most samples: true for every X there
+If sum(ʟZV*(abs(ʟZF)≤ᴇ⁻9))>K/4:2→Z
 If Z=2:Goto @sw_end
 // samples that are exactly zero
 seq(I,I,1,K+1)ʟZV*(ʟZF=0)→ʟZ1
@@ -1385,9 +1492,13 @@ max(abs(ʟZ1),abs(real(expr(Str9))))→ʟZ4
 // 32 halvings: about 11 digits, and never so close to an asymptote
 // (like X=3 in 1/(X-3)) that a midpoint lands right on it
 For(J,1,32)
-(ʟZA+ʟZB)/2→ʟBV1
+// a bracket narrower than 2/10^11 of its size stops halving (its ends
+// stay put): at 14 digits the middle of a bracket round a pole like
+// 2X=90 in tan(2X) can round to the pole itself, ERR:DOMAIN in Degree
+ʟZB-ʟZA>2ᴇ⁻11max(1,abs(ʟZA))→ʟZ5
+(ʟZA+ʟZB)/2*ʟZ5+(1-ʟZ5)ʟZA→ʟBV1
 real(expr(Str9))→ʟZ2
-(ʟZ2<0)=(ʟZ1<0)→ʟZ3
+max((ʟZ2<0)=(ʟZ1<0),1-ʟZ5)→ʟZ3
 ʟZ3ʟBV1+(1-ʟZ3)ʟZA→ʟZA
 ʟZ3ʟZB+(1-ʟZ3)ʟBV1→ʟZB
 End
@@ -2249,7 +2360,7 @@ Str5→Str3
 Str6→Str5
 Str3→Str6
 Lbl @abs1
-{1,0}→ʟCK
+{1,1}→ʟCK
 sub(Str5,2,length(Str5)-2)→Str3
 "\xB2"+Str3+")-("+Str6+")"→Str2
 #call tmpl
@@ -2265,7 +2376,10 @@ ClrHome
 #call tmpl
 #call extract
 If not(Z):Goto @num_plain
+#call idcheck
+If Z:Goto @abs_c2
 #call roots
+Lbl @abs_c2
 // (roots used the strings: get the two sides back)
 #call eqn
 "\xB2"→Str0
@@ -2283,7 +2397,10 @@ sub(Str5,2,length(Str5)-2)→Str3
 #call tmpl
 #call extract
 If not(Z):Goto @num_plain
+#call idcheck
+If Z:Goto @abs_dn
 #call roots
+Lbl @abs_dn
 #call done
 Goto @s1_end
 
@@ -2314,7 +2431,7 @@ Lbl @rad1
 #call tmpl
 Str9→Str4
 sub(Str5,2,length(Str5)-2)→Str3
-{1,0}→ʟCK
+{1,1}→ʟCK
 ClrHome
 1→R
 "SOLVING: "+Str1→Str0
@@ -2330,7 +2447,10 @@ If P=3:"("+Str3+")-("+Str6+")³"→Str2
 #call tmpl
 #call extract
 If not(Z):Goto @num_plain
+#call idcheck
+If Z:Goto @rad_dn
 #call roots
+Lbl @rad_dn
 #call done
 Goto @s1_end
 
@@ -2351,6 +2471,9 @@ Lbl @ex1
 // and Str2, which pow leaves alone
 Str8→Str4
 Str3→Str2
+// 1^X is always 1, and a base of 0 or less has no log: search instead
+real(expr(Str4))→E
+If E=1 or E≤0:Goto @num_plain
 // a positive base to any power is never 0 or less (and ln(0) would stop
 // the program)
 0→E
@@ -2523,6 +2646,8 @@ If Z=2:Goto @num_all
 If ʟZL(3):ʟZL(1)→A
 If ʟZL(4):ʟZL(2)→B
 #call sweep
+If ʟZL(3):ʟZL(1)→A
+If ʟZL(4):ʟZL(2)→B
 #call numshow
 Goto @s1_end
 Lbl @num_deg
@@ -2553,8 +2678,10 @@ If M>1 and M<11:"ZEROS OF "+Str1→Str0
 ClrHome
 1→R
 "EVERY "+sub(Str7,1,1)+" WORKS! BOTH SIDES"→Str0
+If not(min(ʟZV)):"EVERY "+sub(Str7,1,1)+" WHERE BOTH SIDES"→Str0
 #call line
 "ARE ALWAYS EQUAL."→Str0
+If not(min(ʟZV)):"HAVE A VALUE WORKS."→Str0
 #call line
 #call done
 #return
@@ -2752,6 +2879,8 @@ Output(1,1,"THINKING...")
 0→dim(ʟZK)
 #call sweep
 If Z=2:Goto @rg_all
+If ʟZL(3):ʟZL(1)→A
+If ʟZL(4):ʟZL(2)→B
 #call numshow
 Goto @nextnum
 Lbl @rg_all
@@ -3669,6 +3798,8 @@ DelVar ʟIW
 DelVar ʟIV
 DelVar ʟIE
 DelVar ʟIG
+DelVar ʟDM
+DelVar ʟDN
 DelVar ʟQX
 DelVar ʟOU
 DelVar ʟSL

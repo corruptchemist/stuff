@@ -989,3 +989,49 @@ def test_a_double_inequality_is_explained_not_misread():
 def test_big_powers(answers, shows):
     m, lines = run(*answers)
     assert shows in lines
+
+
+@pytest.mark.parametrize("equation, shows", [
+    ("1.49X^2=7000069", " =2167.49461"),            # was 2167.643064: 1.49 snapped to a fraction
+    ("(X+1)^2=X^2+2X+1", "EVERY X WORKS! BOTH SIDES"),   # was 382 "answers"
+    ("X^2=1000000000", " =31622.7766"),              # was NO ANSWER
+    ("X^2=10000000000", "X=100000"),
+    ("(X-5)^5=0", "X=5 (5 TIMES)"),                  # was five complex roots
+    ("(X^2-2)^2=0", "FACTORED: (X²-2)²"),
+    ("πX^3=X^2", "X=0 (DOUBLE)"),
+])
+def test_solve_poly_stress_fixes(equation, shows):
+    lines = answers_for(SOLVE, equation)
+    assert shows in lines
+
+
+def test_a_number_under_a_root_is_not_a_radical_equation():
+    lines = answers_for(SOLVE, "X^2=√(2)")         # had X=±1.189𝑖 as answers too
+    assert lines == ["X=1.189207115", "X=⁻1.189207115"]
+
+
+@pytest.mark.parametrize("equation, degree, shows", [
+    ("tan(2X)=1", True, "X=45/2"),                    # a halving midpoint hit tan(90)
+    ("ln(X)=ln(2X)", False, "X=0 NO: FAILS CHECK"),   # was ERR:DOMAIN (log(0) in the check)
+    ("√(X-5)=√(2X-3)", False, "X=⁻2 NO: FAILS CHECK"),  # was "X=⁻2": both sides non-real
+    ("abs(X)=X", False, "TRUE FOR EVERY X WITH"),     # was "EVERY X WORKS"
+    ("abs(X^2+6)=⁻2", False, "X=2𝑖 NOT REAL"),
+    ("(X^2-4)/(X-2)=X+2", False, "EXCEPT WHERE A BOTTOM IS 0"),
+    ("-log(X)=10", False, "X=9.999495676ᴇ⁻11"),       # pH 10: no FAILS CHECK, no π
+])
+def test_solve_nonpoly_stress_fixes(equation, degree, shows):
+    m = load_program()
+    m.radians = not degree
+    m.run()
+    m.answer(SOLVE)
+    m.answer(equation)
+    lines = []
+    while True:
+        assert m.wait.kind != "error", (m.wait, m.statement_text())
+        lines += [ln.strip() for ln in view(m) if ln.strip()]
+        if m.wait.kind == "pause" and "MORE" in m.screen.lines()[9]:
+            m.answer("")
+            continue
+        break
+    assert shows in lines
+    assert_clean(m)
