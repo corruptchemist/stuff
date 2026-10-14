@@ -45,7 +45,7 @@ a+bi
 // refuses 𝑒^( of an imaginary number (ERR:DOMAIN), and the polynomial
 // engine is built on exactly that. Only sin( cos( tan( that the user typed
 // are worked out in Degree (see ang).
-{abs(sin(90)-1)<ᴇ⁻9,0}→ʟDG
+{abs(sin(90)-1)<ᴇ⁻9,0,0}→ʟDG
 Radian
 0→dim(ʟBS)
 // IQ: 1 = quiet (nothing printed), 2 = collect roots into IB, 3 = the
@@ -425,6 +425,25 @@ Lbl @ic_end
 // Degree and Str9 has sin( cos( tan( or their inverses in it (so the user
 // gets the units they typed in), else Radian. DG(2) = 1 for Degree. Every
 // caller puts Radian back afterwards. Changes nothing else.
+// DG(3) = 1 if Str9 has sin( cos( tan( (or an inverse) with the letter
+// inside it, in Degree: that is searched over one turn, 0 to 360. Trig of
+// a number, like sin(30)X²=2, is just a number: searched as usual.
+// Changes D P Q.
+#sub trigx
+0→ʟDG(3)
+For(P,1,length(Str9))
+If inString("\xC2\xC3\xC4\xC5\xC6\xC7",sub(Str9,P,1)):Then
+1→D
+P→Q
+While D and Q<length(Str9)
+Q+1→Q
+D+(0<inString("(\xBC\xBD\xC2\xC4\xC6\xBE\xC0\xBF\xB2\xC3\xC5\xC7\xC1",sub(Str9,Q,1)))-(sub(Str9,Q,1)=")")→D
+End
+If inString(sub(Str9,P,Q-P+1),"ʟ"):ʟDG(1)→ʟDG(3)
+End
+End
+#return
+
 #sub ang
 ʟDG(1)max({inString(Str9,"\xC2"),inString(Str9,"\xC3"),inString(Str9,"\xC4"),inString(Str9,"\xC5"),inString(Str9,"\xC6"),inString(Str9,"\xC7")})>0→ʟDG(2)
 Radian
@@ -1900,6 +1919,7 @@ sub(Str1,1,P-1)+"="+sub(Str1,P+1,length(Str1)-P)→Str1
 If E:Goto @e_side
 #call tmpl
 If G≠1:Goto @e_one
+#call trigx
 #call solve1
 // holes: where a bottom is 0 (numeric, from the product of the bottoms)
 #call eqn
@@ -1926,13 +1946,13 @@ Str8→Str2
 // one turn for sin( cos( tan( in Degree, like the search for the roots
 #call ang
 Radian
-If ʟDG(2):0→A
-If ʟDG(2):360→B
+If ʟDG(3):0→A
+If ʟDG(3):360→B
 0→dim(ʟZR)
 0→dim(ʟZK)
 #call sweep
 // and far out (1/(X-200)>0 has its hole at 200), but not for Degree trig
-If ʟDG(2):Goto @iq_far
+If ʟDG(3):Goto @iq_far
 ⁻9999→A
 9999→B
 #call sweep
@@ -2082,7 +2102,7 @@ If O=2:ʟIT*(ʟIS>0)→ʟIT
 If O=3:ʟIT*(ʟIS≤0)→ʟIT
 If O=4:ʟIT*(ʟIS≥0)→ʟIT
 // sin( cos( tan( in Degree: the answer is for 0 to 360 only
-If ʟDG(2) and N:Then
+If ʟDG(3) and N:Then
 If ʟIB(1)≤0:0→ʟIT(1)
 If ʟIB(N)≥360:0→ʟIT(N+1)
 End
@@ -2101,8 +2121,8 @@ If not(ʟIT(I+1)):Goto @iq_false
 If L:Goto @iq_more
 1→L
 C+1→C
-If I=0 and not(ʟDG(2)):Str8+"(-INF"→Str8
-If I=0 and ʟDG(2):Str8+"[0"→Str8
+If I=0 and not(ʟDG(3)):Str8+"(-INF"→Str8
+If I=0 and ʟDG(3):Str8+"[0"→Str8
 If I=0:Goto @iq_more
 ʟIB(I)→X
 #call numstr
@@ -2118,8 +2138,8 @@ If not(ʟIK(I+1)):Str8+","+Str0+")U"→Str8
 0→L
 Goto @iq_next
 Lbl @iq_inf
-If not(ʟDG(2)):Str8+",INF)U"→Str8
-If ʟDG(2):Str8+",360]U"→Str8
+If not(ʟDG(3)):Str8+",INF)U"→Str8
+If ʟDG(3):Str8+",360]U"→Str8
 0→L
 Goto @iq_next
 Lbl @iq_false
@@ -2214,7 +2234,7 @@ If Str3="-INF" and Str9="INF":" SO EVERY "+sub(Str7,1,1)+" WORKS"→Str0
 #call line
 Lbl @iq_end
 // sin( cos( tan( in Degree were only searched over one turn
-If not(ʟDG(2)):Goto @iq_turn
+If not(ʟDG(3)):Goto @iq_turn
 "(FOR "+sub(Str7,1,1)+" FROM 0 TO 360)"→Str0
 #call line
 Lbl @iq_turn
@@ -2637,7 +2657,8 @@ Lbl @num
 // sin( cos( tan( in Degree: one turn, 0 to 360
 #call ang
 Radian
-If ʟDG(2):Goto @num_deg
+#call trigx
+If ʟDG(3):Goto @num_deg
 #call sweep
 If Z=2:Goto @num_all
 // then wider, but not past where the first sweep had to stop
@@ -2677,6 +2698,9 @@ If M>1 and M<11:"ZEROS OF "+Str1→Str0
 #sub numall
 ClrHome
 1→R
+"SOLVING: "+Str1→Str0
+If M>1 and M<11:"ZEROS OF "+Str1→Str0
+#call line
 "EVERY "+sub(Str7,1,1)+" WORKS! BOTH SIDES"→Str0
 If not(min(ʟZV)):"EVERY "+sub(Str7,1,1)+" WHERE BOTH SIDES"→Str0
 #call line

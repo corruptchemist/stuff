@@ -1035,3 +1035,8 @@ def test_solve_nonpoly_stress_fixes(equation, degree, shows):
         break
     assert shows in lines
     assert_clean(m)
+
+
+def test_trig_of_a_number_is_just_a_number_in_degree():
+    m, lines = degree_run(SOLVE, "sin(30)X^2=2")      # was "0 TO 360": missed X=⁻2
+    assert lines[1:4] == ["(SEARCHED ⁻99 TO 99)", "X=⁻2", "X=2"]
