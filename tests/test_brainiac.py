@@ -623,8 +623,10 @@ def test_help_me_choose_back_buttons():
         for p in back:
             m.answer(p)
         assert m.wait.title == "WHAT DO YOU HAVE?", back
-    m.answer("6")                                    # a shape: geometry
-    assert m.wait.title == "GEOMETRY"
+    m.answer("6")                                    # a shape, or units
+    assert m.wait.title == "GEOMETRY & UNITS"
+    m.answer("2")
+    assert m.wait.title == "UNIT CONVERSION"
 
 
 # -- degree mode (0.4) --------------------------------------------------------------------------

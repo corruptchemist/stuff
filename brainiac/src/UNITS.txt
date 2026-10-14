@@ -1,0 +1,415 @@
+// UNITS 0.4 -- Brainiac's unit conversion program for the TI-84 Plus CE.
+//
+// Built by  python -m brainiac.build  into UNITS.8xp. Brainiac's menu runs
+// it with prgmUNITS; it also runs on its own from [prgm]. Same source
+// conventions as BRAINIAC.txt (see build.py): // notes, @labels,
+// #sub/#call/#return. Its #call stack lives in list UQ.
+//
+// Conversions are shown the dimensional-analysis way: the amount, then a
+// chain of fractions that each equal 1, with the old unit on the bottom so
+// it cancels:  60 MI/HR ×5280 FT/1 MI ×1 HR/3600 SEC =88 FT/SEC.
+//
+// A category (load) is a list of units, 5 characters each in Str5, with
+// UF = how many of its system's base unit one of it is, and UY = its
+// system (1 metric, 2 US). P and Q are the places of the metric and US base
+// units, K = how many metric base units make one US base unit (2.54 CM in
+// 1 IN). Inside one system it takes one step; across systems it goes to
+// the base unit, across with K, then out to the unit asked for.
+//
+// Variables: M = mode (for AGAIN), C = category, F and T = the units from
+// and to, V = the amount, R = next home-screen row, θ = return address.
+
+ClrHome
+0→dim(ʟUQ)
+Goto @menu
+
+// ======================================================== helpers
+
+// Show Str0 from home-screen row R down, turning the page when full.
+// Changes E.
+#sub line
+iPart((length(Str0)-1)/26)+1→E
+If R+E>10:Then
+Output(10,1,"ENTER: MORE")
+Pause
+ClrHome
+1→R
+End
+Output(R,1,Str0)
+R+E→R
+#return
+
+#sub done
+Output(10,1,"ENTER: DONE")
+Pause
+#return
+
+// Take the spaces off the end of Str0.
+#sub trim
+While sub(Str0,length(Str0),1)=" "
+sub(Str0,1,length(Str0)-1)→Str0
+End
+#return
+
+// Unit number I's name -> Str0.
+#sub nm
+sub(Str5,5I-4,5)→Str0
+#call trim
+#return
+
+// Category C -> Str6 (its name), Str5, UF, UY, P, Q, K and N (how many).
+#sub load
+If C=1:Then
+"LENGTH"→Str6
+"MM   CM   M    KM   IN   FT   YD   MI   "→Str5
+{.1,1,100,100000,1,12,36,63360}→ʟUF
+{1,1,1,1,2,2,2,2}→ʟUY
+2→P
+5→Q
+2.54→K
+End
+If C=2:Then
+"MASS"→Str6
+"MG   G    KG   OZ   LB   TON  "→Str5
+{.001,1,1000,1/16,1,2000}→ʟUF
+{1,1,1,2,2,2}→ʟUY
+2→P
+5→Q
+453.59237→K
+End
+If C=3:Then
+"VOLUME"→Str6
+"ML   L    CM³  M³   TSP  TBSP FL OZCUP  PT   QT   GAL  "→Str5
+{.001,1,.001,1000,1/768,1/256,1/128,1/16,1/8,1/4,1}→ʟUF
+{1,1,1,1,2,2,2,2,2,2,2}→ʟUY
+2→P
+11→Q
+3.785411784→K
+End
+If C=4:Then
+"AREA"→Str6
+"MM²  CM²  M²   HA   KM²  IN²  FT²  YD²  ACRE MI²  "→Str5
+{.01,1,10000,ᴇ8,ᴇ10,1,144,1296,6272640,4014489600}→ʟUF
+{1,1,1,1,1,2,2,2,2,2}→ʟUY
+2→P
+6→Q
+6.4516→K
+End
+If C=5:Then
+"TIME"→Str6
+"SEC  MIN  HR   DAY  WEEK YEAR "→Str5
+{1,60,3600,86400,604800,31536000}→ʟUF
+{1,1,1,1,1,1}→ʟUY
+1→P
+1→Q
+1→K
+End
+dim(ʟUF)→N
+#return
+
+// The units of the loaded category, numbered in two columns, with Str8 as
+// the title; then which one to convert from (F) and to (T).
+// Changes H I Str0.
+#sub pick
+ClrHome
+Disp Str8
+iPart((N+1)/2)→H
+For(I,1,H)
+sub(toString(I)+":"+sub(Str5,5I-4,5)+"        ",1,13)→Str0
+If I+H≤N:Str0+toString(I+H)+":"+sub(Str5,5(I+H)-4,5)→Str0
+Disp Str0
+End
+Lbl @pk_f
+Input "FROM (NUMBER):",F
+If F<1 or F>N or fPart(F):Goto @pk_f
+Lbl @pk_t
+Input "TO (NUMBER):",T
+If T<1 or T>N or fPart(T):Goto @pk_t
+#return
+
+// The steps from unit F to unit T: UW = how many of the new unit one of
+// the old is, for up to 3 steps (0 = no step), and Str9 = the 4 unit names
+// along the way (step J goes from name J to name J+1). W = all the steps
+// together. Changes I J W.
+#sub plan
+If ʟUY(F)=ʟUY(T):Then
+{ʟUF(F)/ʟUF(T),0,0}→ʟUW
+sub(Str5,5F-4,5)+sub(Str5,5T-4,5)+sub(Str5,5T-4,5)+sub(Str5,5T-4,5)→Str9
+Else
+// I and J = the base units of F's and T's systems
+P+(Q-P)(ʟUY(F)=2)→I
+P+(Q-P)(ʟUY(T)=2)→J
+{ʟUF(F),K^(2(ʟUY(F)=2)-1),1/ʟUF(T)}→ʟUW
+sub(Str5,5F-4,5)+sub(Str5,5I-4,5)+sub(Str5,5J-4,5)+sub(Str5,5T-4,5)→Str9
+If F=I:0→ʟUW(1)
+If T=J:0→ʟUW(3)
+End
+If F=T:{0,0,0}→ʟUW
+1→W
+For(I,1,3)
+If ʟUW(I):WʟUW(I)→W
+End
+#return
+
+// Show the steps in Str9 and UW as fractions, each worth 1: ×5280 FT/1 MI.
+// D=1 for units on the bottom of a rate, which flip: ×1 HR/3600 SEC.
+// Changes U X Str0 Str7 Str8.
+#sub steps
+1→U
+Lbl @st_lp
+If not(ʟUW(U)):Goto @st_nx
+sub(Str9,5U+1,5)→Str0
+#call trim
+Str0→Str7
+sub(Str9,5U-4,5)→Str0
+#call trim
+Str0→Str8
+ʟUW(U)→X
+If D:Then
+Str7→Str0
+Str8→Str7
+Str0→Str8
+1/X→X
+End
+"×1 "+Str7+"/"+toString(1/X)+" "+Str8→Str0
+If X≥1:"×"+toString(X)+" "+Str7+"/1 "+Str8→Str0
+#call line
+Lbl @st_nx
+U+1→U
+If U≤3:Goto @st_lp
+#return
+
+// ======================================================== menus
+
+Lbl @menu
+0→dim(ʟUQ)
+Menu("UNIT CONVERSION","LENGTH",@c1,"MASS / WEIGHT",@c2,"VOLUME",@c3,"AREA",@c4,"TIME",@c5,"RATES, LIKE MI/HR",@rate,"MORE...",@more)
+Lbl @more
+Menu("MORE","TEMPERATURE",@temp,"HOW IT WORKS",@how,"BACK",@menu,"QUIT",@quit)
+Lbl @next
+Menu("WHAT NEXT?","AGAIN",@again,"UNITS MENU",@menu,"QUIT",@quit)
+Lbl @again
+0→dim(ʟUQ)
+If M=1:Goto @single
+If M=2:Goto @rate
+Goto @temp
+
+Lbl @c1
+1→C
+Goto @single
+Lbl @c2
+2→C
+Goto @single
+Lbl @c3
+3→C
+Goto @single
+Lbl @c4
+4→C
+Goto @single
+Lbl @c5
+5→C
+
+// ---- one unit to another
+Lbl @single
+1→M
+#call load
+Str6+" UNITS:"→Str8
+#call pick
+#call plan
+F→I
+#call nm
+Str0→Str1
+T→I
+#call nm
+Str0→Str2
+ClrHome
+Disp "CONVERT "+Str1+" TO "+Str2," "
+Input "HOW MANY "+Str1+"? ",V
+ClrHome
+1→R
+toString(V)+" "+Str1→Str0
+#call line
+0→D
+#call steps
+"="+toString(VW)+" "+Str2→Str0
+#call line
+#call cancel
+#call done
+Goto @next
+
+// a line about cancelling, when there was something to cancel
+#sub cancel
+If max(ʟUW)=0:Goto @cn_end
+" "→Str0
+#call line
+"EACH FRACTION EQUALS 1;"→Str0
+#call line
+"MATCHING UNITS ON TOP AND"→Str0
+#call line
+"BOTTOM CANCEL."→Str0
+#call line
+Lbl @cn_end
+#return
+
+// ---- rates: a unit over a unit, like MI/HR to FT/SEC
+Lbl @rate
+2→M
+Menu("THE TOP UNIT IS A...","LENGTH (MI/HR)",@rt1,"MASS (G/ML)",@rt2,"VOLUME (GAL/MIN)",@rt3,"AREA",@rt4,"TIME",@rt5,"BACK",@menu)
+Lbl @rt1
+1→C
+Goto @rtop
+Lbl @rt2
+2→C
+Goto @rtop
+Lbl @rt3
+3→C
+Goto @rtop
+Lbl @rt4
+4→C
+Goto @rtop
+Lbl @rt5
+5→C
+Lbl @rtop
+#call load
+"TOP: "+Str6+" UNITS"→Str8
+#call pick
+#call plan
+Str9→Str3
+ʟUW→ʟUA
+W→A
+F→I
+#call nm
+Str0→Str1
+T→I
+#call nm
+Str0→Str2
+Menu("THE BOTTOM UNIT IS A...","TIME (MI/HR)",@rb5,"LENGTH",@rb1,"MASS",@rb2,"VOLUME (G/ML)",@rb3,"AREA",@rb4)
+Lbl @rb1
+1→C
+Goto @rbot
+Lbl @rb2
+2→C
+Goto @rbot
+Lbl @rb3
+3→C
+Goto @rbot
+Lbl @rb4
+4→C
+Goto @rbot
+Lbl @rb5
+5→C
+Lbl @rbot
+#call load
+"BOTTOM: "+Str6+" UNITS"→Str8
+#call pick
+#call plan
+Str9→Str4
+ʟUW→ʟUB
+W→B
+F→I
+#call nm
+Str1+"/"+Str0→Str1
+T→I
+#call nm
+Str2+"/"+Str0→Str2
+ClrHome
+Disp "CONVERT "+Str1,"TO "+Str2," "
+Input "HOW MANY? ",V
+ClrHome
+1→R
+toString(V)+" "+Str1→Str0
+#call line
+Str3→Str9
+ʟUA→ʟUW
+0→D
+#call steps
+Str4→Str9
+ʟUB→ʟUW
+1→D
+#call steps
+"="+toString(VA/B)+" "+Str2→Str0
+#call line
+augment(ʟUA,ʟUB)→ʟUW
+#call cancel
+#call done
+Goto @next
+
+// ---- temperature: formulas, not factors (0° isn't the same in each)
+Lbl @temp
+3→M
+ClrHome
+Disp "TEMPERATURE","1:°F  2:°C  3:K"," "
+Lbl @tp_f
+Input "FROM (NUMBER):",F
+If F<1 or F>3 or fPart(F):Goto @tp_f
+Lbl @tp_t
+Input "TO (NUMBER):",T
+If T<1 or T>3 or fPart(T):Goto @tp_t
+sub("°F°C K",2F-1,2)→Str1
+sub("°F°C K",2T-1,2)→Str2
+If F=3:"K"→Str1
+If T=3:"K"→Str2
+ClrHome
+Input "HOW MANY "+Str1+"? ",V
+ClrHome
+1→R
+toString(V)+" "+Str1→Str0
+#call line
+If F=T:Goto @tp_end
+// first to °C
+V→X
+If F=2:Goto @tp_c
+If F=1:Then
+(V-32)5/9→X
+"C=(F-32)×5/9"→Str0
+"C=("+toString(V)+"-32)×5/9"→Str3
+Else
+V-273.15→X
+"C=K-273.15"→Str0
+"C="+toString(V)+"-273.15"→Str3
+End
+#call line
+Str3→Str0
+#call line
+" ="+toString(X)+" °C"→Str0
+#call line
+Lbl @tp_c
+// then from °C
+If T=2 or F=T:Goto @tp_end
+If T=1:Then
+9X/5+32→Y
+"F=C×9/5+32"→Str0
+"F="+toString(X)+"×9/5+32"→Str3
+Else
+X+273.15→Y
+"K=C+273.15"→Str0
+"K="+toString(X)+"+273.15"→Str3
+End
+#call line
+Str3→Str0
+#call line
+" ="+toString(Y)+" "+Str2→Str0
+#call line
+Lbl @tp_end
+If F≠T:Goto @tp_dn
+"(THE SAME UNIT)"→Str0
+#call line
+Lbl @tp_dn
+#call done
+Goto @next
+
+Lbl @how
+ClrHome
+Disp "DIMENSIONAL ANALYSIS:","MULTIPLY BY FRACTIONS","THAT EACH EQUAL 1, LIKE","5280 FT/1 MI. PUT THE OLD","UNIT ON THE BOTTOM SO IT","CANCELS. CHAIN THEM:","MI TO IN TO CM TO KM.","RATES DO TOP AND BOTTOM."
+Pause
+Goto @menu
+
+Lbl @quit
+DelVar ʟUQ
+DelVar ʟUF
+DelVar ʟUY
+DelVar ʟUW
+DelVar ʟUA
+DelVar ʟUB
+ClrHome
+Return

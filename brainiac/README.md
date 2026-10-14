@@ -1,6 +1,6 @@
 # Brainiac
 
-A math solver for the **TI-84 Plus CE**, in two programs. Version 0.4:
+A math solver for the **TI-84 Plus CE**, in three programs. Version 0.4:
 
 **BRAINIAC** (algebra)
 
@@ -26,26 +26,38 @@ then draws it again with your numbers and shows the working)
 | **Circles** | Radius, diameter, circumference or area from any one of them; arc length, sector area and chord; circle equations both ways (center and radius ↔ standard and general form). |
 | **Scale factors** | How a factor K changes lengths, area and volume. |
 
+**UNITS** (unit conversion, shown as dimensional analysis: the amount
+times fractions that each equal 1, so the old units cancel)
+
+| | |
+|---|---|
+| **Length, mass, volume, area, time** | Metric and US units, numbered on one screen. `5 MI ×63360 IN/1 MI ×2.54 CM/1 IN ×1 KM/100000 CM =8.04672 KM`: within a system it's one step, across systems it goes through the exact link (1 IN = 2.54 CM, 1 LB = 453.59237 G, 1 GAL = 3.785411784 L). |
+| **Rates** | A unit over a unit: `60 MI/HR ×5280 FT/1 MI ×1 HR/3600 SEC =88 FT/SEC`, density in G/ML, fuel use in MI/GAL. |
+| **Temperature** | °F, °C and K, with the formulas worked through. |
+
 | | | |
 |---|---|---|
+| ![units](screenshots/57-units-mi-km.png) | ![rate](screenshots/58-units-rate.png) | ![temperature](screenshots/60-units-temperature.png) |
 | ![menu](screenshots/01-menu.png) | ![inequality](screenshots/44-inequality-rational.png) | ![inequality working](screenshots/41-inequality-working.png) |
 | ![power alone](screenshots/46-exponential-alone.png) | ![take logs](screenshots/47-exponential-alone-2.png) | ![log check](screenshots/49-log-equation.png) |
 | ![help me choose](screenshots/38-help-me-choose.png) | ![radical](screenshots/05-solve-radical.png) | ![quadratic](screenshots/08-quadratic-steps-1.png) |
 | ![trig letters](screenshots/21-geo-trig-ref.png) | ![trig](screenshots/22-geo-trig.png) | ![parallel](screenshots/25-geo-parallel-ref.png) |
 | ![similar](screenshots/24-geo-similar.png) | ![pyramid](screenshots/33-geo-pyramid.png) | ![circle equation](screenshots/35-geo-circle-equation.png) |
 
-All 54 screenshots are in [`screenshots/`](screenshots/).
+All 60 screenshots are in [`screenshots/`](screenshots/).
 
 ## Get it on your calculator
 
-You need **two files**, sent the same way:
-[`dist/BRAINIAC.8xp`](dist/BRAINIAC.8xp) and [`dist/GEOMETRY.8xp`](dist/GEOMETRY.8xp)
+You need **three files**, sent the same way:
+[`dist/BRAINIAC.8xp`](dist/BRAINIAC.8xp), [`dist/GEOMETRY.8xp`](dist/GEOMETRY.8xp)
+and [`dist/UNITS.8xp`](dist/UNITS.8xp)
 (direct downloads:
 [BRAINIAC](https://github.com/corruptchemist/stuff/raw/claude/brainiac-math-solver-mdgiwt/brainiac/dist/BRAINIAC.8xp),
-[GEOMETRY](https://github.com/corruptchemist/stuff/raw/claude/brainiac-math-solver-mdgiwt/brainiac/dist/GEOMETRY.8xp)).
-Brainiac's GEOMETRY menu item runs the second program; it also runs on its
-own from **[prgm]**. They are separate because a TI-BASIC `Goto` scans the
-program from the top, so one big program would make both slower.
+[GEOMETRY](https://github.com/corruptchemist/stuff/raw/claude/brainiac-math-solver-mdgiwt/brainiac/dist/GEOMETRY.8xp),
+[UNITS](https://github.com/corruptchemist/stuff/raw/claude/brainiac-math-solver-mdgiwt/brainiac/dist/UNITS.8xp)).
+Brainiac's GEOMETRY & UNITS menu item runs the other two; they also run on
+their own from **[prgm]**. They are separate because a TI-BASIC `Goto` scans
+the program from the top, so one big program would make all of them slower.
 
 **It needs calculator OS 5.2 or newer.** To check, press **[2nd] [+]** (MEM)
 and choose **About**. If your OS is older, TI Connect CE can update it
@@ -53,7 +65,7 @@ for free.
 
 1. Install **TI Connect CE** from [education.ti.com](https://education.ti.com/en/products/computer-software/ti-connect-ce-sw).
 2. Plug the calculator in with its USB cable and turn it on.
-3. In TI Connect CE, open **Calculator Explorer**. Drag both `.8xp` files
+3. In TI Connect CE, open **Calculator Explorer**. Drag all three `.8xp` files
    onto your calculator, or use the **Send to Calculators** button, and click
    **Send**.
 4. On the calculator press **[prgm]**, pick **BRAINIAC**, then press
@@ -98,6 +110,7 @@ choose **Replace**.
 - Solving for a letter that appears with two different powers, like X and X²
   in `Y=AX²+BX+C`. Use Solve for X with numbers instead.
 - Formulas with more than 6 different letters.
+- Units: a year is 365 days, a ton is 2000 LB, cups and gallons are US.
 - Factoring is over whole numbers and fractions. `X²-2` doesn't factor, but
   Polynomials > Roots gives `X=±√(2)`.
 
@@ -171,12 +184,12 @@ and solves that line: `2^X=8`. Then logs finish the job.
 
 | File | What it is |
 |---|---|
-| `src/BRAINIAC.txt`, `src/GEOMETRY.txt` | The programs: TI-BASIC with `//` notes, `@labels` and `#sub`/`#call` macros |
-| `build.py` | `python -m brainiac.build` expands the macros, checks the code, and writes both `dist/*.8xp` |
+| `src/BRAINIAC.txt`, `src/GEOMETRY.txt`, `src/UNITS.txt` | The programs: TI-BASIC with `//` notes, `@labels` and `#sub`/`#call` macros |
+| `build.py` | `python -m brainiac.build` expands the macros, checks the code, and writes every `dist/*.8xp` |
 | `tibasic.py` | The simulator: a TI-BASIC interpreter covering what the programs use, graph screen included |
 | `play.py` / `screen.py` | Play in the terminal; draw screens as PNGs |
 | `shots.py` | `python -m brainiac.shots` regenerates `screenshots/` |
-| `../tests/test_brainiac.py`, `test_geometry.py` | `python -m pytest tests/test_brainiac.py tests/test_geometry.py` (273 tests) |
+| `../tests/test_brainiac.py`, `test_geometry.py`, `test_units.py` | `python -m pytest tests/test_brainiac.py tests/test_geometry.py tests/test_units.py` (304 tests) |
 
 The build refuses two kinds of mistake that would only show up on the
 calculator:
@@ -195,6 +208,8 @@ programs:
 - an `and` that checks both sides before deciding;
 - **no empty strings**: `""→Str1` is ERR:INVALID DIM on the calculator
   (the bug that broke every mode of the first 0.2 build);
+- `Text(` rows only go to 150 (row 152 was ERR:DOMAIN on the 0.4 number
+  line);
 - **no complex `𝑒^(` in Degree mode**: ERR:DOMAIN, the bug that broke
   Simplify in 0.3;
 - `Menu(` takes at most 7 options;

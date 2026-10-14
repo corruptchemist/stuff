@@ -1564,11 +1564,11 @@ End
 Lbl @menu
 0→dim(ʟBS)
 Radian
-Menu("BRAINIAC 0.4","SOLVE FOR X (OR < >)",@m_solve,"POLYNOMIALS",@m_poly,"SYSTEM OF EQUATIONS",@m_sys,"FORMULAS",@m_form,"GEOMETRY",@m_geo,"HELP ME CHOOSE",@m_wiz,"QUIT",@m_quit)
+Menu("BRAINIAC 0.4","SOLVE FOR X (OR < >)",@m_solve,"POLYNOMIALS",@m_poly,"SYSTEM OF EQUATIONS",@m_sys,"FORMULAS",@m_form,"GEOMETRY & UNITS",@m_geo,"HELP ME CHOOSE",@m_wiz,"QUIT",@m_quit)
 
 // Questions that lead to the right tool.
 Lbl @m_wiz
-Menu("WHAT DO YOU HAVE?","AN EQUATION (HAS =)",@w_eq,"AN INEQUALITY (< > ≤ ≥)",@m_solve,"NO = SIGN: AN EXPRESSION",@w_ex,"A FORMULA WITH LETTERS",@w_fm,"2 OR MORE EQUATIONS",@m_sys,"A SHAPE: ANGLES AREA...",@m_geo,"HOW TO USE / BACK",@m_help)
+Menu("WHAT DO YOU HAVE?","AN EQUATION (HAS =)",@w_eq,"AN INEQUALITY (< > ≤ ≥)",@m_solve,"NO = SIGN: AN EXPRESSION",@w_ex,"A FORMULA WITH LETTERS",@w_fm,"2 OR MORE EQUATIONS",@m_sys,"SHAPES, OR UNIT CHANGES",@m_geo,"HOW TO USE / BACK",@m_help)
 Lbl @w_eq
 Menu("THE EQUATION HAS...","ONE LETTER (LIKE X)",@w_eq1,"SEVERAL LETTERS",@w_fm,"BACK",@m_wiz)
 Lbl @w_eq1
@@ -1581,7 +1581,12 @@ Menu("FORMULAS WITH LETTERS","SOLVE IT FOR ONE LETTER",@m_rearr,"FIND THE INVERS
 // Geometry lives in its own program, so that neither one slows the other
 // down (a Goto has to scan the program from the top for its label).
 Lbl @m_geo
+Menu("GEOMETRY & UNITS","GEOMETRY",@m_geo1,"UNIT CONVERSION",@m_unit,"BACK",@menu)
+Lbl @m_geo1
 prgmGEOMETRY
+Goto @menu
+Lbl @m_unit
+prgmUNITS
 Goto @menu
 
 Lbl @m_form
@@ -2408,8 +2413,8 @@ Text(90,iPart(max(0,min(264-6length(Str0),W-3length(Str0)))),Str0)
 I+1→I
 Goto @nl_dot
 Lbl @nl_done
-Text(140,2,Str8)
-Text(152,2,"ENTER FOR THE WORKING")
+Text(136,2,Str8)
+Text(150,2,"ENTER FOR THE WORKING")
 Pause
 ʟIW(1)→Xmin
 ʟIW(2)→Xmax

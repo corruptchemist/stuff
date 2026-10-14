@@ -647,6 +647,10 @@ class Machine:
             if row != int(row) or col != int(col):
                 # ERR:DOMAIN on the calculator (seen on a TI-84 Plus CE)
                 raise TIError("DOMAIN (Text( needs whole-number row and column)")
+            if not (0 <= row <= 150 and 0 <= col <= 264):
+                # ERR:DOMAIN on a TI-84 Plus CE for row 152 (seen); row 150
+                # works (Geometry's last line). The text needs room below it.
+                raise TIError("DOMAIN (Text( row 0-150, column 0-264)")
             g.text(row, col, "".join(fmt(a) for a in args[2:]), big)
         self.showing_graph = True
 

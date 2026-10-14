@@ -38,7 +38,7 @@ NAME = "BRAINIAC"
 
 # every program, with the list its #call stack lives in (each needs its own,
 # since one program can run another)
-PROGRAMS = {"BRAINIAC": "BS", "GEOMETRY": "GS"}
+PROGRAMS = {"BRAINIAC": "BS", "GEOMETRY": "GS", "UNITS": "UQ"}
 
 # tokens whose names end in a space, which editors strip
 SPACED = {"Pause", "AxesOn", "FnOff", "PlotsOff"}
