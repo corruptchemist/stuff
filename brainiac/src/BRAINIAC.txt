@@ -386,20 +386,63 @@ Radian
 If ʟDG(2):Degree
 #return
 
-// What would stop the program at expr( instead of giving an answer: a )
-// with nothing to close, or dividing by a plain 0. Checks Str1. Z=0 and
-// Str0 = what's wrong if so. Changes I J Str0 Str3 Str9.
-#sub valid
-1→Z
+// What was typed into Str1, made safe for expr( where that is cheap. The
+// minus key where (-) was meant (X=-5, -X+1) is "take away" to TI-BASIC,
+// so it becomes (-). Then Z=0 if it still can't be an expression, like
+// X^, 2(*3, X+1), () or a stray comma: ERR:SYNTAX inside expr( otherwise.
+// C: 1 ends a value, 2 ), 3 ² ³ ⁻¹, 4 joins two values, 5 (-), 6 opens a
+// bracket, 7 = (a side left empty, like 2X=, is for eqn to
+// explain), 0 anything else. E=1 if the last one ended a value, D = open
+// brackets, U and V = digits and dots in the number being read (1.2.3 and
+// a . on its own are typos too). Changes C D E I U V Z Str0 Str3 Str9.
+#sub typed
 #call opens
-0→J
+Str9+"\xB1\xB9\xBA\x12\x19\x1A\xC8\xC9\xCA\xCB\xCC\xCD"→Str9
+"?"→Str0
+1→Z
+0→D
+0→E
+0→U
+0→V
 For(I,1,length(Str1))
 sub(Str1,I,1)→Str3
-J+(0<inString(Str9,Str3))-(Str3=")")→J
-If J<0:0→Z
+If Str3="-" and not(E):"⁻"→Str3
+Str0+Str3→Str0
+If inString("0123456789.",Str3):Then
+V+(Str3=".")→V
+U+(Str3≠".")→U
+If V>1:0→Z
+Else
+If V and not(U):0→Z
+0→U
+0→V
 End
-"A ) HAS NOTHING TO CLOSE."→Str0
+0→C
+If inString("0123456789.ABCDEFGHIJKLMNOPQRSTUVWXYZθπ\xBB\x31\x2Cᴇ",Str3):1→C
+If Str3=")":2→C
+If inString("²³\x0C",Str3):3→C
+If inString("+-*/^<>≤≥\x3B",Str3) or (Str3="," and D>0):4→C
+If Str3="⁻":5→C
+If inString(Str9,Str3):6→C
+If Str3="=":7→C
+If not(C) or (C=2 and not(D)) or (C≥2 and C≤4 and not(E)) or (C=7 and I>1 and not(E)):0→Z
+D+(C=6)-(C=2)→D
+C>0 and C≤3→E
+End
+If (not(E) and C≠7) or (V and not(U)):0→Z
+sub(Str0,2,length(Str0)-1)→Str1
+#return
+
+// What would stop the program at expr( instead of giving an answer: a typo
+// (see typed, which also turns the minus key into (-)), or dividing by a
+// plain 0. Checks Str1. Z=0 and Str0 = what's wrong if so, with E=1 for
+// a typo and 2 for /0. Changes C D E I J U V Str0 Str3 Str9.
+#sub valid
+#call typed
+"BRAINIAC CAN'T READ THAT."→Str0
+1→E
 If not(Z):Goto @va_end
+2→E
 // /0 with no more digits after it (/0.5 is fine)
 inString(Str1+" ","/0")→I
 While I and Z
@@ -1195,7 +1238,8 @@ seq(O+HI,I,0,K)→ʟZX
 // Step out from the middle, and stop on a side once values pass 10^60,
 // so that fast growers like 𝑒^(X²) never reach ERR:OVERFLOW. Steps are 10
 // samples long until values pass 10^20, then 1.
-K/2+1→C
+// from the sample nearest 0, so a range like 0 to 1000 starts small
+max(1,min(K+1,1+round(⁻O/H,0)))→C
 1→L
 K+1→U
 For(J,⁻1,1,2)
@@ -1383,6 +1427,8 @@ abs(ʟBW(1))→E
 0→J
 Repeat J>Z
 round(X,J)→T
+// (not onto 0 when a log is there: log(0) has no value)
+If not(T) and 0<inString(Str9,"\xC0")+inString(Str9,"\xBE"):X→T
 If abs(T-X)≤ᴇ⁻4max(1,abs(X)):Then
 {T}→ʟBV1
 expr(Str9)→ʟBW
@@ -1625,7 +1671,7 @@ Menu("WHAT DO YOU HAVE?","AN EQUATION (HAS =)",@w_eq,"AN INEQUALITY (< > ≤ ≥
 Lbl @w_eq
 Menu("THE EQUATION HAS...","ONE LETTER (LIKE X)",@w_eq1,"SEVERAL LETTERS",@w_fm,"BACK",@m_wiz)
 Lbl @w_eq1
-Menu("WHAT DO YOU NEED?","THE ANSWER(S) FOR X",@m_solve,"A QUADRATIC, ALL STEPS",@m_quad,"EVERY ROOT, COMPLEX TOO",@m_roots,"BACK",@m_wiz)
+Menu("WHAT DO YOU NEED?","THE ANSWER(S) FOR X",@m_solve,"A QUADRATIC, ALL STEPS",@m_quad,"EVERY ROOT, COMPLEX TOO",@m_roots,"BACK",@w_eq)
 Lbl @w_ex
 Menu("WHAT DO YOU NEED?","FACTOR IT",@m_fact,"EXPAND / SIMPLIFY IT",@m_simp,"WHERE IT EQUALS 0",@m_zeros,"DIVIDE TWO POLYNOMIALS",@m_div,"BACK",@m_wiz)
 Lbl @w_fm
@@ -1737,7 +1783,11 @@ Str8→Str2
 0→dim(ʟZR)
 0→dim(ʟZK)
 #call sweep
-ʟZR→ʟIH
+// and far out (1/(X-200)>0 has its hole at 200)
+⁻9999→A
+9999→B
+#call sweep
+If dim(ʟZR):round(ʟZR,9)→ʟIH
 Lbl @iq_nohole
 {0,0,0,0,ʟIQ(5),ʟIQ(6)}→ʟIQ
 // F = left - right, ready to test
@@ -1835,7 +1885,9 @@ End
 If N=0:{0}→ʟIS
 If N=1:{ʟIB(1)-1,ʟIB(1)+1}→ʟIS
 If N>1:Then
-augment({ʟIB(1)-1},seq((ʟIB(I)+ʟIB(I+1))/2,I,1,N-1))→ʟIS
+// (a bit off the middle: the middle of ⁻1 and 1 is where ln(X²) has no
+// value, and the middle of 45 and 135 is tan(90))
+augment({ʟIB(1)-1},seq(ʟIB(I)+.4637(ʟIB(I+1)-ʟIB(I)),I,1,N-1))→ʟIS
 augment(ʟIS,{ʟIB(N)+1})→ʟIS
 End
 ʟIS→ʟBV1
@@ -2607,10 +2659,10 @@ Goto @next
 Lbl @range
 ClrHome
 Disp "SEARCH A RANGE","  "
-Input "FROM:",Str3
-real(expr(Str3))→A
-Input "TO:",Str3
-real(expr(Str3))→B
+Input "FROM:",A
+real(A)→A
+Input "TO:",B
+real(B)→B
 If A=B:Goto @e_range
 If A>B:Then
 A→T
@@ -3137,6 +3189,7 @@ If not(Z):Goto @e_input
 Str1→Str8
 Str4→Str1
 #call valid
+Str1→Str4
 Str8→Str1
 If not(Z):Goto @e_input
 // both must use the same one letter
@@ -3245,8 +3298,8 @@ Lbl @m_sys
 4→M
 ClrHome
 Disp "SYSTEM OF EQUATIONS"," ","HOW MANY EQUATIONS (1-6)?","THEN TYPE THEM ONE AT A","TIME, LIKE 2X+3Y=7.","  "
-Input "HOW MANY:",Str1
-expr(Str1)→O
+Input "HOW MANY:",O
+real(O)→O
 If O<1 or O>6 or fPart(O):Goto @e_count
 // each equation becomes a row of [J]: one column per letter A..θ, then
 // the number on the right
@@ -3570,7 +3623,9 @@ Stop
 
 Lbl @e_input
 ClrHome
-Disp Str0,"CHECK WHAT YOU TYPED."
+Disp Str0
+If E=1:Disp "CHECK FOR A TYPO, LIKE","X^ OR *2 OR AN EXTRA ).","USE (-) FOR NEGATIVES."
+If E=2:Disp "CHECK WHAT YOU TYPED."
 Goto @e_wait
 Lbl @e_side
 ClrHome
@@ -3661,4 +3716,5 @@ ClrHome
 Disp "THE RANGE IS EMPTY.","USE TWO DIFFERENT ENDS."
 Lbl @e_wait
 Pause
-Goto @again
+// (AGAIN types it again; MAIN MENU leaves)
+Goto @next

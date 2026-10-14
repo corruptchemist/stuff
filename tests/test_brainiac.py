@@ -254,7 +254,9 @@ def test_solve_rejects_a_missing_side():
     m, lines = run(SOLVE, "2X=")
     assert "EQUATION NEEDS ONE =" in lines[0]
     m.answer("")
-    assert m.wait.kind == "input"                 # straight back to typing
+    assert m.wait.title == "WHAT NEXT?"           # MAIN MENU leaves the prompt...
+    m.answer("1")
+    assert m.wait.kind == "input"                 # ...AGAIN types it again
 
 
 # -- find zeros ----------------------------------------------------------------------------
@@ -528,12 +530,12 @@ def test_inequality_shows_the_working():
     m, picture, lines = inequality("X^2-4≥0")
     assert lines == ["X^2-4≥0", "BOUNDARIES (WHERE THE TWO", "SIDES ARE EQUAL, OR A",
                      "BOTTOM IS 0):", "⁻2 2", "TEST A POINT IN EACH PART:",
-                     "⁻3 YES, 0 NO, 3 YES", "ANSWER: (-INF,⁻2]U[2,INF)",
+                     "⁻3 YES, ⁻.145 NO, 3 YES", "ANSWER: (-INF,⁻2]U[2,INF)",
                      "( ) EXCLUDED, [ ] INCLUDED"]
     m, picture, lines = inequality("log(X)<2")
     assert lines[1:6] == ["BOUNDARIES (WHERE THE TWO", "SIDES ARE EQUAL, A BOTTOM",
                           "IS 0, OR A LOG OR SQUARE", "ROOT STARTS):", "0 100"]
-    assert "⁻1 NO, 50 YES, 101 NO" in lines             # no log of ⁻1: not a real number
+    assert "⁻1 NO, 46.37 YES, 101 NO" in lines          # no log of ⁻1: not a real number
 
 
 def test_number_line_dots_and_labels_line_up():
@@ -649,7 +651,7 @@ def test_help_me_choose_back_buttons():
     m = load_program()
     m.run()
     m.answer(HELP)
-    for back in (["1", "3"], ["1", "1", "4"], ["3", "5"], ["4", "3"]):
+    for back in (["1", "3"], ["1", "1", "4", "3"], ["3", "5"], ["4", "3"]):
         for p in back:
             m.answer(p)
         assert m.wait.title == "WHAT DO YOU HAVE?", back
@@ -908,22 +910,43 @@ def test_a_long_inequality_answer_stays_on_the_picture():
     assert all(len(t) <= 32 for row, col, t, _ in texts if row == 136)
 
 
+TYPO = ["BRAINIAC CAN'T READ THAT.", "CHECK FOR A TYPO, LIKE", "X^ OR *2 OR AN EXTRA ).",
+        "USE (-) FOR NEGATIVES."]
+
+
 @pytest.mark.parametrize("answers, message", [
-    ((SOLVE, "2X+3=7)"), "A ) HAS NOTHING TO CLOSE."),     # was ERR:SYNTAX at expr(
-    ((SOLVE, "X/0=1"), "THAT DIVIDES BY 0."),              # was ERR:DIVIDE BY 0
-    ((ZEROS, "X^2-1)"), "A ) HAS NOTHING TO CLOSE."),
-    ((POLY, ROOTS, "X)"), "A ) HAS NOTHING TO CLOSE."),
-    ((POLY, SIMPLIFY, "(X+1))^2"), "A ) HAS NOTHING TO CLOSE."),
-    ((POLY, DIVIDE, "X^2", "X)"), "A ) HAS NOTHING TO CLOSE."),
-    (REARRANGE + ("A=BH/2)",), "A ) HAS NOTHING TO CLOSE."),
-    (INVERSE + ("2X)",), "A ) HAS NOTHING TO CLOSE."),
-    ((SYSTEM, "2", "X+Y=10)"), "A ) HAS NOTHING TO CLOSE."),
+    ((SOLVE, "2X+3=7)"), TYPO),                       # was ERR:SYNTAX at expr(
+    ((SOLVE, "X^=4"), TYPO),
+    ((SOLVE, "X..2=1"), TYPO),
+    ((SOLVE, "*X=2"), TYPO),
+    ((SOLVE, "X/0=1"), ["THAT DIVIDES BY 0.", "CHECK WHAT YOU TYPED."]),   # ERR:DIVIDE BY 0
+    ((ZEROS, "X^2-1)"), TYPO),
+    ((POLY, ROOTS, "X)"), TYPO),
+    ((POLY, SIMPLIFY, "(X+1))^2"), TYPO),
+    ((POLY, DIVIDE, "X^2", "X)"), TYPO),
+    (REARRANGE + ("A=BH/2)",), TYPO),
+    (INVERSE + ("2X)",), TYPO),
+    ((SYSTEM, "2", "X+Y=10)"), TYPO),
 ])
 def test_typing_mistakes_get_a_message_not_an_error(answers, message):
     m, lines = run(*answers)
-    assert lines[:2] == [message, "CHECK WHAT YOU TYPED."]
+    assert lines[:len(message)] == message
     m.answer("")
-    assert m.wait.kind == "input"                     # straight back to typing
+    assert m.wait.title == "WHAT NEXT?"
+    m.answer("1")                                     # AGAIN
+    assert m.wait.kind == "input"
+
+
+@pytest.mark.parametrize("answers, shows", [
+    # the minus key where (-) was meant: "take away" with nothing before it
+    ((SOLVE, r"2X+3=\x717"), "X=⁻5"),
+    ((SOLVE, r"\x71X=5"), "X=⁻5"),
+    ((POLY, ROOTS, r"\x71X^2+1"), "X=1"),
+    ((SYSTEM, "2", r"X+Y=\x711", "X-Y=3"), "X=1"),
+])
+def test_the_minus_key_works_like_negative(answers, shows):
+    m, lines = run(*answers)
+    assert shows in lines
 
 
 @pytest.mark.parametrize("text", ["X/0.5=1", "((X+1)=2", "(X+1=2", "2/(X-1)=1"])

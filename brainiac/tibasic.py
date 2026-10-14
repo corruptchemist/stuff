@@ -83,7 +83,7 @@ def keyboard_to_tokens(text: str) -> list[Tok]:
     (-) key; here a minus at the start or after ( , = + - * / ^ means that).
     """
     text = text.strip().replace("**", "^").replace("−", "-")
-    text = re.sub(r"(?<![A-Za-z])x(?![A-Za-z])", "X", text)
+    text = re.sub(r"(?<![A-Za-z\\])x(?![A-Za-z])", "X", text)   # (not the x of \xNN)
     text = text.replace("π", "pi").replace("³√(", r"\xBD").replace("√(", "sqrt(")
     text = re.sub(r"(?<![A-Za-z])e\^\(", "￿", text)
     out, prev = [], ""
