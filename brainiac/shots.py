@@ -75,6 +75,8 @@ TOURS = [
     ("61-trig-of-a-root", "sin(√(X))=.5 (was ERR:DATA TYPE)", ["1", "sin(√(X))=.5"]),
     ("62-inverse-trig-inequality", "sin⁻¹(X)≥0: X stops at 1", ["1", "sin⁻¹(X)≥0"]),
     ("63-geometry-refuses-i", "Geometry: 3+4i typed for a length", ["5", "1", "3", "2", "", "3+4𝑖", "4"]),
+    ("64-inverse-fraction", "Inverse of 1/(X+2)+3 (was CAN'T)", ["4", "2", "1/(X+2)+3"]),
+    ("65-inverse-root", "Inverse of √(X)+1 (was CAN'T)", ["4", "2", "√(X)+1"]),
 ]
 
 
