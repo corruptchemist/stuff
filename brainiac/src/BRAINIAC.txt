@@ -1192,6 +1192,9 @@ O+1→O
 End
 If not(O):Goto @ro_d1
 sub(Str7,1,1)+"=0"→Str0
+// (checked and collected like every other root: 2^X<5^X needs X=0)
+0→X
+#call verdict
 #call line
 Lbl @ro_d1
 If dim(ʟFA)=1:Goto @ro_end
@@ -1429,7 +1432,8 @@ Repeat J>Z
 round(X,J)→T
 // (not onto 0 when a log is there: log(0) has no value)
 If not(T) and 0<inString(Str9,"\xC0")+inString(Str9,"\xBE"):X→T
-If abs(T-X)≤ᴇ⁻4max(1,abs(X)):Then
+// (relative: a root near 1ᴇ⁻4 isn't nudged to 0)
+If abs(T-X)≤ᴇ⁻4abs(X):Then
 {T}→ʟBV1
 expr(Str9)→ʟBW
 If abs(ʟBW(1))≤E:Then
@@ -1762,6 +1766,9 @@ Lbl @ineq
 11→M
 If inString(Str1,"="):Goto @e_ineq
 If P=1 or P=length(Str1):Goto @e_side
+// a second sign, like ⁻3<2X+1<7, would be worked out as 0 or 1
+sub(Str1,1,P-1)+sub(Str1,P+1,length(Str1)-P)→Str3
+If inString(Str3,"<")+inString(Str3,">")+inString(Str3,"≤")+inString(Str3,"≥"):Goto @e_two
 // the same text with = in place of the sign, for the solver
 sub(Str1,1,P-1)+"="+sub(Str1,P+1,length(Str1)-P)→Str1
 {1,1,0,0,P,O}→ʟIQ
@@ -1773,6 +1780,19 @@ If G≠1:Goto @e_one
 #call solve1
 // holes: where a bottom is 0 (numeric, from the product of the bottoms)
 #call eqn
+// tan(U) is sin(U)/cos(U): its bottom counts too
+inString(Str2,"\xC6")→I
+While I
+sub(Str2,1,I-1)+"1/\xC4"+sub(Str2,I+1,length(Str2)-I)→Str2
+inString(Str2,"\xC6")→I
+End
+// abs(U) is 0 where U is, and U changes sign there (abs( doesn't: a V
+// that only touches 0 is missed, and X/abs(X) at 0 is ERR:DIVIDE BY 0)
+inString(Str2,"\xB2")→I
+While I
+sub(Str2,1,I-1)+"("+sub(Str2,I+1,length(Str2)-I)→Str2
+inString(Str2,"\xB2")→I
+End
 #call dens
 0→dim(ʟIH)
 If not(Z):Goto @iq_nohole
@@ -1780,13 +1800,22 @@ Str8→Str2
 #call tmpl
 ⁻99→A
 99→B
+// one turn for sin( cos( tan( in Degree, like the search for the roots
+#call ang
+Radian
+If ʟDG(2):0→A
+If ʟDG(2):360→B
 0→dim(ʟZR)
 0→dim(ʟZK)
 #call sweep
-// and far out (1/(X-200)>0 has its hole at 200)
+// and far out (1/(X-200)>0 has its hole at 200), but not for Degree trig
+If ʟDG(2):Goto @iq_far
 ⁻9999→A
 9999→B
 #call sweep
+Lbl @iq_far
+// (nothing found leaves ZR empty: storing it is ERR:INVALID DIM; and
+// halving leaves ~1ᴇ⁻10 of noise: 1/X has its hole at 0, not 7.3ᴇ⁻11)
 If dim(ʟZR):round(ʟZR,9)→ʟIH
 Lbl @iq_nohole
 {0,0,0,0,ʟIQ(5),ʟIQ(6)}→ʟIQ
@@ -1836,7 +1865,12 @@ If Q and Q≤999:P/Q(1-2(W<0))→X
 X→ʟIE(I)
 // just inside, on the real side: 10^⁻12 and 10^⁻8 away
 ᴇ⁻12(1-2ʟZ3(I))max(1,abs(X))→D
-{X+D,X+ᴇ4D}→ʟBV1
+// An edge that is a fraction is exact: test just inside it. Any other X
+// was rounded to 8 places and can be on the wrong (not real) side: test
+// from the last real point of the halving instead.
+X+D→V
+If not(Q and Q≤999):ʟZ3(I)ʟZA(I)+(1-ʟZ3(I))ʟZB(I)→V
+{V,V+ᴇ4D}→ʟBV1
 #call ang
 expr(Str9)→ʟBW
 Radian
@@ -1874,7 +1908,9 @@ J+1→J
 ʟIB(I)→ʟIB(J)
 ʟIK(I)→ʟIK(J)
 Else
-max(ʟIK(I),ʟIK(J))→ʟIK(J)
+// a root or a hole beats an edge that does not count (kind 3)
+max(ʟIK(I)-2.5(ʟIK(I)=3),ʟIK(J)-2.5(ʟIK(J)=3))→ʟIK(J)
+ʟIK(J)+2.5(ʟIK(J)=.5)→ʟIK(J)
 End
 End
 J→N
@@ -1885,12 +1921,12 @@ End
 If N=0:{0}→ʟIS
 If N=1:{ʟIB(1)-1,ʟIB(1)+1}→ʟIS
 If N>1:Then
-// (a bit off the middle: the middle of ⁻1 and 1 is where ln(X²) has no
-// value, and the middle of 45 and 135 is tan(90))
-augment({ʟIB(1)-1},seq(ʟIB(I)+.4637(ʟIB(I+1)-ʟIB(I)),I,1,N-1))→ʟIS
+augment({ʟIB(1)-1},seq((ʟIB(I)+ʟIB(I+1))/2,I,1,N-1))→ʟIS
 augment(ʟIS,{ʟIB(N)+1})→ʟIS
 End
-ʟIS→ʟBV1
+// worked out a hair off the point shown, so a test point that lands right
+// on log(0) or tan(90) (log(X^2)>0 tests X=0) is not ERR:DOMAIN
+ʟIS+1.3ᴇ⁻7max(1,abs(ʟIS))→ʟBV1
 // (the holes are in IB now: IH keeps the test points, to show)
 ʟIS→ʟIH
 #call ang
@@ -1898,24 +1934,52 @@ expr(Str9)→ʟBW
 Radian
 abs(imag(ʟBW))<ᴇ⁻9(1+abs(ʟBW))→ʟIT
 real(ʟBW)→ʟIS
+// Logs and roots can come out real where each one is not: log(X)-log(X-3)
+// at X=⁻1, √(X)√(X-4) at X=⁻1. So check again with the K-th √( log( ln(
+// turned into (1+K/10)log(ᴇ⁻50+ : real only if every one of them is.
+"?"→Str4
+0→K
+For(I,1,length(Str9))
+sub(Str9,I,1)→Str0
+If inString("\xBC\xC0\xBE",Str0):Then
+K+1→K
+Str4+"(1+"+toString(K/10)+")\xC0ᴇ⁻50+"→Str4
+Else
+Str4+Str0→Str4
+End
+End
+If K and not(ʟDG(2)):Then
+sub(Str4,2,length(Str4)-1)→Str4
+expr(Str4)→ʟBW
+ʟIT*(abs(imag(ʟBW))<ᴇ⁻9(1+abs(ʟBW)))→ʟIT
+End
 ʟIQ(6)→O
-If O=1 or O=3:ʟIT*(ʟIS<0)→ʟIT
-If O=2 or O=4:ʟIT*(ʟIS>0)→ʟIT
+If O=1:ʟIT*(ʟIS<0)→ʟIT
+If O=2:ʟIT*(ʟIS>0)→ʟIT
+If O=3:ʟIT*(ʟIS≤0)→ʟIT
+If O=4:ʟIT*(ʟIS≥0)→ʟIT
+// sin( cos( tan( in Degree: the answer is for 0 to 360 only
+If ʟDG(2) and N:Then
+If ʟIB(1)≤0:0→ʟIT(1)
+If ʟIB(N)≥360:0→ʟIT(N+1)
+End
 // which boundaries are included: roots, when the sign allows equality,
 // and the edges that count
 If N:(ʟIK=1)(O≥3)+(ʟIK=4)→ʟIK
 // the answer, as intervals
+// L = 1 inside an interval (not S: numstr changes S)
 "?"→Str8
 0→C
-0→S
+0→L
 0→I
 Lbl @iq_loop
 If I>N:Goto @iq_done
 If not(ʟIT(I+1)):Goto @iq_false
-If S:Goto @iq_more
-1→S
+If L:Goto @iq_more
+1→L
 C+1→C
-If I=0:Str8+"(-INF"→Str8
+If I=0 and not(ʟDG(2)):Str8+"(-INF"→Str8
+If I=0 and ʟDG(2):Str8+"[0"→Str8
 If I=0:Goto @iq_more
 ʟIB(I)→X
 #call numstr
@@ -1928,11 +1992,12 @@ If ʟIT(I+2) and ʟIK(I+1):Goto @iq_next
 #call numstr
 If ʟIK(I+1):Str8+","+Str0+"]U"→Str8
 If not(ʟIK(I+1)):Str8+","+Str0+")U"→Str8
-0→S
+0→L
 Goto @iq_next
 Lbl @iq_inf
-Str8+",INF)U"→Str8
-0→S
+If not(ʟDG(2)):Str8+",INF)U"→Str8
+If ʟDG(2):Str8+",360]U"→Str8
+0→L
 Goto @iq_next
 Lbl @iq_false
 // a lone included point between two regions where it fails: {X}
@@ -3710,6 +3775,10 @@ Goto @e_wait
 Lbl @e_ineq
 ClrHome
 Disp "USE ONE OF < > ≤ ≥ FROM","2ND MATH (NOT <=)."
+Goto @e_wait
+Lbl @e_two
+ClrHome
+Disp "ONE SIGN AT A TIME. FOR","⁻3<2X+1<7 SOLVE ⁻3<2X+1","AND 2X+1<7, THEN KEEP","WHAT BOTH ALLOW."
 Goto @e_wait
 Lbl @e_range
 ClrHome

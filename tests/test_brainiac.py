@@ -107,7 +107,7 @@ def test_test_builds_call_each_other():
 
 
 def test_program_size_and_os():
-    assert len(program_bytes()) < 50_000            # the CE has ~150 KB of RAM
+    assert len(program_bytes()) < 60_000            # the CE has ~150 KB of RAM
     assert min_os().version == "5.2.0"              # toString( needs OS 5.2
 
 
@@ -530,12 +530,12 @@ def test_inequality_shows_the_working():
     m, picture, lines = inequality("X^2-4≥0")
     assert lines == ["X^2-4≥0", "BOUNDARIES (WHERE THE TWO", "SIDES ARE EQUAL, OR A",
                      "BOTTOM IS 0):", "⁻2 2", "TEST A POINT IN EACH PART:",
-                     "⁻3 YES, ⁻.145 NO, 3 YES", "ANSWER: (-INF,⁻2]U[2,INF)",
+                     "⁻3 YES, 0 NO, 3 YES", "ANSWER: (-INF,⁻2]U[2,INF)",
                      "( ) EXCLUDED, [ ] INCLUDED"]
     m, picture, lines = inequality("log(X)<2")
     assert lines[1:6] == ["BOUNDARIES (WHERE THE TWO", "SIDES ARE EQUAL, A BOTTOM",
                           "IS 0, OR A LOG OR SQUARE", "ROOT STARTS):", "0 100"]
-    assert "⁻1 NO, 46.37 YES, 101 NO" in lines          # no log of ⁻1: not a real number
+    assert "⁻1 NO, 50 YES, 101 NO" in lines          # no log of ⁻1: not a real number
 
 
 def test_number_line_dots_and_labels_line_up():
@@ -953,3 +953,29 @@ def test_the_minus_key_works_like_negative(answers, shows):
 def test_the_input_check_lets_good_input_through(text):
     m, lines = run(SOLVE, text)
     assert lines[0].startswith("SOLVING:")
+
+
+@pytest.mark.parametrize("text, degree, answer", [
+    ("(X+2)^2(X+1)≥0", False, "{⁻2}U[⁻1,INF)"),        # was {⁻2}U,INF): numstr changed S
+    ("X(X-4)^2≥0", False, "[0,INF)"),
+    ("X-X≤0", False, "(-INF,INF)"),                    # was NO SOLUTION
+    ("3(X+1)≥3X+3", False, "(-INF,INF)"),
+    ("1/X>2", False, "(0,1/2)"),                       # was (7.337035038ᴇ⁻11,1/2)
+    ("1/(X^2+1)>.5", False, "(⁻1,1)"),                 # was ERR:INVALID DIM
+    ("1/(X-200)>0", False, "(200,INF)"),               # hole outside ⁻99..99
+    ("log(X^2)>0", False, "(-INF,⁻1)U(1,INF)"),        # test point 0 was ERR:DOMAIN
+    ("log(X)-log(X-3)≤1", False, "[10/3,INF)"),        # was (-INF,0)U[10/3,INF)
+    ("2^X<5^X", False, "(0,INF)"),                     # was NO SOLUTION
+    ("tan(X)>1", True, "(45,90)U(225,270)"),           # tan's poles are boundaries
+    ("tan(X)≥0", True, "[0,90)U[180,270)U{360}"),      # was ERR:DOMAIN at tan(90)
+    ("sin(X)<.5", True, "[0,30)U(150,360]"),           # 0 to 360, not -INF to INF
+    ("cos(X)≤1", True, "[0,360]"),
+])
+def test_inequality_stress_test_fixes(text, degree, answer):
+    m, picture, lines = inequality(text, degree)
+    assert picture[-2] == answer
+
+
+def test_a_double_inequality_is_explained_not_misread():
+    m, lines = run(SOLVE, "⁻3<2X+1<7")                # was "EVERY X WORKS"
+    assert lines[0] == "ONE SIGN AT A TIME. FOR"
