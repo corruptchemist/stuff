@@ -1423,6 +1423,8 @@ class Evaluator:
                 raise TIError("DIVIDE BY 0")
             return 0.0
         if isinstance(a, complex) or isinstance(b, complex):
+            if isinstance(b, complex) or b != int(b):
+                self.radian_only()
             return self.complex_result(cmath.exp(b * cmath.log(a)))
         if a < 0 and b != int(b):
             # Real mode takes odd roots of negatives: (-8)^(1/3) = -2.
@@ -1431,8 +1433,17 @@ class Evaluator:
                 if abs(inv - round(inv)) < 1e-12 and round(inv) % 2:
                     return -((-a) ** b)
                 raise TIError("NONREAL ANS")
+            self.radian_only()
             return self.complex_result(cmath.exp(b * cmath.log(a)))
         return a ** b
+
+    def radian_only(self):
+        """The TI-84 Plus CE won't take e^ of an imaginary number in Degree
+        mode: ERR:DOMAIN, with "DEGREE MODE e^(π/2*i)" as the example on the
+        error screen. Powers and logs that come out complex go the same way
+        through e^ and ln, so they're refused here too, to be safe."""
+        if not self.m.radians:
+            raise TIError("DOMAIN")
 
     def complex_result(self, z):
         z = complex(round_tiny(z.real, z), round_tiny(z.imag, z))
@@ -1625,9 +1636,12 @@ class Evaluator:
                     raise TIError("DOMAIN")
                 if not z and v > 0:
                     return math.log(v) if name == "ln(" else math.log10(v)
+                self.radian_only()
                 w = cmath.log(v) if name == "ln(" else cmath.log10(v)
                 return self.complex_result(w)
             if name == "e^^(":
+                if z and v.imag:
+                    self.radian_only()
                 return self.complex_result(cmath.exp(v)) if z else math.exp(v)
             if name == "10^^(":
                 return self.power(10.0, v)

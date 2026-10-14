@@ -161,6 +161,21 @@ def check_list_brackets(lines: list[tuple[int, str]]):
                                  f"for multiplication write ʟ...*(...)")
 
 
+def split_args(text: str) -> list[str]:
+    """Split at commas that aren't inside quotes."""
+    parts, cur, in_str = [], "", False
+    for ch in text:
+        if ch == '"':
+            in_str = not in_str
+        if ch == "," and not in_str:
+            parts.append(cur)
+            cur = ""
+        else:
+            cur += ch
+    parts.append(cur)
+    return parts
+
+
 def check_structure(lines: list[tuple[int, str]]):
     """Blocks balance, labels exist, and no jump ever leaves a block."""
     depth = 0
@@ -185,7 +200,7 @@ def check_structure(lines: list[tuple[int, str]]):
                 elif st.startswith("Goto "):
                     targets.append((n, st[5:]))
                 else:
-                    args = st[len("Menu("):].rstrip(")").split(",")
+                    args = split_args(st[len("Menu("):].rstrip(")"))
                     targets += [(n, a) for a in args[2::2]]
     if depth:
         raise BuildError(f"{depth} block(s) never closed with End")

@@ -258,7 +258,7 @@ def test_brainiac_runs_geometry_and_comes_back():
     b.answer("5")
     assert b.wait.title == "GEOMETRY" and not b.radians
     b.answer(BACK)
-    assert b.wait.title == "BRAINIAC 0.3" and b.radians and b.leaks == 0
+    assert b.wait.title == "BRAINIAC 0.4" and b.radians and b.leaks == 0
     b.answer("1")
     b.answer("5X=30")
     assert "X=6" in [ln.strip() for ln in b.screen.lines()]

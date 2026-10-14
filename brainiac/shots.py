@@ -49,13 +49,30 @@ TOURS = [
     ("35-geo-circle-equation", "Circle equation from center and radius", ["5", "5", "3", "", "1", "2", "-3", "5"]),
     ("36-geo-circle-equation-working", "...and both forms", ["5", "5", "3", "", "1", "2", "-3", "5", ""]),
     ("37-geo-scale", "Scale factors", ["5", "6", "", "3"]),
-    ("38-help", "How to use", ["6"]),
+    ("38-help-me-choose", "Help me choose: questions that find the tool", ["6"]),
+    ("39-help-me-choose-expression", "...no = sign: what do you need?", ["6", "3"]),
+    ("40-inequality-number-line", "X²-4≥0: the number line first", ["1", "X^2-4≥0"]),
+    ("41-inequality-working", "...then the working", ["1", "X^2-4≥0", ""]),
+    ("42-inequality-abs", "|X-1|<3", ["1", "abs(X-1)<3"]),
+    ("43-inequality-log", "log(X)<2: logs only exist for X>0", ["1", "log(X)<2"]),
+    ("44-inequality-rational", "(X-1)/(X+2)≤0: open and filled dots", ["1", "(X-1)/(X+2)≤0"]),
+    ("45-exponential", "2^(X+1)=8^(X-1)", ["1", "2^(X+1)=8^(X-1)"]),
+    ("46-exponential-alone", "5(2^X)=40: get the power alone...", ["1", "5(2^X)=40"]),
+    ("47-exponential-alone-2", "...then take logs", ["1", "5(2^X)=40", ""]),
+    ("48-e-alone", "3e^X-2=10, second page", ["1", "3e^(X)-2=10", ""]),
+    ("49-log-equation", "log(X)+log(X-3)=1, with the check", ["1", "log(X)+log(X-3)=1"]),
+    ("50-ln-alone", "3ln(X)=6, second page", ["1", "3ln(X)=6", ""]),
+    ("51-degree-simplify", "The bug report, fixed: Simplify in DEGREE mode", ["2", "3", "(3X^3-X^2-6)(X-5)"], True),
+    ("52-degree-trig", "sin(X)=.5 in DEGREE mode", ["1", "sin(X)=.5"], True),
+    ("53-degree-trig-inequality", "cos(X)≤0 in DEGREE mode", ["1", "cos(X)≤0"], True),
+    ("54-help-angles", "How to use, page 3", ["6", "7", "", ""]),
 ]
 
 
 def main():
-    for name, caption, answers in TOURS:
+    for name, caption, answers, *degree in TOURS:
         m = load_program()
+        m.radians = not degree
         m.run()
         for a in answers:
             m.answer(a)

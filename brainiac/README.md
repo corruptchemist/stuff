@@ -1,12 +1,14 @@
 # Brainiac
 
-A math solver for the **TI-84 Plus CE**, in two programs. Version 0.3:
+A math solver for the **TI-84 Plus CE**, in two programs. Version 0.4:
 
 **BRAINIAC** (algebra)
 
 | | |
 |---|---|
-| **Solve for X** | Any equation. Polynomials get exact answers (fractions, square roots, complex roots, repeated roots), with no range to pick. **Absolute value** equations are split into their two cases, **radical** equations are squared with the extraneous roots caught, **rational** equations are multiplied through with values that make a bottom 0 caught. Anything else (sin, ln…) is searched from -99 to 99. |
+| **Solve for X** | Any equation. Polynomials get exact answers (fractions, square roots, complex roots, repeated roots), with no range to pick. **Absolute value** equations are split into their two cases, **radical** equations are squared with the extraneous roots caught, **rational** equations are multiplied through with values that make a bottom 0 caught. **Exponential** equations take logs (`2^(X+1)=8^(X-1)`, `e^(2X)=7`), **log** equations raise 10 or e to both sides and check every answer (`log(X)+log(X-3)=1` gives X=5, not ⁻2). When the hard part has numbers around it, like `5(2^X)=40` or `3ln(X)-1=5`, it first gets that part alone. Anything else is searched from -99 to 99 (0 to 360 for trig in Degree mode). |
+| **Inequalities** | Type `<`, `>`, `≤` or `≥` instead of `=`: `2X+3>7`, `X²-4<0`, `abs(X-1)<3`, `log(X)<2`. A **number line** comes first (filled dots included, open dots not), then the working: the boundary points, a test point in each part, and the answer in **interval notation**, like `(-INF,⁻2]U[2,INF)`, plus `⁻2<X<2` for a single interval. Where a log or square root starts counts as a boundary, so `log(X)<2` gives `(0,100)`. |
+| **Help me choose** | Not sure which tool? It asks what you have (an equation, an inequality, an expression, a formula, several equations, a shape) and what you need, and takes you there. |
 | **Polynomials** | Roots of any degree (complex too), **quadratic steps + forms** (any form in: standard, factored and vertex forms out, with the discriminant, the formula, the vertex and the sum and product of the roots), **simplify/expand**, **factor**, **divide**, **zeros of F(X)**. |
 | **System of equations** | Up to 6 linear equations, typed the way you'd write them. It says when there's no solution or infinitely many. |
 | **Formulas** | **Rearrange**: `A=BH/2` for H gives `H=2A/B`, `T=2π√(L/G)` for L gives `L=GT²/(4π²)`. **Inverse**: `(X+1)/(X-2)` gives `F⁻¹(X)=(2X+1)/(X-1)`. |
@@ -26,11 +28,13 @@ then draws it again with your numbers and shows the working)
 
 | | | |
 |---|---|---|
-| ![menu](screenshots/01-menu.png) | ![radical](screenshots/05-solve-radical.png) | ![quadratic](screenshots/08-quadratic-steps-1.png) |
+| ![menu](screenshots/01-menu.png) | ![inequality](screenshots/44-inequality-rational.png) | ![inequality working](screenshots/41-inequality-working.png) |
+| ![power alone](screenshots/46-exponential-alone.png) | ![take logs](screenshots/47-exponential-alone-2.png) | ![log check](screenshots/49-log-equation.png) |
+| ![help me choose](screenshots/38-help-me-choose.png) | ![radical](screenshots/05-solve-radical.png) | ![quadratic](screenshots/08-quadratic-steps-1.png) |
 | ![trig letters](screenshots/21-geo-trig-ref.png) | ![trig](screenshots/22-geo-trig.png) | ![parallel](screenshots/25-geo-parallel-ref.png) |
 | ![similar](screenshots/24-geo-similar.png) | ![pyramid](screenshots/33-geo-pyramid.png) | ![circle equation](screenshots/35-geo-circle-equation.png) |
 
-All 38 screenshots are in [`screenshots/`](screenshots/).
+All 54 screenshots are in [`screenshots/`](screenshots/).
 
 ## Get it on your calculator
 
@@ -62,7 +66,10 @@ choose **Replace**.
 
 - **Type with capital letters.** X is the **[X,T,θ,n]** key. Other letters
   are **[alpha]** plus a key.
-- `=` is in **[2nd] [math]** (TEST), item 1.
+- `=` is in **[2nd] [math]** (TEST), item 1. `<` `>` `≤` `≥` are in the
+  same menu.
+- `log(` is the **[log]** key, `ln(` is **[ln]**, `𝑒^(` is **[2nd] [ln]**
+  and `10^(` is **[2nd] [log]**. `2^X` is `2` **[^]** `X`.
 - Use the **[(-)]** key for negative numbers, not **[−]**.
 - `(DOUBLE)` after an answer means a repeated root, where the graph touches
   zero without crossing it.
@@ -72,14 +79,22 @@ choose **Replace**.
   window, axes and angle mode back the way they were when you leave it
   through its menu (not if you stop it with **[on]**).
 - Answers that run past one screen show **ENTER: MORE**.
+- **Degree or Radian, your choice.** Brainiac does its own math in Radian
+  (the TI-84 Plus CE refuses some complex-number math in Degree mode, which
+  is what made Simplify fail with ERR:DOMAIN in 0.3). Only `sin(`, `cos(` and
+  `tan(` that you type are worked out in your mode: in Degree,
+  `sin(X)=.5` gives 30 and 150. Quitting through the menu puts your mode
+  back.
 
 ### What it can't do yet
 
 - Rearranging formulas with trig, logs, or a letter in an exponent, like
   `A=P(1+R)^T` for T. Brainiac says so rather than guessing.
-- Absolute-value and radical equations get the textbook treatment only when
-  the `abs(` or `√(` wraps a whole side, like `abs(2X-3)=7`. Something like
-  `abs(X)+1=3` still gets solved, by the numeric search.
+- Absolute-value, radical, exponential and log equations get the textbook
+  treatment when the `abs(`, `√(`, power or log is the only place the letter
+  is, like `2abs(X-1)+3=7`. Something like `abs(X)+1=X²` or `2^X=X+3` still
+  gets solved, by the numeric search.
+- Trig inequalities in Degree mode are answered for one turn, 0 to 360.
 - Solving for a letter that appears with two different powers, like X and X²
   in `Y=AX²+BX+C`. Use Solve for X with numbers instead.
 - Formulas with more than 6 different letters.
@@ -90,9 +105,8 @@ choose **Replace**.
 
 - Brainiac uses matrices **[I]** and **[J]** as scratch space. Anything
   stored in them gets overwritten.
-- Trig uses your calculator's Radian/Degree setting.
 - If you stop a search with **[on]**, or an error stops the program, the
-  calculator is left in `a+bi` mode. Set it back with **[mode] → REAL**.
+  calculator is left in `a+bi` and Radian mode. Set it back in **[mode]**.
 - Tests that put the calculator in **Press-to-Test** mode turn off all
   programs, Brainiac included.
 
@@ -142,6 +156,17 @@ value and get dropped. Dips that only touch zero are found by narrowing in
 on the lowest point. The sweep works out from the middle and stops on a side
 before values get big enough to cause ERR:OVERFLOW.
 
+**Inequalities.** The boundary points are the equation's answers (found the
+same way as Solve), the places where a bottom is 0, and the places where a
+log or square root starts. Those last ones are found by halving on "is this
+still a real number?". One test point in each part between the boundaries
+decides which parts are in. Ends that are boundaries are included when the
+sign allows equality and the expression has a value there.
+
+**Getting the hard part alone.** For `5(2^X)=40`, Brainiac swaps `2^X` for
+a stand-in, checks at three values that the rest is a straight line in it,
+and solves that line: `2^X=8`. Then logs finish the job.
+
 ## Working on it
 
 | File | What it is |
@@ -151,7 +176,7 @@ before values get big enough to cause ERR:OVERFLOW.
 | `tibasic.py` | The simulator: a TI-BASIC interpreter covering what the programs use, graph screen included |
 | `play.py` / `screen.py` | Play in the terminal; draw screens as PNGs |
 | `shots.py` | `python -m brainiac.shots` regenerates `screenshots/` |
-| `../tests/test_brainiac.py`, `test_geometry.py` | `python -m pytest tests/test_brainiac.py tests/test_geometry.py` (188 tests) |
+| `../tests/test_brainiac.py`, `test_geometry.py` | `python -m pytest tests/test_brainiac.py tests/test_geometry.py` (about 330 tests) |
 
 The build refuses two kinds of mistake that would only show up on the
 calculator:
@@ -170,6 +195,8 @@ programs:
 - an `and` that checks both sides before deciding;
 - **no empty strings**: `""→Str1` is ERR:INVALID DIM on the calculator
   (the bug that broke every mode of the first 0.2 build);
+- **no complex `𝑒^(` in Degree mode**: ERR:DOMAIN, the bug that broke
+  Simplify in 0.3;
 - `Menu(` takes at most 7 options;
 - a label must be plain letters and digits (`FV` and `PV` are finance
   variables, so `Lbl FV` is ERR:SYNTAX);

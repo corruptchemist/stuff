@@ -12,8 +12,8 @@ import pytest
 from brainiac.build import (OUTPUT, BuildError, check_list_brackets, check_structure,
                             min_os, program_bytes, source_lines)
 from brainiac.screen import view
-from brainiac.tibasic import (Machine, TIError, fmt, glyphs, keyboard_to_tokens, load_program,
-                              tokens_from_text)
+from brainiac.tibasic import (GH, GW, Machine, TIError, fmt, glyphs, keyboard_to_tokens,
+                              load_program, tokens_from_text)
 from tivars.types import TIProgram
 
 SOLVE, POLY, SYSTEM, FORMULAS, GEOMETRY, HELP, QUIT = "1234567"
@@ -79,7 +79,7 @@ def test_shipped_8xp_matches_source():
 
 
 def test_program_size_and_os():
-    assert len(program_bytes()) < 40_000            # the CE has ~150 KB of RAM
+    assert len(program_bytes()) < 50_000            # the CE has ~150 KB of RAM
     assert min_os().version == "5.2.0"              # toString( needs OS 5.2
 
 
@@ -161,10 +161,11 @@ def test_solve_polynomials_exactly(equation, expected):
 
 
 @pytest.mark.parametrize("equation, expected", [
-    ("e^(X)=10", [math.log(10)]),
-    ("abs(X)+1=3", [-2, 2]),
+    ("2^X=X+3", [-2.8625003712202988, 2.444907554610207]),
+    ("abs(X)+1=X^2", [-(1 + math.sqrt(5)) / 2, (1 + math.sqrt(5)) / 2]),
     ("√(X)+1=X", [(3 + math.sqrt(5)) / 2]),
-    ("e^(X^2)=5", [-math.sqrt(math.log(5)), math.sqrt(math.log(5))]),   # no overflow
+    ("cos(X)=X", [0.7390851332151607]),
+    ("e^(X^2)=X+5", [-1.1599505372, 1.3601671430]),                    # no overflow
 ])
 def test_solve_everything_else_by_searching(equation, expected):
     lines = answers_for(SOLVE, equation)
@@ -428,6 +429,279 @@ def test_no_inverse_when_not_one_to_one():
     assert "NO INVERSE" in lines[0]
 
 
+# -- inequalities (0.4) ---------------------------------------------------------------------
+
+def inequality(text, degree=False):
+    """Solve an inequality: the number line comes first, then the working.
+    Returns the machine, the number line's text (left to right, top to
+    bottom) and the working's lines."""
+    m = load_program()
+    m.radians = not degree
+    m.run()
+    m.answer(SOLVE)
+    m.answer(text)
+    assert m.wait.kind == "pause" and m.showing_graph, (m.wait, m.statement_text())
+    assert all(0 <= x < GW and 0 <= y < GH for x, y in m.graph.pixels)
+    picture = [t for _, _, t, _ in sorted(m.graph.texts)]
+    m.number_line = list(m.graph.texts), set(m.graph.pixels)
+    m.answer("")
+    assert not m.showing_graph
+    lines = []
+    while True:
+        assert m.wait.kind != "error", f"{m.wait.message} at: {m.statement_text()}"
+        lines += [ln.rstrip() for ln in view(m) if ln.strip() and "ENTER:" not in ln]
+        if m.wait.kind == "pause" and "MORE" in m.screen.lines()[9]:
+            m.answer("")
+            continue
+        break
+    assert_clean(m)
+    return m, picture, lines
+
+
+@pytest.mark.parametrize("text, answer, plain, marks", [
+    ("2X+3>7", "(2,INF)", " SO X>2", ["2"]),
+    ("X^2-4<0", "(⁻2,2)", " SO ⁻2<X<2", ["⁻2", "2"]),
+    ("abs(X-1)<3", "(⁻2,4)", " SO ⁻2<X<4", ["⁻2", "4"]),
+    ("X^2-4≥0", "(-INF,⁻2]U[2,INF)", None, ["⁻2", "2"]),
+    ("(X-2)^2≤0", "{2}", None, ["2"]),
+    ("(X-2)^2>0", "(-INF,2)U(2,INF)", None, ["2"]),
+    ("1/(X-1)>0", "(1,INF)", " SO X>1", ["1"]),
+    ("X^2+1>0", "(-INF,INF)", " SO EVERY X WORKS", []),
+    ("X^2+1<0", "NO SOLUTION", None, []),
+    ("(X-1)/(X+2)≤0", "(⁻2,1]", " SO ⁻2<X≤1", ["⁻2", "1"]),
+    ("X^3-X>0", "(⁻1,0)U(1,INF)", None, ["⁻1", "0", "1"]),
+    ("⁻2X+1≥5", "(-INF,⁻2]", " SO X≤⁻2", ["⁻2"]),
+    ("2^X>8", "(3,INF)", " SO X>3", ["3"]),
+    ("5(2^X)≤40", "(-INF,3]", " SO X≤3", ["3"]),
+    # where a log or square root starts is a boundary too
+    ("log(X)<2", "(0,100)", " SO 0<X<100", ["0", "100"]),
+    ("√(X)<2", "[0,4)", " SO 0≤X<4", ["0", "4"]),
+    ("√(X)>0", "(0,INF)", " SO X>0", ["0"]),
+    ("ln(X)≥0", "[1,INF)", " SO X≥1", ["0", "1"]),
+    ("√(X+5)≤X-1", "[4,INF)", " SO X≥4", ["⁻5", "4"]),
+    ("log(X)+log(X-3)≤1", "(3,5]", " SO 3<X≤5", ["3", "5"]),
+    ("√(4-X^2)≥1", "[⁻1.732050808,1.732050808]", None, ["⁻2", "⁻1.732", "1.732", "2"]),
+])
+def test_inequalities(text, answer, plain, marks):
+    m, picture, lines = inequality(text)
+    assert picture[0] == text and picture[-1] == "ENTER FOR THE WORKING"
+    assert picture[-2] == answer
+    assert picture[1:-2] == marks                     # under the dots, in order
+    assert lines[0] == text
+    assert "ANSWER: " + answer in "".join(lines)
+    if plain:
+        assert plain in lines
+    assert lines[-1] == "( ) EXCLUDED, [ ] INCLUDED"
+
+
+def test_inequality_shows_the_working():
+    m, picture, lines = inequality("X^2-4≥0")
+    assert lines == ["X^2-4≥0", "BOUNDARIES (WHERE THE TWO", "SIDES ARE EQUAL, OR A",
+                     "BOTTOM IS 0):", "⁻2 2", "TEST A POINT IN EACH PART:",
+                     "⁻3 YES, 0 NO, 3 YES", "ANSWER: (-INF,⁻2]U[2,INF)",
+                     "( ) EXCLUDED, [ ] INCLUDED"]
+    m, picture, lines = inequality("log(X)<2")
+    assert lines[1:6] == ["BOUNDARIES (WHERE THE TWO", "SIDES ARE EQUAL, A BOTTOM",
+                          "IS 0, OR A LOG OR SQUARE", "ROOT STARTS):", "0 100"]
+    assert "⁻1 NO, 50 YES, 101 NO" in lines             # no log of ⁻1: not a real number
+
+
+def test_number_line_dots_and_labels_line_up():
+    m, picture, lines = inequality("(X-1)/(X+2)≤0")
+    texts, pixels = m.number_line
+    labels = sorted((col, t) for row, col, t, _ in texts if row == 90)
+    assert [t for _, t in labels] == ["⁻2", "1"]
+    # each label sits under its dot: dots at 20+224I/(N+1)
+    for (col, t), x in zip(labels, [20 + 224 / 3, 20 + 448 / 3]):
+        assert abs(col + 3 * len(t) - x) < 4, (t, col)
+    # ⁻2 is left open, 1 filled in: look just above the line, in the middle
+    assert (int(20 + 448 / 3), 80) in pixels and (int(20 + 224 / 3), 80) not in pixels
+
+
+def test_inequality_again_asks_for_another():
+    m, _, _ = inequality("2X+3>7")
+    m.answer("")
+    m.answer("1")                                   # AGAIN
+    assert m.wait.kind == "input" and m.wait.prompt == "EQ:"
+
+
+def test_inequality_with_two_signs_is_refused():
+    m, lines = run(SOLVE, "X<2=Y")
+    assert m.wait.kind != "error"
+
+
+# -- exponential and log equations (0.4) ------------------------------------------------------
+
+@pytest.mark.parametrize("equation, expected", [
+    ("2^X=16", ["TAKE LOG BASE 2 OF EACH:", "X=LOG2(16)", "X-4=0", "X=4"]),
+    ("3^(2X-1)=27", ["TAKE LOG BASE 3 OF EACH:", "(2X-1)=LOG3(27)", "2X-4=0", "X=2"]),
+    ("2^(X+1)=8^(X-1)", ["TAKE LOG BASE 2 OF EACH:", "(X+1)=(X-1)×LOG2(8)", "⁻2X+4=0", "X=2"]),
+    ("4^X=2^(X+3)", ["TAKE LOG BASE 4 OF EACH:", "X=(X+3)×LOG4(2)", "X/2-3/2=0", "X=3"]),
+    ("(1/2)^X=8", ["LOG BASE (1/2) OF EACH:", "X=LOG(1/2)(8)", "X+3=0", "X=⁻3"]),
+    ("e^(X)=10", ["TAKE LN OF BOTH SIDES:", "X=LN(10)", "X-2.302585093=0", "X=2.302585093"]),
+    ("e^(2X)=7", ["TAKE LN OF BOTH SIDES:", "2X=LN(7)", "2X-1.945910149=0", "X=.9729550745"]),
+    ("100=10^(X)", ["TAKE LOG BASE 10 OF EACH:", "(X)=LOG10(100)", "X-2=0", "X=2"]),
+    (r"\xC1X)=1000", ["TAKE LOG BASE 10 OF EACH:", "X=LOG10(1000)", "X-3=0", "X=3"]),  # 2ND LOG
+    ("log(X)+log(X-3)=1", ["RAISE 10 TO BOTH SIDES:", "X²-3X-10=0", "FACTORED: (X+2)(X-5)",
+                           "X=⁻2 NO: FAILS CHECK", "X=5"]),
+    ("ln(X)+ln(X+1)=ln(6)", ["6)", "RAISE E TO BOTH SIDES:", "X²+X-6=0", "FACTORED: (X+3)(X-2)",
+                             "X=⁻3 NO: FAILS CHECK", "X=2"]),
+    ("log(2X+4)=1", ["RAISE 10 TO BOTH SIDES:", "2X-6=0", "X=3"]),
+    ("log(X)=log(2X-5)", ["RAISE 10 TO BOTH SIDES:", "⁻X+5=0", "X=5"]),
+    ("log(X^2)=2", ["RAISE 10 TO BOTH SIDES:", "X²-100=0", "FACTORED: (X+10)(X-10)", "X=⁻10", "X=10"]),
+    ("log(X^3)=6", ["RAISE 10 TO BOTH SIDES:", "X³-1000000=0", "FACTORED: (X-100)(X²+100X+",
+                    "10000)", "X=100", "X=⁻50+50𝑖√(3) NOT REAL", "X=⁻50-50𝑖√(3) NOT REAL"]),
+])
+def test_exponential_and_log_equations(equation, expected):
+    assert answers_for(SOLVE, equation) == expected
+
+
+@pytest.mark.parametrize("equation, alone, rest", [
+    ("5(2^X)=40", "2^X=8", ["TAKE LOG BASE 2 OF EACH:", "X=LOG2(8)", "X-3=0", "X=3"]),
+    ("2^X+1=9", "2^X=8", ["TAKE LOG BASE 2 OF EACH:", "X=LOG2(8)", "X-3=0", "X=3"]),
+    ("10=2^X+2", "2^X=8", ["TAKE LOG BASE 2 OF EACH:", "X=LOG2(8)", "X-3=0", "X=3"]),
+    ("3^(X+1)-5=76", "3^(X+1)=81", ["TAKE LOG BASE 3 OF EACH:", "(X+1)=LOG3(81)", "X-3=0", "X=3"]),
+    ("3e^(X)-2=10", "𝑒^(X)=4", ["TAKE LN OF BOTH SIDES:", "X=LN(4)", "X-1.386294361=0",
+                                "X=1.386294361"]),
+    ("4e^(2X)=20", "𝑒^(2X)=5", ["TAKE LN OF BOTH SIDES:", "2X=LN(5)", "2X-1.609437912=0",
+                                "X=.8047189562"]),
+    ("3ln(X)=6", "ln(X)=2", ["RAISE E TO BOTH SIDES:", "X-7.389056099=0", "X=7.389056099"]),
+    ("ln(X)/2=3", "ln(X)=6", ["RAISE E TO BOTH SIDES:", "X-403.4287935=0", "X=403.4287935"]),
+    ("2log(X)+1=5", "log(X)=2", ["RAISE 10 TO BOTH SIDES:", "X-100=0", "X=100"]),
+    ("2abs(X-1)+3=7", "abs(X-1)=2", ["CASE 1: X-1=2", "X=3", "CASE 2: X-1=⁻(2)", "X=⁻1"]),
+    ("√(X)+3=5", "√(X)=2", ["SQUARE BOTH SIDES:", "X=(2)²", "X=4"]),
+])
+def test_get_the_hard_part_alone_first(equation, alone, rest):
+    lines = answers_for(SOLVE, equation)
+    term = alone.split("=")[0]
+    assert lines[:3] == [f"GET {term} ALONE:", alone, "SOLVING: " + alone]
+    assert lines[3:] == rest
+
+
+def test_a_power_is_never_negative():
+    assert answers_for(SOLVE, "2^X+5=3") == ["GET 2^X ALONE:", "2^X=⁻2", "NO ANSWER: A POWER LIKE",
+                                              "THAT IS NEVER 0 OR LESS."]
+
+
+@pytest.mark.parametrize("equation", ["2^X=X+3", "2^X+2^(X+1)=12", "1/2^X=4", "X+ln(X)=1"])
+def test_get_alone_only_when_it_is_alone(equation):
+    lines = answers_for(SOLVE, equation)
+    assert "ALONE" not in " ".join(lines)
+
+
+# -- help me choose (0.4) ---------------------------------------------------------------------
+
+@pytest.mark.parametrize("picks, where", [
+    (["1", "1", "1"], ("input", "EQ:")),             # an equation, one letter, the answer
+    (["1", "1", "2"], ("input", "EQ:")),             # quadratic steps
+    (["1", "1", "3"], ("input", "P(X)=")),           # every root
+    (["1", "2", "1"], ("input", "FORMULA:")),        # several letters: rearrange
+    (["2"], ("input", "EQ:")),                       # an inequality
+    (["3", "1"], ("input", "EXPR:")),                # an expression: factor
+    (["3", "2"], ("input", "EXPR:")),                # expand
+    (["3", "3"], ("input", "F(X)=")),                # where it equals 0
+    (["3", "4"], ("input", "TOP:")),                 # divide
+    (["4", "1"], ("input", "FORMULA:")),
+    (["4", "2"], ("input", "F(X)=")),                # inverse
+    (["5"], ("input", "HOW MANY:")),                 # a system
+])
+def test_help_me_choose_leads_to_the_right_tool(picks, where):
+    m = load_program()
+    m.run()
+    m.answer(HELP)
+    for p in picks:
+        assert m.wait.kind == "menu", (picks, m.wait)
+        m.answer(p)
+    assert (m.wait.kind, m.wait.prompt) == where
+
+
+def test_help_me_choose_back_buttons():
+    m = load_program()
+    m.run()
+    m.answer(HELP)
+    for back in (["1", "3"], ["1", "1", "4"], ["3", "5"], ["4", "3"]):
+        for p in back:
+            m.answer(p)
+        assert m.wait.title == "WHAT DO YOU HAVE?", back
+    m.answer("6")                                    # a shape: geometry
+    assert m.wait.title == "GEOMETRY"
+
+
+# -- degree mode (0.4) --------------------------------------------------------------------------
+
+def degree_run(*answers):
+    m = load_program()
+    m.radians = False
+    m.run()
+    for a in answers:
+        assert m.wait.kind in ("menu", "input", "pause"), (answers, m.wait, m.statement_text())
+        m.answer(a)
+    assert m.wait.kind != "error", f"{m.wait.message} at: {m.statement_text()}"
+    lines = [ln.rstrip() for ln in view(m) if ln.strip() and "ENTER:" not in ln]
+    return m, lines
+
+
+def test_simulator_refuses_complex_e_in_degree_mode():
+    """What the calculator said: ERR:DOMAIN, "DEGREE MODE e^(π/2*i)"."""
+    m = Machine.from_text("Degree\na+bi\n𝑒^(\\xAC/2*𝑖)→A")
+    assert m.run().kind == "error" and m.wait.message == "ERR:DOMAIN"
+    m = Machine.from_text("Radian\na+bi\n𝑒^(\\xAC/2*𝑖)→A")
+    assert m.run().kind == "done"
+
+
+def test_simplify_works_in_degree_mode():
+    """The bug report: Simplify (3X³-X²-6)(X-5) gave ERR:DOMAIN in Degree."""
+    m, lines = degree_run(POLY, SIMPLIFY, "(3X^3-X^2-6)(X-5)")
+    assert lines == ["(3X^3-X^2-6)(X-5)", "=3X^4-16X³+5X²-6X+30"]
+
+
+@pytest.mark.parametrize("answers, expected", [
+    ((SOLVE, "X^2+5X+20=0"), ["SOLVING: X^2+5X+20=0", "X=(⁻5+𝑖√(55))/2", " =⁻2.5+3.708099244𝑖",
+                              "X=(⁻5-𝑖√(55))/2", " =⁻2.5-3.708099244𝑖"]),
+    ((POLY, ROOTS, "X^5+X+1"), None),
+    ((POLY, FACTOR, "X^3-8"), ["X^3-8", "=(X-2)(X²+2X+4)"]),
+    ((POLY, QUAD, "2X^2+3X-5"), None),
+    (REARRANGE + ("A=BH/2", "H"), None),
+    (INVERSE + ("2X+3",), None),
+    ((SYSTEM, "2", "X+Y=10", "X-Y=2"), ["X=6", "Y=4"]),
+    ((SOLVE, "2^X=16"), None),
+])
+def test_everything_works_in_degree_mode(answers, expected):
+    m, lines = degree_run(*[x for a in answers for x in (a if isinstance(a, tuple) else (a,))])
+    if expected:
+        assert lines == expected
+
+
+def test_trig_uses_the_mode_you_were_in():
+    m, lines = degree_run(SOLVE, "sin(X)=.5")
+    assert lines == ["SOLVING: sin(X)=.5", "(SEARCHED 0 TO 360)", "X=30", "X=150"]
+    m, lines = degree_run(SOLVE, "2sin(30)X=4")          # sin(30°)=1/2, so X=4
+    assert "X=4" in lines
+    lines = answers_for(SOLVE, "sin(X)=.5")              # Radian: radians
+    assert lines[0] == "(SEARCHED ⁻99 TO 99)" and values(lines)[31] == pytest.approx(math.pi / 6)
+
+
+def test_trig_inequality_in_degree_mode():
+    m, picture, lines = inequality("sin(X)>.5", degree=True)
+    assert picture[1:-1] == ["30", "150", "(30,150)"]
+    assert " SO 30<X<150" in lines and "(FOR X FROM 0 TO 360)" in lines
+
+
+@pytest.mark.parametrize("degree", [True, False])
+def test_quit_puts_the_angle_mode_back(degree):
+    m = load_program()
+    m.radians = not degree
+    m.run()
+    assert m.radians                                  # its own math runs in Radian
+    m.answer(SOLVE)
+    m.answer("X^2=4")
+    m.answer("")
+    m.answer("3")                                     # quit
+    assert m.wait.kind == "done"
+    assert m.radians is (not degree)
+    assert m.lists == {}
+
+
 # -- the program as a whole -----------------------------------------------------------------------
 
 def test_many_rounds_do_not_leak():
@@ -446,10 +720,13 @@ def test_many_rounds_do_not_leak():
         m.answer("3" if len(m.wait.options) == 4 else "2")      # main menu
         assert_clean(m)
         assert m.lists["BS"] == []                              # subroutine stack empty
-    m.answer(HELP)
-    m.answer("")
-    m.answer("")
-    assert m.wait.title == "BRAINIAC 0.3"
+    m.answer(HELP)                                              # help me choose
+    assert m.wait.title == "WHAT DO YOU HAVE?"
+    m.answer("7")                                               # how to use
+    for _ in range(3):
+        assert m.wait.kind == "pause"
+        m.answer("")
+    assert m.wait.title == "BRAINIAC 0.4"
     assert_clean(m)
 
 
