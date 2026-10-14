@@ -16,8 +16,9 @@ from brainiac.tibasic import (Machine, TIError, fmt, glyphs, keyboard_to_tokens,
                               tokens_from_text)
 from tivars.types import TIProgram
 
-SOLVE, ZEROS, POLY, SYSTEM, REARRANGE, INVERSE, HELP, QUIT = "12345678"
+SOLVE, ZEROS, POLY, SYSTEM, FORMULAS, HELP, QUIT = "1234567"
 ROOTS, QUAD, SIMPLIFY, FACTOR, DIVIDE = "12345"
+REARRANGE, INVERSE = (FORMULAS, "1"), (FORMULAS, "2")
 
 
 # -- helpers -------------------------------------------------------------------
@@ -29,6 +30,7 @@ def run(*answers):
     """
     m = load_program()
     m.run()
+    answers = [x for a in answers for x in (a if isinstance(a, tuple) else (a,))]
     for a in answers:
         assert m.wait.kind in ("menu", "input", "pause"), (answers, m.wait, m.statement_text())
         m.answer(a)
@@ -107,6 +109,21 @@ def test_labels_are_plain_letters_on_the_calculator():
             assert len(tokens) <= 3 and all(len(t.accessible) == 1 for t in tokens[1:]), line
 
 
+def test_no_menu_has_more_than_seven_options():
+    for line in source_lines():
+        if line.startswith("Menu("):
+            assert line.count(",") <= 14, line
+
+
+def test_simulator_refuses_what_the_calculator_might_not_do():
+    """Rules Brainiac can't verify from here, so it must not depend on them."""
+    for text in ['seq(𝑖I,I,1,3)→ʟA', '{1,2}→ʟA\n𝑖→ʟA(1)', 'augment({𝑖},{2})→ʟA',
+                 'Menu("T","1",A,"2",A,"3",A,"4",A,"5",A,"6",A,"7",A,"8",A)\nLbl A']:
+        m = Machine.from_text(text)
+        m.complex_mode = True
+        assert m.run().kind == "error", text
+
+
 def test_build_refuses_letters_that_fuse_into_one_token():
     from brainiac.build import check
     from tivars.tokenizer import encode
@@ -173,11 +190,6 @@ def test_solve_rejects_a_missing_side():
     assert "EQUATION NEEDS ONE =" in lines[0]
     m.answer("")
     assert m.wait.kind == "input"                 # straight back to typing
-
-
-def test_blank_input_goes_back_to_the_menu():
-    m, _ = run(SOLVE, "")
-    assert m.wait.kind == "menu" and m.wait.title == "BRAINIAC 0.2"
 
 
 # -- find zeros ----------------------------------------------------------------------------
@@ -305,13 +317,13 @@ def test_divide(top, bottom, quotient, remainder):
                             "Z CAN BE ANY NUMBER."]),
 ])
 def test_systems(equations, expected):
-    m, lines = run(SYSTEM, *equations, "")
+    m, lines = run(SYSTEM, str(len(equations)), *equations)
     assert_clean(m)
     assert lines == expected
 
 
 def test_systems_reject_nonlinear():
-    m, lines = run(SYSTEM, "X^2+Y=3")
+    m, lines = run(SYSTEM, "2", "X^2+Y=3")
     assert "LINEAR" in lines[1]
 
 
@@ -378,8 +390,9 @@ def test_many_rounds_do_not_leak():
     m = load_program()
     m.run()
     for mode, inputs in [(SOLVE, ["X^2=9"]), (SOLVE, ["sin(X)=2"]), (REARRANGE, ["A=BH", "B"]),
-                         (INVERSE, ["2X"]), (SYSTEM, ["X+Y=2", "X-Y=0", ""])]:
-        m.answer(mode)
+                         (INVERSE, ["2X"]), (SYSTEM, ["2", "X+Y=2", "X-Y=0"])]:
+        for text in (mode if isinstance(mode, tuple) else (mode,)):
+            m.answer(text)
         for text in inputs:
             m.answer(text)
         while m.wait.kind == "pause":
@@ -457,6 +470,19 @@ def test_list_bracket_is_a_lookup_not_a_multiplication():
     m = Machine.from_text("{5,6,7}→ʟL\nʟL(2)→A")
     m.run()
     assert m.reals["A"] == 6
+
+
+def test_there_are_no_empty_strings():
+    """""→Str1 is ERR:INVALID DIM on the calculator (the 0.2 bug)."""
+    for text in ['""→Str1', '"A"→Str1\n""+Str1→Str2', 'length("")→A']:
+        assert Machine.from_text(text).run().kind == "error", text
+    m = Machine.from_text('Disp ""')          # a blank line is fine, though
+    assert m.run().kind == "done"
+
+
+def test_no_source_line_stores_an_empty_string():
+    for line in source_lines():
+        assert '""→' not in line, line
 
 
 def test_and_checks_both_sides():

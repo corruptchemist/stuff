@@ -24,11 +24,11 @@ TOURS = [
     ("10-factor", "Factor", ["3", "4", "6X^2+X-2"]),
     ("11-simplify", "Simplify / expand", ["3", "3", "(A+B)^2-(A-B)^2"]),
     ("12-divide", "Polynomial division", ["3", "5", "X^3+2X+5", "X^2+1"]),
-    ("13-system", "A 3x3 system", ["4", "2X+3Y-Z=1", "X-Y+2Z=3", "3X+Y+Z=6", ""]),
-    ("14-rearrange-pendulum", "Rearrange T=2π√(L/G) for L", ["5", "T=2pi√(L/G)", "L"]),
-    ("15-rearrange-gas", "Rearrange PV=NRT for T", ["5", "PV=NRT", "T"]),
-    ("16-inverse", "Inverse of (X+1)/(X-2)", ["6", "(X+1)/(X-2)"]),
-    ("17-help", "How to use, page 1", ["7"]),
+    ("13-system", "A 3x3 system", ["4", "3", "2X+3Y-Z=1", "X-Y+2Z=3", "3X+Y+Z=6"]),
+    ("14-rearrange-pendulum", "Rearrange T=2π√(L/G) for L", ["5", "1", "T=2pi√(L/G)", "L"]),
+    ("15-rearrange-gas", "Rearrange PV=NRT for T", ["5", "1", "PV=NRT", "T"]),
+    ("16-inverse", "Inverse of (X+1)/(X-2)", ["5", "2", "(X+1)/(X-2)"]),
+    ("17-help", "How to use, page 1", ["6"]),
 ]
 
 

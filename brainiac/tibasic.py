@@ -18,7 +18,9 @@ are the usual ways TI-BASIC programs break:
     calculator's stack (a slow memory leak); `leaks` counts these,
   - √ of a negative stops with ERR:NONREAL ANS in Real mode, 1/0 stops with
     ERR:DIVIDE BY 0, results past 1E100 stop with ERR:OVERFLOW,
-  - the If line without Then guards only the single next statement.
+  - the If line without Then guards only the single next statement,
+  - there are no empty strings: ""→Str1, ""+"A", length(""), a blank Input
+    into a string are all errors (Disp "" for a blank line is fine).
 """
 
 from __future__ import annotations
@@ -563,6 +565,9 @@ class Machine:
             toks = keyboard_to_tokens(text) if text.strip() else []
             self.screen.put_after(row, len(prompt), glyphs(toks))
             if target[0] == "strvar":
+                if not toks:
+                    raise TIError("INVALID DIM (blank Input: what the calculator does "
+                                  "with it is unknown, so Brainiac must not rely on it)")
                 self.strings[target[1]] = TIString(tuple(toks))
             else:
                 self.store(target, self.eval(Parser(toks).whole()))
@@ -597,6 +602,8 @@ class Machine:
         for i in range(1, len(groups) - 1, 2):
             text = fmt(self.eval(Parser(groups[i]).whole()))
             options.append((text, label_name(groups[i + 1])))
+        if len(options) > 7:
+            raise TIError("SYNTAX (Menu( takes at most 7 options)")
         snap = self.screen.snapshot()
 
         def finish(choice):
@@ -625,6 +632,8 @@ class Machine:
         elif kind == "strvar":
             if not isinstance(val, TIString):
                 raise TIError("DATA TYPE")
+            if not val.tokens:
+                raise TIError("INVALID DIM (the calculator has no empty strings)")
             self.strings[target[1]] = val
         elif kind == "yvar":
             if not isinstance(val, TIString):
@@ -640,6 +649,11 @@ class Machine:
             if i > len(lst) + 1:
                 raise TIError("INVALID DIM")
             v = self.number(val)
+            # a list is all real or all complex; what storing a complex number
+            # into one element of a real list does is unknown, so never do it
+            if isinstance(v, complex) != any(isinstance(x, complex) for x in lst) and lst:
+                raise TIError("DATA TYPE (complex element into a real list, or the "
+                              "reverse: unknown on the calculator)")
             if i == len(lst) + 1:
                 lst.append(v)
             else:
@@ -1181,6 +1195,8 @@ class Evaluator:
         m.ops += 1
         if isinstance(a, TIString) or isinstance(b, TIString):
             if op == "+" and isinstance(a, TIString) and isinstance(b, TIString):
+                if not a.tokens or not b.tokens:
+                    raise TIError("INVALID DIM (the calculator has no empty strings)")
                 return TIString(a.tokens + b.tokens)
             raise TIError("DATA TYPE")
         if isinstance(a, list) or isinstance(b, list):
@@ -1261,6 +1277,8 @@ class Evaluator:
             return [self.relation(op, x, y) for x, y in zip(aa, bb)]
         if isinstance(a, TIString) or isinstance(b, TIString):
             if op in ("=", "!=") and isinstance(a, TIString) and isinstance(b, TIString):
+                if not a.tokens or not b.tokens:
+                    raise TIError("INVALID DIM (the calculator has no empty strings)")
                 return float((a.tokens == b.tokens) == (op == "="))
             raise TIError("DATA TYPE")
         if op in ("=", "!="):
@@ -1310,6 +1328,9 @@ class Evaluator:
         if name == "augment(":
             a, b = args
             if isinstance(a, list) and isinstance(b, list):
+                if any(isinstance(x, complex) for x in a + b):
+                    raise TIError("DATA TYPE (augment( of complex lists: unknown on the "
+                                  "calculator)")
                 if len(a) + len(b) > 999:
                     raise TIError("INVALID DIM")
                 return a + b
@@ -1458,7 +1479,11 @@ class Evaluator:
                 v = self.eval(nodes[0])
                 if isinstance(v, (list, TIString, TIMatrix)):
                     raise TIError("DATA TYPE")
-                out.append(m.number(v))
+                v = m.number(v)
+                if isinstance(v, complex):
+                    raise TIError("DATA TYPE (seq( of complex values: unknown on the "
+                                  "calculator, so Brainiac must not rely on it)")
+                out.append(v)
                 if len(out) > 999:
                     raise TIError("INVALID DIM")
                 k = m.number(k + step)
@@ -1472,6 +1497,8 @@ class Evaluator:
             s = args[0]
             if not isinstance(s, TIString):
                 raise TIError("DATA TYPE")
+            if not s.tokens:
+                raise TIError("INVALID DIM (the calculator has no empty strings)")
             return float(len(s.tokens))
         if name == "expr(":
             s = args[0]
@@ -1490,10 +1517,8 @@ class Evaluator:
             if not isinstance(s, TIString) or not isinstance(sub_, TIString):
                 raise TIError("DATA TYPE")
             hay, needle = s.tokens, sub_.tokens
-            # unsure what the calculator does with an empty string here, so
-            # Brainiac must never ask
             if not hay or not needle:
-                raise TIError("INVALID DIM (inString of an empty string)")
+                raise TIError("INVALID DIM (the calculator has no empty strings)")
             for i in range(start - 1, len(hay) - len(needle) + 1):
                 if hay[i:i + len(needle)] == needle:
                     return float(i + 1)
@@ -1502,6 +1527,8 @@ class Evaluator:
             s = args[0]
             if not isinstance(s, TIString) or len(args) != 3:
                 raise TIError("ARGUMENT")
+            if not s.tokens:
+                raise TIError("INVALID DIM (the calculator has no empty strings)")
             start, length = int(m.real(args[1])), int(m.real(args[2]))
             if start < 1 or length < 1 or start + length - 1 > len(s.tokens):
                 raise TIError("DOMAIN")

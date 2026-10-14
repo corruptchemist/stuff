@@ -8,8 +8,8 @@ A math solver for the **TI-84 Plus CE**. Version 0.2:
 | **Find zeros of F(X)** | The same engine, for a function instead of an equation. |
 | **Polynomials** | Roots of any degree (complex too), **quadratic step by step** (discriminant, formula, factored form, vertex form), **simplify/expand**, **factor**, **divide**. |
 | **System of equations** | Up to 6 linear equations, typed the way you'd write them. It says when there's no solution or infinitely many. |
-| **Rearrange a formula** | `A=BH/2` for H gives `H=2A/B`. `T=2π√(L/G)` for L gives `L=GT²/(4π²)`. |
-| **Inverse function** | `(X+1)/(X-2)` gives `F⁻¹(X)=(2X+1)/(X-1)`. |
+| **Formulas › Rearrange** | `A=BH/2` for H gives `H=2A/B`. `T=2π√(L/G)` for L gives `L=GT²/(4π²)`. |
+| **Formulas › Inverse** | `(X+1)/(X-2)` gives `F⁻¹(X)=(2X+1)/(X-1)`. |
 
 | | | |
 |---|---|---|
@@ -46,6 +46,8 @@ choose **Replace**.
 - Use the **[(-)]** key for negative numbers, not **[−]**.
 - `(DOUBLE)` after an answer means a repeated root, where the graph touches
   zero without crossing it.
+- There's no way to leave a prompt blank. If you change your mind, type
+  anything (like `1`) and pick MAIN MENU afterwards.
 - Answers that run past one screen show **ENTER: MORE**.
 
 ### What it can't do yet
@@ -140,6 +142,17 @@ programs:
 - the same errors (NONREAL ANS, DIVIDE BY 0, OVERFLOW, DOMAIN…);
 - 14-digit decimal arithmetic;
 - an `and` that checks both sides before deciding;
+- **no empty strings**: `""→Str1` is ERR:INVALID DIM on the calculator
+  (the bug that broke every mode of the first 0.2 build);
+- `Menu(` takes at most 7 options;
+- a label must be plain letters and digits (`FV` and `PV` are finance
+  variables, so `Lbl FV` is ERR:SYNTAX);
 - a count of any jump out of a block.
 
-Tests require that count to stay at zero.
+It also refuses things whose behaviour on the calculator isn't documented,
+so Brainiac can't depend on them by accident: `seq(` producing complex
+values, `augment(` of complex lists, and storing a complex number into one
+element of a real list. Brainiac builds its complex lists only by whole-list
+arithmetic, which is documented.
+
+Tests require the leak count to stay at zero.

@@ -9,6 +9,11 @@
 // The build refuses any Goto, Menu( or #call inside a block, so a #call
 // only ever appears at the top level of the code.
 //
+// The calculator has no empty strings: ""→Str1 is ERR:INVALID DIM. So any
+// string built up piece by piece starts as "?" (a character the program
+// never shows), and the ? is taken off at the end with sub(. A string that
+// is still just "?" is the "nothing" case.
+//
 // The big idea: most of algebra class is polynomials, and a polynomial is
 // pinned down by its values. Brainiac works an expression out at a handful
 // of points on a circle in the complex plane and turns those values back
@@ -108,7 +113,7 @@ Pause
 
 // " (DOUBLE)" and friends for something that appears N times -> Str8.
 #sub times
-""→Str8
+" "→Str8
 If N=2:" (DOUBLE)"→Str8
 If N=3:" (TRIPLE)"→Str8
 If N>3:" ("+toString(N)+" TIMES)"→Str8
@@ -144,15 +149,16 @@ End
 // Changes I J Str3 Str8.
 #sub tmpl
 "ABCDEFGHIJKLMNOPQRSTUVWXYZθ"→Str8
-""→Str7
+"?"→Str7
 For(I,1,27)
 sub(Str8,I,1)→Str3
 If inString(Str2,Str3):Str7+Str3→Str7
 End
-length(Str7)→G
+length(Str7)-1→G
+If G:sub(Str7,2,G)→Str7
 Str2→Str9
 If G and G≤6:Then
-""→Str9
+"?"→Str9
 For(I,1,length(Str2))
 sub(Str2,I,1)→Str3
 inString(Str7,Str3)→J
@@ -162,6 +168,7 @@ Else
 Str9+Str3→Str9
 End
 End
+sub(Str9,2,length(Str9)-1)→Str9
 End
 #return
 
@@ -185,9 +192,9 @@ If Str0=")":D-1→D
 If not(D) and (Str0="+" or Str0="-"):1→S
 End
 sub(Str3,1,N)→Str4
-""→Str8
+"?"→Str8
 If not(S):Then
-""→Str4
+"?"→Str4
 0→D
 1→I
 While I≤N
@@ -244,8 +251,19 @@ I+1→I
 End
 End
 End
-If not(length(Str4)):"1"→Str4
-If not(length(Str8)):"1"→Str8
+// take the ? off, or make it a 1 if nothing was added
+If S:Goto @sp_bot
+If length(Str4)>1:Then
+sub(Str4,2,length(Str4)-1)→Str4
+Else
+"1"→Str4
+End
+Lbl @sp_bot
+If length(Str8)>1:Then
+sub(Str8,2,length(Str8)-1)→Str8
+Else
+"1"→Str8
+End
 #return
 
 // Cross-multiply: left Str5 = right Str6  ->  Str2 = (Ltop)(Rbot)-(Rtop)(Lbot),
@@ -270,7 +288,7 @@ If Str7≠"1":Str2+Str7→Str2
 // nice one; PE power of π; PK letter powers, one digit per letter: 21 means
 // letter1^1 times letter2^2). BM(n) = the power of letter n the expression
 // was multiplied by to clear it from the bottom (1/X+1 -> X+1, BM={1}).
-// Changes A B C D H I J K N P S W and what snap changes.
+// Changes A B C D H I J K N P S W Y and what snap changes.
 #sub extract
 1→Z
 // sin( cos( tan( and the like can't take complex numbers: never a polynomial
@@ -287,10 +305,18 @@ Lbl @ex_vars
 // Walk each letter round a circle of N points (the others held still) and
 // read off its powers; two far-out points check that it really is a
 // polynomial and not, say, a fraction that only looks like one up close.
+// (seq( is only ever given real values, and lists only ever get real
+// numbers stored into single elements: the calculator's complex support
+// for those isn't documented. Complex lists come from whole-list
+// arithmetic, real(, imag( and 𝑒^(, which is.)
 8+8(G=1)→N
-seq(𝑒^(𝑖(2πI/N+.1)),I,0,N-1)→ʟBT
 seq(I,I,0,N-1)→ʟBE
-augment(ʟBT,{5𝑒^(.7𝑖),2.3𝑒^(⁻1.9𝑖)})→ʟBA
+seq(I,I,0,N+1)→ʟBJ
+ʟBJ<N→ʟBK
+// the circle, then the two far-out check points
+ʟBK*𝑒^(𝑖(2πʟBJ/N+.1))+(ʟBJ=N)5𝑒^(.7𝑖)+(ʟBJ=N+1)2.3𝑒^(⁻1.9𝑖)→ʟBA
+N→dim(ʟCR)
+N→dim(ʟCI)
 G→dim(ʟBD)
 G→dim(ʟBM)
 For(J,1,G)
@@ -314,8 +340,12 @@ expr(Str9)→ʟBW
 0→D
 While P≤S and not(D)
 ʟBW*ʟBA^P→ʟBF
-seq(ʟBF(I),I,1,N)→ʟBY
-seq(sum(ʟBY*ʟBT^(⁻K)),K,0,N-1)/N→ʟBC
+For(K,0,N-1)
+sum(ʟBK*ʟBF*ʟBA^(⁻K))/N→Y
+real(Y)→ʟCR(K+1)
+imag(Y)→ʟCI(K+1)
+End
+ʟCR+𝑖ʟCI→ʟBC
 max(abs(ʟBC))→H
 ʟBC*(abs(ʟBC)>ᴇ⁻9H)→ʟBC
 sum(ʟBC*ʟBA(N+1)^ʟBE)→A
@@ -359,19 +389,25 @@ If G≥3:ʟBF*ʟBV3^ʟBM(3)→ʟBF
 If G≥4:ʟBF*ʟBV4^ʟBM(4)→ʟBF
 If G≥5:ʟBF*ʟBV5^ʟBM(5)→ʟBF
 If G≥6:ʟBF*ʟBV6^ʟBM(6)→ʟBF
-// undo the circle one letter at a time (a Fourier transform per letter)
+// undo the circle one letter at a time (a Fourier transform per letter):
+// point I's new value sums the K points that differ from it only in that
+// letter's coordinate
 1→W
+P→dim(ʟCR)
+P→dim(ʟCI)
 For(J,1,G)
 ʟBD(J)+1→K
 If K>1:Then
 seq(ʟBX(I),I,(J-1)P+1,JP)→ʟBY
-0ʟBF→ʟBC
+For(I,1,P)
+0→Y
 For(S,0,K-1)
-ʟBG+1+(S-ʟBY)W→ʟBI
-seq(ʟBF(ʟBI(I)),I,1,P)→ʟBA
-ʟBC+ʟBA𝑒^(⁻𝑖ʟBY*(2πS/K+.1))→ʟBC
+Y+ʟBF(I+(S-ʟBY(I))W)*𝑒^(⁻𝑖ʟBY(I)*(2πS/K+.1))→Y
 End
-ʟBC/K→ʟBF
+real(Y)/K→ʟCR(I)
+imag(Y)/K→ʟCI(I)
+End
+ʟCR+𝑖ʟCI→ʟBF
 End
 WK→W
 End
@@ -450,11 +486,16 @@ End
 // before minus ones, so that it reads P-2W rather than ⁻2W+P
 ᴇ7ʟBY-ʟPK+ᴇ9(G>1)(ʟPC>0)→ʟBY
 SortD(ʟBY,ʟPC,ʟPP,ʟPQ,ʟPE,ʟPK)
-""→Str0
+"?"→Str0
 For(I,1,N)
-// the letters
+// the term goes into Str6: sign, number, π, letters, /bottom
+"?"→Str6
+If ʟPC(I)<0 and I=1:Str6+"⁻"→Str6
+If ʟPC(I)<0 and I>1:Str6+"-"→Str6
+If ʟPC(I)≥0 and I>1:Str6+"+"→Str6
+// the letters, into Str8
 ʟPK(I)→K
-""→Str8
+"?"→Str8
 For(J,1,G)
 iPart(10fPart(K/10^J))→D
 If D:Then
@@ -464,36 +505,27 @@ If D=3:Str8+"³"→Str8
 If D>3:Str8+"^"+toString(D)→Str8
 End
 End
-// the number in front, with any π
+// the number in front: left out when it is a 1 with something after it
 ʟPE(I)→E
-""→Str3
-If E=1:"π"→Str3
-If E=2:"π²"→Str3
 If ʟPQ(I):Then
 abs(ʟPP(I))→A
 Else
 abs(ʟPC(I))→A
 End
-""→Str6
-If A≠1 or not(ʟPQ(I)) or (not(length(Str8)) and E≤0):toString(A)→Str6
-Str6+Str3+Str8→Str6
-If ʟPQ(I)>1 or E<0:Then
-""→Str3
-If ʟPQ(I)>1:toString(ʟPQ(I))→Str3
-If E<0:Str3+"π"→Str3
-If ʟPQ(I)>1 and E<0:"("+Str3+")"→Str3
-Str6+"/"+Str3→Str6
+If A≠1 or not(ʟPQ(I)) or (length(Str8)=1 and E≤0):Str6+toString(A)→Str6
+If E=1:Str6+"π"→Str6
+If E=2:Str6+"π²"→Str6
+If length(Str8)>1:Str6+sub(Str8,2,length(Str8)-1)→Str6
+If ʟPQ(I)>1 and E<0:Str6+"/("+toString(ʟPQ(I))+"π)"→Str6
+If ʟPQ(I)>1 and E≥0:Str6+"/"+toString(ʟPQ(I))→Str6
+If ʟPQ(I)≤1 and E<0:Str6+"/π"→Str6
+Str0+sub(Str6,2,length(Str6)-1)→Str0
 End
-// the sign
-If ʟPC(I)<0:Then
-If I=1:"⁻"+Str6→Str6
-If I>1:"-"+Str6→Str6
+If length(Str0)>1:Then
+sub(Str0,2,length(Str0)-1)→Str0
 Else
-If I>1:"+"+Str6→Str6
+"0"→Str0
 End
-Str0+Str6→Str0
-End
-If not(length(Str0)):"0"→Str0
 #return
 
 // Polynomial in the P lists (one letter, nice fractions, no π) as whole
@@ -514,7 +546,7 @@ End
 
 // Every root of the polynomial FA (highest power first, degree 1 or more)
 // -> list FZ, by the Durand-Kerner method: start the guesses on a circle and
-// nudge them all at once until they stop moving. Changes B E I K N.
+// nudge them all at once until they stop moving. Changes B E I K N Y.
 #sub dk
 dim(ʟFA)-1→N
 ʟFA/ʟFA(1)→ʟDC
@@ -523,8 +555,10 @@ If N=1:Then
 Else
 2max(seq(abs(ʟDC(I+1))^(1/I),I,1,N))→B
 If not(B):1→B
-seq(B𝑒^(𝑖(2πI/N+.4)),I,0,N-1)→ʟFZ
+B𝑒^(𝑖(2πseq(I,I,0,N-1)/N+.4))→ʟFZ
 seq(I,I,1,N)→ʟDI
+N→dim(ʟCR)
+N→dim(ʟCI)
 0→K
 1→E
 While K<300 and E>ᴇ⁻12
@@ -533,7 +567,12 @@ K+1→K
 For(I,2,N+1)
 ʟDW*ʟFZ+ʟDC(I)→ʟDW
 End
-seq(prod(ʟFZ(I)-ʟFZ+(ʟDI=I)),I,1,N)→ʟDP
+For(I,1,N)
+prod(ʟFZ(I)-ʟFZ+(ʟDI=I))→Y
+real(Y)→ʟCR(I)
+imag(Y)→ʟCI(I)
+End
+ʟCR+𝑖ʟCI→ʟDP
 ʟDW/(ʟDP+(ʟDP=0))→ʟDW
 ʟFZ-ʟDW→ʟFZ
 max(abs(ʟDW)/(1+abs(ʟFZ)))→E
@@ -726,7 +765,7 @@ SortA(ʟFR,ʟFI)
 // front (from factor and whole). Changes H I and what onefac, print change.
 #sub facstr
 #call facorder
-""→Str5
+"?"→Str5
 1→H
 Lbl @fs_loop
 If H>dim(ʟFD):Goto @fs_end
@@ -749,9 +788,13 @@ Lbl @fs_end
 gcd(abs(C),L)→I
 C/I→C
 L/I→L
+If length(Str5)>1:Then
+sub(Str5,2,length(Str5)-1)→Str5
 If C=⁻1:"⁻"+Str5→Str5
 If abs(C)≠1:toString(C)+Str5→Str5
-If not(length(Str5)):toString(C)→Str5
+Else
+toString(C)→Str5
+End
 If L>1:Str5+"/"+toString(L)→Str5
 #return
 
@@ -784,10 +827,11 @@ If Q<0:Then
 ⁻P→P
 ⁻Q→Q
 End
-""→Str8
-If S≠1:toString(S)→Str8
+"?"→Str8
+If S≠1:Str8+toString(S)→Str8
 If D<0:Str8+"𝑖"→Str8
 If T≠1:Str8+"√("+toString(T)+")"→Str8
+sub(Str8,2,length(Str8)-1)→Str8
 If P:Then
 toString(P)+"+"+Str8→Str5
 toString(P)+"-"+Str8→Str6
@@ -856,9 +900,16 @@ seq(ʟFF(O+J),J,0,K)→ʟFA
 // real roots first, smallest first, then the complex pairs together
 // (sorting places, not the roots: SortA wants real lists)
 real(ʟFZ)+ᴇ9(imag(ʟFZ)≠0)+ᴇ⁻3imag(ʟFZ)→ʟZ1
-seq(I,I,1,dim(ʟFZ))→ʟZ2
+dim(ʟFZ)→N
+seq(I,I,1,N)→ʟZ2
 SortA(ʟZ1,ʟZ2)
-seq(ʟFZ(ʟZ2(I)),I,1,dim(ʟFZ))→ʟFZ
+N→dim(ʟCR)
+N→dim(ʟCI)
+For(I,1,N)
+real(ʟFZ(ʟZ2(I)))→ʟCR(I)
+imag(ʟFZ(ʟZ2(I)))→ʟCI(I)
+End
+ʟCR+𝑖ʟCI→ʟFZ
 1→T
 Lbl @ro_dk
 sub(Str7,1,1)+"="+toString(ʟFZ(T))→Str0
@@ -872,8 +923,9 @@ X→W
 #call numstr
 ʟFM(ʟFI(L))→N
 #call times
-sub(Str7,1,1)+"="+Str0+Str8→Str0
+sub(Str7,1,1)+"="+Str0→Str0
 If fPart(W):Str0+"="+toString(W)→Str0
+Str0+Str8→Str0
 #call line
 Goto @ro_next
 Lbl @ro_quad
@@ -1314,16 +1366,17 @@ If U>1:"("+Str3+")"→Str3
 If W:Str3+"/("+Str6+")"→Str3
 If not(W):Str3+"/"+Str6→Str3
 End
-""→Str6
+// Str6 is the second answer, or a lone space when there is none
+" "→Str6
 If S=1:Str4+"="+Str3→Str0
 // what came out of the square root: Str9 on top, Str8 underneath
-""→Str9
-""→Str8
+"?"→Str9
+"?"→Str8
 If dim(ʟOU):Then
-If ʟOU(1)≠1:toString(ʟOU(1))→Str9
+If ʟOU(1)≠1:Str9+toString(ʟOU(1))→Str9
 If ʟOU(2)=1:Str9+"π"→Str9
 If ʟOU(2)>1:Str9+"π^"+toString(ʟOU(2))→Str9
-If ʟOU(4)≠1:toString(ʟOU(4))→Str8
+If ʟOU(4)≠1:Str8+toString(ʟOU(4))→Str8
 If ʟOU(5)=1:Str8+"π"→Str8
 If ʟOU(5)>1:Str8+"π^"+toString(ʟOU(5))→Str8
 For(J,1,G)
@@ -1342,12 +1395,15 @@ End
 End
 End
 If S=2:Then
-Str9+"√("+Str3+")"→Str3
-// nothing left inside: no √ at all
-If Str3=Str9+"√(1)":Str9→Str3
-If not(length(Str3)):"1"→Str3
-If length(Str8)=1:Str3+"/"+Str8→Str3
-If length(Str8)>1:Str3+"/("+Str8+")"→Str3
+// the root itself: what came out, then √(what's left), if anything
+If Str3≠"1":Str9+"√("+Str3+")"→Str9
+If length(Str9)>1:Then
+sub(Str9,2,length(Str9)-1)→Str3
+Else
+"1"→Str3
+End
+If length(Str8)=2:Str3+"/"+sub(Str8,2,1)→Str3
+If length(Str8)>2:Str3+"/("+sub(Str8,2,length(Str8)-1)+")"→Str3
 Str4+"="+Str3→Str0
 Str4+"=⁻"+Str3→Str6
 End
@@ -1360,8 +1416,12 @@ End
 
 // ======================================================== menus
 
+// (Menu( takes at most 7 options)
 Lbl @menu
-Menu("BRAINIAC 0.2","SOLVE FOR X",@m_solve,"FIND ZEROS OF F(X)",@m_zeros,"POLYNOMIALS",@m_poly,"SYSTEM OF EQUATIONS",@m_sys,"REARRANGE A FORMULA",@m_rearr,"INVERSE FUNCTION",@m_inv,"HOW TO USE",@m_help,"QUIT",@m_quit)
+Menu("BRAINIAC 0.2","SOLVE FOR X",@m_solve,"FIND ZEROS OF F(X)",@m_zeros,"POLYNOMIALS",@m_poly,"SYSTEM OF EQUATIONS",@m_sys,"FORMULAS",@m_form,"HOW TO USE",@m_help,"QUIT",@m_quit)
+
+Lbl @m_form
+Menu("FORMULAS","REARRANGE A FORMULA",@m_rearr,"INVERSE FUNCTION",@m_inv,"BACK",@menu)
 
 Lbl @m_poly
 Menu("POLYNOMIALS","ROOTS (WITH COMPLEX)",@m_roots,"QUADRATIC STEPS",@m_quad,"SIMPLIFY / EXPAND",@m_simp,"FACTOR",@m_fact,"DIVIDE",@m_div,"BACK",@menu)
@@ -1388,9 +1448,8 @@ Goto @m_div
 Lbl @m_solve
 1→M
 ClrHome
-Disp "SOLVE FOR X","","TYPE AN EQUATION, LIKE","  2X+3=7  OR  X²=5X-6","GET = FROM 2ND MATH.",""
+Disp "SOLVE FOR X","  ","TYPE AN EQUATION, LIKE","  2X+3=7  OR  X²=5X-6","GET = FROM 2ND MATH.","  "
 Input "EQ:",Str1
-If not(length(Str1)):Goto @menu
 #call eqn
 If E:Goto @e_side
 #call tmpl
@@ -1406,9 +1465,8 @@ Goto @solvefor
 Lbl @m_zeros
 2→M
 ClrHome
-Disp "FIND ZEROS OF F(X)","","TYPE F(X), LIKE X³-4X.","EVERY X THAT MAKES IT 0","IS AN ANSWER.",""
+Disp "FIND ZEROS OF F(X)","  ","TYPE F(X), LIKE X³-4X.","EVERY X THAT MAKES IT 0","IS AN ANSWER.","  "
 Input "F(X)=",Str1
-If not(length(Str1)):Goto @menu
 If inString(Str1,"="):Goto @e_eq
 Str1→Str2
 #call tmpl
@@ -1418,9 +1476,8 @@ Goto @one
 Lbl @m_roots
 3→M
 ClrHome
-Disp "POLYNOMIAL ROOTS","","TYPE A POLYNOMIAL, LIKE","X^4-1 OR X³-2X+5, TO","GET ALL ITS ROOTS, EVEN","COMPLEX ONES.",""
+Disp "POLYNOMIAL ROOTS","  ","TYPE A POLYNOMIAL, LIKE","X^4-1 OR X³-2X+5, TO","GET ALL ITS ROOTS, EVEN","COMPLEX ONES.","  "
 Input "P(X)=",Str1
-If not(length(Str1)):Goto @menu
 If inString(Str1,"="):Goto @e_eq
 Str1→Str2
 #call tmpl
@@ -1486,12 +1543,10 @@ Goto @next
 // A range they choose, for things that aren't polynomials.
 Lbl @range
 ClrHome
-Disp "SEARCH A RANGE",""
+Disp "SEARCH A RANGE","  "
 Input "FROM:",Str3
-If not(length(Str3)):Goto @menu
 real(expr(Str3))→A
 Input "TO:",Str3
-If not(length(Str3)):Goto @menu
 real(expr(Str3))→B
 If A=B:Goto @e_range
 If A>B:Then
@@ -1524,9 +1579,8 @@ Goto @next
 Lbl @m_rearr
 6→M
 ClrHome
-Disp "REARRANGE A FORMULA","","TYPE IT WITH CAPITAL","LETTERS, LIKE A=BH/2,","THEN THE LETTER TO","SOLVE FOR.",""
+Disp "REARRANGE A FORMULA","  ","TYPE IT WITH CAPITAL","LETTERS, LIKE A=BH/2,","THEN THE LETTER TO","SOLVE FOR.","  "
 Input "FORMULA:",Str1
-If not(length(Str1)):Goto @menu
 #call eqn
 If E:Goto @e_side
 If not(inString(Str1,"=")):Goto @e_noeq
@@ -1572,7 +1626,7 @@ Str1→Str0
 #call line
 Str5→Str0
 #call line
-If not(length(Str6)):Goto @re_d
+If length(Str6)=1:Goto @re_d
 "OR "+Str6→Str0
 #call line
 Lbl @re_d
@@ -1582,9 +1636,8 @@ Goto @next
 Lbl @m_inv
 7→M
 ClrHome
-Disp "INVERSE FUNCTION","","TYPE F(X), LIKE 2X+3","OR (X+1)/(X-2).",""
+Disp "INVERSE FUNCTION","  ","TYPE F(X), LIKE 2X+3","OR (X+1)/(X-2).","  "
 Input "F(X)=",Str1
-If not(length(Str1)):Goto @menu
 If inString(Str1,"="):Goto @e_eq
 Str1→Str2
 #call tmpl
@@ -1622,7 +1675,7 @@ ClrHome
 #call line
 Str5→Str0
 #call line
-If not(length(Str6)):Goto @in_d
+If length(Str6)=1:Goto @in_d
 "OR "+Str6→Str0
 #call line
 "(USE THE ONE THAT MATCHES"→Str0
@@ -1638,9 +1691,8 @@ Goto @next
 Lbl @m_quad
 5→M
 ClrHome
-Disp "QUADRATIC STEPS","","TYPE A QUADRATIC, LIKE","2X²+3X-5 OR 2X²=5-3X.",""
+Disp "QUADRATIC STEPS","  ","TYPE A QUADRATIC, LIKE","2X²+3X-5 OR 2X²=5-3X.","  "
 Input "EQ:",Str1
-If not(length(Str1)):Goto @menu
 #call eqn
 If E:Goto @e_side
 #call tmpl
@@ -1723,10 +1775,11 @@ If D<0:Goto @qd_fneg
 // irrational roots: a(X-root1)(X-root2)
 ʟQD(1)/ʟQD(4)→X
 #call numstr
-""→Str3
-If Str0="⁻1":"⁻"→Str3
-If Str0≠"1" and Str0≠"⁻1":Str0→Str3
+"?"→Str3
+If Str0="⁻1":"?⁻"→Str3
+If Str0≠"1" and Str0≠"⁻1":"?"+Str0→Str3
 Str3+"("+Str4+"-("+Str5+"))("+Str4+"-("+Str6+"))"→Str0
+sub(Str0,2,length(Str0)-1)→Str0
 #call line
 Goto @qd_v
 Lbl @qd_fneg
@@ -1770,12 +1823,10 @@ If ʟQD(1)<0:"OPENS DOWN."→Str0
 // vertex form: a(X-h)²+k
 ʟQD(1)/ʟQD(4)→X
 #call numstr
-""→Str3
-If Str0="⁻1":"⁻"→Str3
-If Str0≠"1" and Str0≠"⁻1":Str0→Str3
-If length(Str3):Then
-If inString(Str3,"/"):"("+Str3+")"→Str3
-End
+"?"→Str3
+If Str0="⁻1":"?⁻"→Str3
+If Str0≠"1" and Str0≠"⁻1":"?"+Str0→Str3
+If inString(Str3,"/"):"?("+sub(Str3,2,length(Str3)-1)+")"→Str3
 ⁻ʟQD(2)/(2ʟQD(1))→X
 If not(X):Str3+Str4+"²"→Str3
 If not(X):Goto @qd_k
@@ -1797,7 +1848,7 @@ abs(X)→X
 If X:Str3+Str0→Str3
 "VERTEX FORM:"→Str0
 #call line
-" "+Str3→Str0
+" "+sub(Str3,2,length(Str3)-1)→Str0
 #call line
 #call done
 Goto @next
@@ -1805,9 +1856,8 @@ Goto @next
 Lbl @m_simp
 8→M
 ClrHome
-Disp "SIMPLIFY / EXPAND","","TYPE AN EXPRESSION, LIKE","3X(X-2)+(X+1)²","OR 2A+3B-A.",""
+Disp "SIMPLIFY / EXPAND","  ","TYPE AN EXPRESSION, LIKE","3X(X-2)+(X+1)²","OR 2A+3B-A.","  "
 Input "EXPR:",Str1
-If not(length(Str1)):Goto @menu
 If inString(Str1,"="):Goto @e_eq
 Str1→Str2
 #call tmpl
@@ -1819,7 +1869,7 @@ If not(Z):Goto @e_simp
 #call print
 Str0→Str5
 // letters that were cleared from the bottom go back on the bottom
-""→Str6
+"?"→Str6
 0→N
 For(J,1,G)
 If ʟBM(J):Then
@@ -1830,6 +1880,7 @@ If ʟBM(J)=3:Str6+"³"→Str6
 End
 End
 If N:Then
+sub(Str6,2,length(Str6)-1)→Str6
 If dim(ʟPK)>1:"("+Str5+")"→Str5
 If N>2:"("+Str6+")"→Str6
 Str5+"/"+Str6→Str5
@@ -1846,9 +1897,8 @@ Goto @next
 Lbl @m_fact
 9→M
 ClrHome
-Disp "FACTOR","","TYPE A POLYNOMIAL, LIKE","X²-9 OR 6AB+9A.",""
+Disp "FACTOR","  ","TYPE A POLYNOMIAL, LIKE","X²-9 OR 6AB+9A.","  "
 Input "EXPR:",Str1
-If not(length(Str1)):Goto @menu
 If inString(Str1,"="):Goto @e_eq
 Str1→Str2
 #call tmpl
@@ -1913,9 +1963,9 @@ Str0→Str5
 // the shared part: number, π's, letters
 H/L→X
 #call numstr
-""→Str6
-If H≠L:Str0→Str6
-If H≠L and L≠1:"("+Str0+")"→Str6
+"?"→Str6
+If H≠L:Str6+Str0→Str6
+If H≠L and L≠1:"?("+Str0+")"→Str6
 If W=1:Str6+"π"→Str6
 If W=2:Str6+"π²"→Str6
 For(J,1,G)
@@ -1931,7 +1981,8 @@ ClrHome
 1→R
 Str1→Str0
 #call line
-If not(length(Str6)):Goto @fc_none
+If length(Str6)=1:Goto @fc_none
+sub(Str6,2,length(Str6)-1)→Str6
 If dim(ʟPK)>1:"="+Str6+"("+Str5+")"→Str0
 If dim(ʟPK)=1:"="+Str6→Str0
 If dim(ʟPK)=1 and Str5≠"1":"="+Str6+Str5→Str0
@@ -1947,11 +1998,9 @@ Goto @fc_d
 Lbl @m_div
 10→M
 ClrHome
-Disp "DIVIDE POLYNOMIALS","","FOR (X³-1)/(X-1), TYPE","THE TOP, THEN THE BOTTOM.",""
+Disp "DIVIDE POLYNOMIALS","  ","FOR (X³-1)/(X-1), TYPE","THE TOP, THEN THE BOTTOM.","  "
 Input "TOP:",Str1
-If not(length(Str1)):Goto @menu
 Input "BOTTOM:",Str4
-If not(length(Str4)):Goto @menu
 // both must use the same one letter
 Str1+"+"+Str4→Str2
 #call tmpl
@@ -2056,7 +2105,10 @@ End
 Lbl @m_sys
 4→M
 ClrHome
-Disp "SYSTEM OF EQUATIONS","","TYPE ONE EQUATION AT A","TIME, LIKE 2X+3Y=7. PRESS","ENTER ON A BLANK LINE","WHEN DONE (UP TO 6).",""
+Disp "SYSTEM OF EQUATIONS"," ","HOW MANY EQUATIONS (1-6)?","THEN TYPE THEM ONE AT A","TIME, LIKE 2X+3Y=7.","  "
+Input "HOW MANY:",Str1
+expr(Str1)→O
+If O<1 or O>6 or fPart(O):Goto @e_count
 // each equation becomes a row of [J]: one column per letter A..θ, then
 // the number on the right
 {6,28}→dim([J])
@@ -2070,7 +2122,6 @@ If N=3:Input "EQ3:",Str1
 If N=4:Input "EQ4:",Str1
 If N=5:Input "EQ5:",Str1
 If N=6:Input "EQ6:",Str1
-If not(length(Str1)):Goto @sy_go
 #call eqn
 If E:Goto @e_side
 #call tmpl
@@ -2119,15 +2170,11 @@ For(J,1,G)
 H+[J](N,inString("ABCDEFGHIJKLMNOPQRSTUVWXYZθ",sub(Str7,J,1)))(.72+.24J)→H
 End
 If abs(ʟBW(1)-F-H)>ᴇ⁻6(1+abs(F)+abs(H)):Goto @e_linear
-If N<6:Goto @sy_in
-N+1→N
-Lbl @sy_go
-N-1→O
-If O<1:Goto @menu
+If N<O:Goto @sy_in
 ClrHome
 Output(1,1,"THINKING...")
 // the letters that appear anywhere, in ABC order
-""→Str7
+"?"→Str7
 0→G
 0→dim(ʟSL)
 For(I,1,27)
@@ -2137,6 +2184,7 @@ G+1→G
 I→ʟSL(G)
 End
 End
+sub(Str7,2,G)→Str7
 {O,max(G+1,O)}→dim([I])
 Fill(0,[I])
 For(I,1,O)
@@ -2239,8 +2287,11 @@ DelVar ʟBV3
 DelVar ʟBV4
 DelVar ʟBV5
 DelVar ʟBV6
-DelVar ʟBT
 DelVar ʟBE
+DelVar ʟBJ
+DelVar ʟBK
+DelVar ʟCR
+DelVar ʟCI
 DelVar ʟBA
 DelVar ʟBD
 DelVar ʟBM
@@ -2250,7 +2301,6 @@ DelVar ʟBY
 DelVar ʟBC
 DelVar ʟBG
 DelVar ʟBX
-DelVar ʟBI
 DelVar ʟBR
 DelVar ʟPC
 DelVar ʟPK
@@ -2378,6 +2428,10 @@ Goto @e_wait
 Lbl @e_linear
 ClrHome
 Disp "THAT EQUATION ISN'T","LINEAR (NO X², XY OR 1/X)."
+Goto @e_wait
+Lbl @e_count
+ClrHome
+Disp "TYPE A WHOLE NUMBER FROM","1 TO 6."
 Goto @e_wait
 Lbl @e_range
 ClrHome
